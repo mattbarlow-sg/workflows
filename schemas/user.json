@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User Profile",
+  "description": "Schema for user profile data",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique user identifier"
+    },
+    "username": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 20,
+      "pattern": "^[a-zA-Z0-9_]+$",
+      "description": "Username (alphanumeric and underscore only)"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "User email address"
+    },
+    "age": {
+      "type": "integer",
+      "minimum": 18,
+      "maximum": 120,
+      "description": "User age"
+    },
+    "profile": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "bio": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "avatar": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": ["firstName", "lastName"]
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["admin", "user", "moderator", "guest"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["id", "username", "email", "roles"],
+  "additionalProperties": false
+}

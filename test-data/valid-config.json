@@ -1,0 +1,13 @@
+{
+  "appName": "MyApp",
+  "version": "1.2.3",
+  "port": 8080,
+  "debug": true,
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "myapp_db",
+    "user": "dbuser"
+  },
+  "features": ["auth", "api", "ui"]
+}

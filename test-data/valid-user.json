@@ -1,0 +1,14 @@
+{
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "username": "john_doe",
+  "email": "john.doe@example.com",
+  "age": 30,
+  "profile": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "bio": "Software developer and tech enthusiast",
+    "avatar": "https://example.com/avatars/john.jpg"
+  },
+  "roles": ["user", "moderator"],
+  "createdAt": "2024-01-15T10:30:00Z"
+}

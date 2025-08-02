@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "API Response",
+  "description": "Standard API response format",
+  "type": "object",
+  "properties": {
+    "success": {
+      "type": "boolean",
+      "description": "Indicates if the request was successful"
+    },
+    "data": {
+      "description": "Response data (can be any type)"
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Error code"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error message"
+        },
+        "details": {
+          "type": "object",
+          "description": "Additional error details"
+        }
+      },
+      "required": ["code", "message"],
+      "additionalProperties": false
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "version": {
+          "type": "string"
+        },
+        "requestId": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": ["success"],
+  "oneOf": [
+    {
+      "properties": {
+        "success": { "const": true },
+        "data": {}
+      },
+      "required": ["data"],
+      "not": {
+        "required": ["error"]
+      }
+    },
+    {
+      "properties": {
+        "success": { "const": false },
+        "error": {}
+      },
+      "required": ["error"],
+      "not": {
+        "required": ["data"]
+      }
+    }
+  ]
+}
