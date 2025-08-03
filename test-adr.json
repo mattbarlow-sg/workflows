@@ -1,0 +1,23 @@
+{
+  "id": "ADR-0165",
+  "title": "Use React for frontend framework",
+  "status": "draft",
+  "date": "2025-08-03",
+  "context": {
+    "problem": "",
+    "background": ""
+  },
+  "options": [],
+  "decision": {
+    "chosenOption": "",
+    "rationale": ""
+  },
+  "consequences": {},
+  "stakeholders": {
+    "deciders": [
+      "team-lead",
+      "architect",
+      "dev-team"
+    ]
+  }
+}

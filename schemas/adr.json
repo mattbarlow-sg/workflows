@@ -1,0 +1,343 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Architecture Decision Record",
+  "description": "Schema for Architecture Decision Records (ADR) based on MADR 4.0.0 with AI-friendly extensions",
+  "type": "object",
+  "required": ["id", "title", "status", "date", "context", "decision", "consequences"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the ADR",
+      "pattern": "^ADR-[0-9]{4}$"
+    },
+    "title": {
+      "type": "string",
+      "description": "Brief title of the decision",
+      "minLength": 5,
+      "maxLength": 100
+    },
+    "status": {
+      "type": "string",
+      "description": "Current status of the ADR",
+      "enum": ["draft", "proposed", "accepted", "deprecated", "superseded", "rejected"]
+    },
+    "date": {
+      "type": "string",
+      "description": "Date of the decision in ISO 8601 format",
+      "format": "date"
+    },
+    "technicalStory": {
+      "type": "object",
+      "description": "Technical story or issue details",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Story/issue identifier (e.g., JIRA-123)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Story title or summary"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed story description"
+        },
+        "acceptanceCriteria": {
+          "type": "array",
+          "description": "List of acceptance criteria",
+          "items": {
+            "type": "string"
+          }
+        },
+        "link": {
+          "type": "string",
+          "description": "Optional link to external issue tracker",
+          "format": "uri"
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "Context and problem statement",
+      "required": ["problem", "background"],
+      "properties": {
+        "problem": {
+          "type": "string",
+          "description": "The problem being addressed",
+          "minLength": 10
+        },
+        "background": {
+          "type": "string",
+          "description": "Background information and current state"
+        },
+        "constraints": {
+          "type": "array",
+          "description": "Technical or business constraints",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "description": "Assumptions made",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "decisionDrivers": {
+      "type": "array",
+      "description": "Weighted criteria for decision making",
+      "items": {
+        "type": "object",
+        "required": ["driver", "weight"],
+        "properties": {
+          "driver": {
+            "type": "string",
+            "description": "Decision criterion"
+          },
+          "weight": {
+            "type": "number",
+            "description": "Importance weight (1-5)",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Why this driver is important"
+          }
+        }
+      }
+    },
+    "consideredOptions": {
+      "type": "array",
+      "description": "Options that were considered",
+      "items": {
+        "$ref": "#/definitions/option"
+      },
+      "minItems": 2
+    },
+    "decision": {
+      "type": "object",
+      "description": "The decision outcome",
+      "required": ["chosenOption", "rationale"],
+      "properties": {
+        "chosenOption": {
+          "type": "string",
+          "description": "Name of the chosen option"
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Why this option was chosen"
+        },
+        "implementation": {
+          "type": "string",
+          "description": "Implementation approach"
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "description": "How to verify the decision was correct",
+      "properties": {
+        "criteria": {
+          "type": "array",
+          "description": "Success criteria",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "description": "Measurable outcomes",
+          "items": {
+            "type": "object",
+            "required": ["metric", "target"],
+            "properties": {
+              "metric": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string"
+              },
+              "timeframe": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "consequences": {
+      "type": "object",
+      "description": "Consequences of the decision",
+      "properties": {
+        "positive": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "negative": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "neutral": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "compliance": {
+      "type": "object",
+      "description": "Regulatory and standards compliance",
+      "properties": {
+        "standards": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "regulations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional implementation notes"
+    },
+    "aiMetadata": {
+      "type": "object",
+      "description": "AI-friendly metadata extensions",
+      "properties": {
+        "tags": {
+          "type": "array",
+          "description": "Semantic tags for categorization",
+          "items": {
+            "type": "string"
+          }
+        },
+        "impactScores": {
+          "type": "object",
+          "properties": {
+            "technical": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10
+            },
+            "business": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10
+            },
+            "risk": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10
+            }
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "Related ADRs",
+          "items": {
+            "type": "object",
+            "required": ["adrId", "relationship"],
+            "properties": {
+              "adrId": {
+                "type": "string",
+                "pattern": "^ADR-[0-9]{4}$"
+              },
+              "relationship": {
+                "type": "string",
+                "enum": ["depends-on", "supersedes", "superseded-by", "relates-to", "conflicts-with"]
+              }
+            }
+          }
+        },
+        "estimatedCost": {
+          "type": "object",
+          "properties": {
+            "development": {
+              "type": "string"
+            },
+            "maintenance": {
+              "type": "string"
+            }
+          }
+        },
+        "keywords": {
+          "type": "array",
+          "description": "Searchable keywords",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "links": {
+      "type": "array",
+      "description": "External references",
+      "items": {
+        "type": "object",
+        "required": ["title", "url"],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["documentation", "example", "article", "tool", "standard"]
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "option": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Option name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Option description"
+        },
+        "pros": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "score": {
+          "type": "number",
+          "description": "Weighted score based on decision drivers",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    }
+  }
+}

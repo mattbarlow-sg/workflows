@@ -1,0 +1,102 @@
+{
+  "id": "ADR-0520",
+  "title": "Adopt microservices architecture",
+  "status": "proposed",
+  "date": "2025-08-03",
+  "technicalStory": {
+    "id": "ARCH-2024-001",
+    "title": "Migrate to scalable architecture"
+  },
+  "context": {
+    "problem": "Monolith is becoming difficult to maintain and scale",
+    "background": "Current monolith serves 1M users but development velocity is decreasing",
+    "constraints": [
+      "Must maintain 99.9% uptime",
+      "Budget limited to 50k/month"
+    ],
+    "assumptions": [
+      "Team can learn Kubernetes",
+      "Cloud costs will decrease over time"
+    ]
+  },
+  "decisionDrivers": [
+    {
+      "driver": "Scalability",
+      "weight": 5
+    },
+    {
+      "driver": "Development velocity",
+      "weight": 5
+    },
+    {
+      "driver": "Operational complexity",
+      "weight": 3
+    },
+    {
+      "driver": "Cost",
+      "weight": 4
+    }
+  ],
+  "options": [
+    {
+      "name": "Microservices",
+      "description": "Full microservices with k8s"
+    },
+    {
+      "name": "Modular monolith",
+      "description": "Monolith with clear module boundaries"
+    },
+    {
+      "name": "Serverless",
+      "description": "FaaS approach"
+    }
+  ],
+  "decision": {
+    "chosenOption": "Microservices",
+    "rationale": "Enables independent scaling and deployment of services"
+  },
+  "consequences": {
+    "positive": [
+      "Independent scaling",
+      "Technology diversity",
+      "Fault isolation"
+    ],
+    "negative": [
+      "Increased complexity",
+      "Network latency",
+      "Distributed transactions"
+    ],
+    "neutral": [
+      "Requires DevOps culture shift"
+    ]
+  },
+  "stakeholders": {
+    "deciders": [
+      "cto",
+      "lead-architect",
+      "engineering-manager"
+    ],
+    "consulted": [
+      "backend-team",
+      "devops-team",
+      "security-team"
+    ],
+    "informed": [
+      "all-engineers",
+      "product-team"
+    ]
+  },
+  "aiMetadata": {
+    "tags": [
+      "architecture",
+      "microservices",
+      "scalability"
+    ],
+    "keywords": [
+      "microservice",
+      "kubernetes",
+      "scaling",
+      "distributed"
+    ]
+  }
+}

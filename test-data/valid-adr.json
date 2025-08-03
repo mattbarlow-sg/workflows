@@ -1,0 +1,166 @@
+{
+  "id": "ADR-0001",
+  "title": "Use React for Frontend Framework",
+  "status": "accepted",
+  "date": "2025-08-02",
+  "deciders": ["John Smith", "Jane Doe"],
+  "consulted": ["Frontend Team", "UX Designer"],
+  "informed": ["Backend Team", "DevOps"],
+  "technicalStory": {
+    "id": "PROJ-123",
+    "title": "Select Frontend Framework for New Web Application",
+    "description": "As a development team, we need to select and implement a modern frontend framework to replace our vanilla JavaScript implementation that has become difficult to maintain.",
+    "acceptanceCriteria": [
+      "Framework must support TypeScript",
+      "Framework must have strong community support",
+      "Team must be able to deliver MVP within 3 months",
+      "Framework must support modern build tools and testing"
+    ],
+    "link": "https://jira.example.com/PROJ-123"
+  },
+  "context": {
+    "problem": "We need to select a frontend framework for our new web application that supports rapid development and has strong community support.",
+    "background": "The current application uses vanilla JavaScript which has become difficult to maintain as complexity grows.",
+    "constraints": [
+      "Must support TypeScript",
+      "Team has limited experience with Angular",
+      "Need to deliver MVP within 3 months"
+    ],
+    "assumptions": [
+      "The application will have complex state management needs",
+      "We will need to support modern browsers only"
+    ]
+  },
+  "decisionDrivers": [
+    {
+      "driver": "Developer Experience",
+      "weight": 5,
+      "rationale": "Team productivity is critical for meeting deadlines"
+    },
+    {
+      "driver": "Community Support",
+      "weight": 4,
+      "rationale": "Need access to libraries and solutions"
+    },
+    {
+      "driver": "Performance",
+      "weight": 3,
+      "rationale": "Application needs to be responsive but not real-time"
+    }
+  ],
+  "consideredOptions": [
+    {
+      "name": "React",
+      "description": "Facebook's component-based library for building user interfaces",
+      "pros": [
+        "Large ecosystem and community",
+        "Excellent TypeScript support",
+        "Team has some experience",
+        "Virtual DOM for good performance"
+      ],
+      "cons": [
+        "Not a full framework - need additional libraries",
+        "Frequent breaking changes in ecosystem"
+      ],
+      "score": 85
+    },
+    {
+      "name": "Vue.js",
+      "description": "Progressive JavaScript framework",
+      "pros": [
+        "Gentle learning curve",
+        "Good documentation",
+        "Full framework with router and state management"
+      ],
+      "cons": [
+        "Smaller ecosystem than React",
+        "Team has no experience"
+      ],
+      "score": 70
+    },
+    {
+      "name": "Vanilla JavaScript with Web Components",
+      "description": "Use native web standards without a framework",
+      "pros": [
+        "No framework lock-in",
+        "Native browser support"
+      ],
+      "cons": [
+        "More boilerplate code",
+        "Limited tooling",
+        "Harder to maintain at scale"
+      ],
+      "score": 40
+    }
+  ],
+  "decision": {
+    "chosenOption": "React",
+    "rationale": "React provides the best balance of developer experience, community support, and performance for our needs. The team's existing experience will help meet tight deadlines.",
+    "implementation": "We will use Create React App for initial setup, Redux Toolkit for state management, and React Router for navigation."
+  },
+  "validation": {
+    "criteria": [
+      "Deliver MVP within 3 months",
+      "Achieve 90+ Lighthouse performance score",
+      "Onboard new developers within 1 week"
+    ],
+    "metrics": [
+      {
+        "metric": "Time to first meaningful paint",
+        "target": "< 2 seconds",
+        "timeframe": "At MVP launch"
+      },
+      {
+        "metric": "Developer satisfaction survey",
+        "target": "> 4/5 rating",
+        "timeframe": "After 6 months"
+      }
+    ]
+  },
+  "consequences": {
+    "positive": [
+      "Faster development with familiar tools",
+      "Access to vast ecosystem of components",
+      "Easy to hire React developers"
+    ],
+    "negative": [
+      "Need to choose and integrate additional libraries",
+      "Potential for decision fatigue with many options"
+    ],
+    "neutral": [
+      "Will need to establish coding standards for React",
+      "Team will need training on React best practices"
+    ]
+  },
+  "compliance": {
+    "standards": ["WCAG 2.1 AA"],
+    "regulations": []
+  },
+  "notes": "Consider migrating to Next.js in the future if SSR becomes a requirement.",
+  "aiMetadata": {
+    "tags": ["frontend", "framework", "react", "javascript", "typescript"],
+    "impactScores": {
+      "technical": 8,
+      "business": 6,
+      "risk": 3
+    },
+    "dependencies": [],
+    "estimatedCost": {
+      "development": "3 person-months",
+      "maintenance": "0.5 person-months annually"
+    },
+    "keywords": ["react", "frontend-framework", "spa", "component-based"]
+  },
+  "links": [
+    {
+      "title": "React Documentation",
+      "url": "https://react.dev",
+      "type": "documentation"
+    },
+    {
+      "title": "React TypeScript Cheatsheet",
+      "url": "https://github.com/typescript-cheatsheets/react",
+      "type": "documentation"
+    }
+  ]
+}

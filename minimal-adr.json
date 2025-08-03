@@ -1,0 +1,23 @@
+{
+  "id": "ADR-0503",
+  "title": "Use PostgreSQL for main database",
+  "status": "draft",
+  "date": "2025-08-03",
+  "context": {
+    "problem": "Need reliable relational database for user data",
+    "background": "Currently using SQLite which won't scale"
+  },
+  "options": [],
+  "decision": {
+    "chosenOption": "PostgreSQL",
+    "rationale": "Proven reliability and scalability"
+  },
+  "consequences": {
+    "positive": [
+      "ACID compliance",
+      "JSON support",
+      "Extensions"
+    ]
+  },
+  "stakeholders": {}
+}
