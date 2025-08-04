@@ -1,0 +1,268 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://workflows.example.com/schemas/bpmn-artifacts.json",
+  "title": "BPMN Artifacts",
+  "description": "Data objects, data stores, groups, and annotations for BPMN 2.0 processes",
+  "definitions": {
+    "dataObject": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "itemSubjectRef": {
+          "type": "string",
+          "description": "Reference to item definition"
+        },
+        "dataState": {
+          "type": "string",
+          "description": "Current state of the data object"
+        },
+        "isCollection": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this represents a collection of items"
+        },
+        "position": {
+          "$ref": "bpmn-common.json#/definitions/position"
+        },
+        "bounds": {
+          "$ref": "bpmn-common.json#/definitions/bounds"
+        },
+        "documentation": {
+          "$ref": "bpmn-common.json#/definitions/documentation"
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "dataStore": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "capacity": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Storage capacity limit"
+        },
+        "isUnlimited": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the data store has unlimited capacity"
+        },
+        "itemSubjectRef": {
+          "type": "string",
+          "description": "Reference to item definition"
+        },
+        "position": {
+          "$ref": "bpmn-common.json#/definitions/position"
+        },
+        "bounds": {
+          "$ref": "bpmn-common.json#/definitions/bounds"
+        },
+        "documentation": {
+          "$ref": "bpmn-common.json#/definitions/documentation"
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "group": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "categoryValueRef": {
+          "type": "string",
+          "description": "Reference to category value"
+        },
+        "position": {
+          "$ref": "bpmn-common.json#/definitions/position"
+        },
+        "bounds": {
+          "$ref": "bpmn-common.json#/definitions/bounds"
+        },
+        "documentation": {
+          "$ref": "bpmn-common.json#/definitions/documentation"
+        }
+      },
+      "required": ["id"]
+    },
+    "textAnnotation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Annotation text content"
+        },
+        "textFormat": {
+          "type": "string",
+          "enum": ["text/plain", "text/markdown", "text/html"],
+          "default": "text/plain"
+        },
+        "position": {
+          "$ref": "bpmn-common.json#/definitions/position"
+        },
+        "bounds": {
+          "$ref": "bpmn-common.json#/definitions/bounds"
+        }
+      },
+      "required": ["id", "text"]
+    },
+    "itemDefinition": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "structureRef": {
+          "type": "string",
+          "description": "Reference to data structure"
+        },
+        "dataType": {
+          "$ref": "bpmn-common.json#/definitions/dataType"
+        },
+        "isCollection": {
+          "type": "boolean",
+          "default": false
+        },
+        "itemKind": {
+          "type": "string",
+          "enum": ["information", "physical"],
+          "default": "information"
+        }
+      },
+      "required": ["id", "dataType"]
+    },
+    "message": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "itemRef": {
+          "type": "string",
+          "description": "Reference to item definition"
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "errorCode": {
+          "type": "string",
+          "description": "Error code for identification"
+        },
+        "structureRef": {
+          "type": "string",
+          "description": "Reference to error data structure"
+        }
+      },
+      "required": ["id", "name", "errorCode"]
+    },
+    "signal": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "structureRef": {
+          "type": "string",
+          "description": "Reference to signal data structure"
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "resource": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "resourceParameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/resourceParameter"
+          }
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "resourceParameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "bpmn-common.json#/definitions/dataType"
+        },
+        "isRequired": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": ["name", "type"]
+    },
+    "category": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "categoryValues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/categoryValue"
+          }
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "categoryValue": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "value"]
+    }
+  }
+}

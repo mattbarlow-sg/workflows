@@ -1,0 +1,376 @@
+{
+  "$schema": "../schemas/bpmn-process.json",
+  "process": {
+    "id": "content_creation_process",
+    "name": "AI-Human Content Creation Collaboration",
+    "processType": "private",
+    "isExecutable": true,
+    "elements": {
+      "events": [
+        {
+          "id": "start_1",
+          "name": "Content Request",
+          "type": "startEvent"
+        },
+        {
+          "id": "end_1",
+          "name": "Content Published",
+          "type": "endEvent"
+        }
+      ],
+      "activities": [
+        {
+          "id": "task_analyze_requirements",
+          "name": "Analyze Content Requirements",
+          "type": "businessRuleTask",
+          "agent": {
+            "type": "ai",
+            "strategy": "static",
+            "capabilities": ["text-analysis", "decision-making"]
+          },
+          "documentation": {
+            "text": "AI analyzes the content requirements and creates an outline"
+          }
+        },
+        {
+          "id": "task_generate_draft",
+          "name": "Generate Initial Draft",
+          "type": "serviceTask",
+          "agent": {
+            "type": "ai",
+            "strategy": "static",
+            "capabilities": ["text-analysis", "document-creation", "code-generation"]
+          },
+          "review": {
+            "required": true,
+            "reviewer": "human",
+            "strategy": "manual",
+            "actions": ["approve", "reject", "revise"],
+            "conditions": [
+              {
+                "type": "custom",
+                "expression": {
+                  "language": "javascript",
+                  "body": "contentType === 'technical' || contentLength > 2000"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "task_review_draft",
+          "name": "Review and Edit Draft",
+          "type": "userTask",
+          "agent": {
+            "type": "human",
+            "strategy": "capability-based",
+            "capabilities": ["domain-expertise", "approval"],
+            "constraints": ["content-editor-role"]
+          },
+          "documentation": {
+            "text": "Human reviews AI-generated draft and makes necessary edits"
+          }
+        },
+        {
+          "id": "task_enhance_content",
+          "name": "Enhance Content",
+          "type": "serviceTask",
+          "agent": {
+            "type": "ai",
+            "strategy": "static",
+            "capabilities": ["text-analysis", "document-creation"]
+          },
+          "review": {
+            "required": false
+          },
+          "documentation": {
+            "text": "AI enhances content based on human feedback"
+          }
+        },
+        {
+          "id": "task_fact_check",
+          "name": "Fact Check and Validate",
+          "type": "businessRuleTask",
+          "agent": {
+            "type": "ai",
+            "strategy": "static",
+            "capabilities": ["validation", "text-analysis"]
+          },
+          "review": {
+            "required": true,
+            "reviewer": "human",
+            "strategy": "conditional",
+            "conditions": [
+              {
+                "type": "confidence-threshold",
+                "threshold": 0.95
+              }
+            ]
+          }
+        },
+        {
+          "id": "task_final_approval",
+          "name": "Final Approval",
+          "type": "userTask",
+          "agent": {
+            "type": "human",
+            "strategy": "static",
+            "capabilities": ["approval", "domain-expertise"],
+            "constraints": ["senior-editor-role"]
+          }
+        },
+        {
+          "id": "task_format_publish",
+          "name": "Format and Publish",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "publishing-service"
+        }
+      ],
+      "gateways": [
+        {
+          "id": "gateway_review_decision",
+          "name": "Review Decision",
+          "type": "exclusiveGateway"
+        },
+        {
+          "id": "gateway_approval",
+          "name": "Approval Decision",
+          "type": "exclusiveGateway"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow_1",
+          "sourceRef": "start_1",
+          "targetRef": "task_analyze_requirements"
+        },
+        {
+          "id": "flow_2",
+          "sourceRef": "task_analyze_requirements",
+          "targetRef": "task_generate_draft"
+        },
+        {
+          "id": "flow_3",
+          "sourceRef": "task_generate_draft",
+          "targetRef": "task_review_draft"
+        },
+        {
+          "id": "flow_4",
+          "sourceRef": "task_review_draft",
+          "targetRef": "gateway_review_decision"
+        },
+        {
+          "id": "flow_needs_enhancement",
+          "name": "Needs Enhancement",
+          "sourceRef": "gateway_review_decision",
+          "targetRef": "task_enhance_content",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "reviewResult === 'enhance'"
+          }
+        },
+        {
+          "id": "flow_ready_for_check",
+          "name": "Ready for Check",
+          "sourceRef": "gateway_review_decision",
+          "targetRef": "task_fact_check",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "reviewResult === 'ready'"
+          }
+        },
+        {
+          "id": "flow_5",
+          "sourceRef": "task_enhance_content",
+          "targetRef": "task_review_draft"
+        },
+        {
+          "id": "flow_6",
+          "sourceRef": "task_fact_check",
+          "targetRef": "task_final_approval"
+        },
+        {
+          "id": "flow_7",
+          "sourceRef": "task_final_approval",
+          "targetRef": "gateway_approval"
+        },
+        {
+          "id": "flow_approved",
+          "name": "Approved",
+          "sourceRef": "gateway_approval",
+          "targetRef": "task_format_publish",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "approvalStatus === 'approved'"
+          }
+        },
+        {
+          "id": "flow_rejected",
+          "name": "Rejected - Revise",
+          "sourceRef": "gateway_approval",
+          "targetRef": "task_generate_draft",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "approvalStatus === 'rejected'"
+          }
+        },
+        {
+          "id": "flow_8",
+          "sourceRef": "task_format_publish",
+          "targetRef": "end_1"
+        }
+      ]
+    },
+    "agents": {
+      "definitions": [
+        {
+          "id": "ai_content_agent",
+          "name": "AI Content Creator",
+          "type": "ai",
+          "description": "AI agent specialized in content generation and analysis",
+          "capabilities": ["text-analysis", "document-creation", "code-generation", "validation"],
+          "availability": "always",
+          "maxConcurrentTasks": 5,
+          "priority": 7
+        },
+        {
+          "id": "human_editor",
+          "name": "Human Content Editor",
+          "type": "human",
+          "description": "Human editor for content review and enhancement",
+          "capabilities": ["domain-expertise", "approval"],
+          "constraints": ["content-editor-role"],
+          "availability": "scheduled",
+          "schedule": {
+            "timezone": "UTC",
+            "workingHours": [
+              {
+                "dayOfWeek": "monday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+              },
+              {
+                "dayOfWeek": "tuesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+              },
+              {
+                "dayOfWeek": "wednesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+              },
+              {
+                "dayOfWeek": "thursday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+              },
+              {
+                "dayOfWeek": "friday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+              }
+            ]
+          },
+          "priority": 8
+        },
+        {
+          "id": "senior_editor",
+          "name": "Senior Editor",
+          "type": "human",
+          "description": "Senior editor for final approval",
+          "capabilities": ["approval", "domain-expertise"],
+          "constraints": ["senior-editor-role"],
+          "availability": "on-demand",
+          "priority": 10
+        }
+      ],
+      "reviewWorkflows": [
+        {
+          "id": "ai_human_review",
+          "name": "AI to Human Review",
+          "pattern": "ai-human",
+          "description": "AI generates content, human reviews and approves",
+          "steps": [
+            {
+              "id": "step_1",
+              "name": "AI Generation",
+              "agent": "ai",
+              "action": "execute"
+            },
+            {
+              "id": "step_2",
+              "name": "Human Review",
+              "agent": "human",
+              "action": "review",
+              "criteria": [
+                {
+                  "type": "quality",
+                  "threshold": 0.8,
+                  "description": "Content quality meets standards"
+                },
+                {
+                  "type": "accuracy",
+                  "description": "Information is factually correct"
+                }
+              ]
+            },
+            {
+              "id": "step_3",
+              "name": "Decision",
+              "agent": "human",
+              "action": "approve",
+              "nextStepConditions": [
+                {
+                  "condition": {
+                    "language": "javascript",
+                    "body": "reviewScore < 0.7"
+                  },
+                  "action": "repeat"
+                }
+              ]
+            }
+          ],
+          "timeouts": {
+            "stepTimeout": "PT2H",
+            "overallTimeout": "PT24H",
+            "warningThreshold": 0.75
+          }
+        }
+      ],
+      "defaultAssignmentStrategy": "capability-based",
+      "performanceTracking": true
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "content_request",
+          "name": "Content Request",
+          "dataType": "object",
+          "dataState": "submitted"
+        },
+        {
+          "id": "content_draft",
+          "name": "Content Draft",
+          "dataType": "string",
+          "dataState": "draft"
+        },
+        {
+          "id": "review_feedback",
+          "name": "Review Feedback",
+          "dataType": "object",
+          "dataState": "reviewed"
+        },
+        {
+          "id": "published_content",
+          "name": "Published Content",
+          "dataType": "string",
+          "dataState": "published"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,277 @@
+{
+  "$schema": "../schemas/bpmn-process.json",
+  "process": {
+    "id": "order_processing",
+    "name": "Order Processing with Subprocess",
+    "processType": "private",
+    "isExecutable": true,
+    "elements": {
+      "events": [
+        {
+          "id": "start_main",
+          "name": "Order Received",
+          "type": "startEvent"
+        },
+        {
+          "id": "end_main",
+          "name": "Order Completed",
+          "type": "endEvent"
+        },
+        {
+          "id": "start_sub",
+          "name": "Start Validation",
+          "type": "startEvent"
+        },
+        {
+          "id": "end_sub",
+          "name": "Validation Complete",
+          "type": "endEvent"
+        },
+        {
+          "id": "boundary_timeout",
+          "name": "Validation Timeout",
+          "type": "boundaryEvent",
+          "attachedToRef": "subprocess_validation",
+          "cancelActivity": true,
+          "eventDefinition": {
+            "type": "timer",
+            "timeDuration": {
+              "language": "iso8601",
+              "body": "PT30M"
+            }
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "task_receive_order",
+          "name": "Receive Order",
+          "type": "receiveTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          }
+        },
+        {
+          "id": "subprocess_validation",
+          "name": "Order Validation Process",
+          "type": "subProcess",
+          "agent": {
+            "type": "dynamic",
+            "strategy": "rule-based",
+            "assignmentRules": [
+              {
+                "condition": {
+                  "language": "javascript",
+                  "body": "orderValue > 10000"
+                },
+                "assignTo": "human",
+                "withReview": "ai"
+              },
+              {
+                "condition": {
+                  "language": "javascript",
+                  "body": "orderValue <= 10000"
+                },
+                "assignTo": "ai"
+              }
+            ]
+          }
+        },
+        {
+          "id": "task_check_inventory",
+          "name": "Check Inventory",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "inventory-service"
+        },
+        {
+          "id": "task_verify_payment",
+          "name": "Verify Payment",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "payment-service"
+        },
+        {
+          "id": "task_validate_shipping",
+          "name": "Validate Shipping Address",
+          "type": "businessRuleTask",
+          "agent": {
+            "type": "ai",
+            "strategy": "static",
+            "capabilities": ["validation", "data-processing"]
+          }
+        },
+        {
+          "id": "task_process_order",
+          "name": "Process Order",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          }
+        },
+        {
+          "id": "task_handle_timeout",
+          "name": "Handle Validation Timeout",
+          "type": "userTask",
+          "agent": {
+            "type": "human",
+            "strategy": "static",
+            "capabilities": ["decision-making", "domain-expertise"]
+          }
+        },
+        {
+          "id": "task_ship_order",
+          "name": "Ship Order",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          }
+        }
+      ],
+      "gateways": [
+        {
+          "id": "gateway_validation_split",
+          "name": "Split Validation",
+          "type": "parallelGateway",
+          "gatewayDirection": "diverging"
+        },
+        {
+          "id": "gateway_validation_join",
+          "name": "Join Validation",
+          "type": "parallelGateway",
+          "gatewayDirection": "converging"
+        },
+        {
+          "id": "gateway_timeout_merge",
+          "name": "Merge After Timeout",
+          "type": "exclusiveGateway",
+          "gatewayDirection": "converging"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow_main_1",
+          "sourceRef": "start_main",
+          "targetRef": "task_receive_order"
+        },
+        {
+          "id": "flow_main_2",
+          "sourceRef": "task_receive_order",
+          "targetRef": "subprocess_validation"
+        },
+        {
+          "id": "flow_sub_1",
+          "sourceRef": "start_sub",
+          "targetRef": "gateway_validation_split"
+        },
+        {
+          "id": "flow_sub_2",
+          "sourceRef": "gateway_validation_split",
+          "targetRef": "task_check_inventory"
+        },
+        {
+          "id": "flow_sub_3",
+          "sourceRef": "gateway_validation_split",
+          "targetRef": "task_verify_payment"
+        },
+        {
+          "id": "flow_sub_4",
+          "sourceRef": "gateway_validation_split",
+          "targetRef": "task_validate_shipping"
+        },
+        {
+          "id": "flow_sub_5",
+          "sourceRef": "task_check_inventory",
+          "targetRef": "gateway_validation_join"
+        },
+        {
+          "id": "flow_sub_6",
+          "sourceRef": "task_verify_payment",
+          "targetRef": "gateway_validation_join"
+        },
+        {
+          "id": "flow_sub_7",
+          "sourceRef": "task_validate_shipping",
+          "targetRef": "gateway_validation_join"
+        },
+        {
+          "id": "flow_sub_8",
+          "sourceRef": "gateway_validation_join",
+          "targetRef": "end_sub"
+        },
+        {
+          "id": "flow_main_3",
+          "sourceRef": "subprocess_validation",
+          "targetRef": "task_process_order"
+        },
+        {
+          "id": "flow_timeout",
+          "sourceRef": "boundary_timeout",
+          "targetRef": "task_handle_timeout"
+        },
+        {
+          "id": "flow_main_4",
+          "sourceRef": "task_process_order",
+          "targetRef": "gateway_timeout_merge"
+        },
+        {
+          "id": "flow_timeout_2",
+          "sourceRef": "task_handle_timeout",
+          "targetRef": "gateway_timeout_merge"
+        },
+        {
+          "id": "flow_main_5",
+          "sourceRef": "gateway_timeout_merge",
+          "targetRef": "task_ship_order"
+        },
+        {
+          "id": "flow_main_6",
+          "sourceRef": "task_ship_order",
+          "targetRef": "end_main"
+        }
+      ]
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "order_data",
+          "name": "Order Data",
+          "dataType": "object",
+          "dataState": "received"
+        },
+        {
+          "id": "validation_result",
+          "name": "Validation Result",
+          "dataType": "object",
+          "dataState": "validated"
+        }
+      ],
+      "dataStores": [
+        {
+          "id": "order_database",
+          "name": "Order Database",
+          "isUnlimited": true,
+          "itemSubjectRef": "order_record"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "itemDefinitions": [
+      {
+        "id": "order_record",
+        "dataType": "object",
+        "structureRef": "OrderRecord"
+      }
+    ]
+  }
+}

@@ -67,3 +67,5 @@ tmp/
 # Local environment files
 .envrc
 .direnv/
+/.claude-trace/
+refactor/

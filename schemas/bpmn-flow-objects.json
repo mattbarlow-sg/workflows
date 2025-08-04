@@ -1,0 +1,487 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://workflows.example.com/schemas/bpmn-flow-objects.json",
+  "title": "BPMN Flow Objects",
+  "description": "Events, activities, and gateways for BPMN 2.0 processes",
+  "definitions": {
+    "event": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["startEvent", "endEvent", "intermediateEvent", "boundaryEvent"]
+        },
+        "eventDefinition": {
+          "type": "object",
+          "oneOf": [
+            {"$ref": "#/definitions/messageEventDefinition"},
+            {"$ref": "#/definitions/timerEventDefinition"},
+            {"$ref": "#/definitions/errorEventDefinition"},
+            {"$ref": "#/definitions/signalEventDefinition"},
+            {"$ref": "#/definitions/conditionalEventDefinition"},
+            {"$ref": "#/definitions/terminateEventDefinition"}
+          ]
+        },
+        "attachedToRef": {
+          "type": "string",
+          "description": "Reference to activity for boundary events"
+        },
+        "cancelActivity": {
+          "type": "boolean",
+          "default": true,
+          "description": "For boundary events, whether to cancel the activity"
+        },
+        "position": {
+          "$ref": "bpmn-common.json#/definitions/position"
+        },
+        "documentation": {
+          "$ref": "bpmn-common.json#/definitions/documentation"
+        }
+      },
+      "required": ["id", "type"],
+      "if": {
+        "properties": {"type": {"const": "boundaryEvent"}}
+      },
+      "then": {
+        "required": ["attachedToRef"]
+      }
+    },
+    "activity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "task",
+            "userTask",
+            "serviceTask",
+            "scriptTask",
+            "businessRuleTask",
+            "sendTask",
+            "receiveTask",
+            "manualTask",
+            "subProcess",
+            "callActivity"
+          ]
+        },
+        "agent": {
+          "$ref": "#/definitions/agentAssignment"
+        },
+        "review": {
+          "$ref": "#/definitions/reviewConfig"
+        },
+        "implementation": {
+          "type": "string",
+          "description": "Implementation details for service/script tasks"
+        },
+        "script": {
+          "$ref": "bpmn-common.json#/definitions/expression",
+          "description": "Script definition for script tasks"
+        },
+        "calledElement": {
+          "type": "string",
+          "description": "Reference to called process for call activities"
+        },
+        "isForCompensation": {
+          "type": "boolean",
+          "default": false
+        },
+        "loopCharacteristics": {
+          "$ref": "#/definitions/loopCharacteristics"
+        },
+        "position": {
+          "$ref": "bpmn-common.json#/definitions/position"
+        },
+        "bounds": {
+          "$ref": "bpmn-common.json#/definitions/bounds"
+        },
+        "documentation": {
+          "$ref": "bpmn-common.json#/definitions/documentation"
+        },
+        "ioSpecification": {
+          "$ref": "#/definitions/ioSpecification"
+        }
+      },
+      "required": ["id", "name", "type"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {"type": {"const": "scriptTask"}}
+          },
+          "then": {
+            "required": ["script"]
+          }
+        },
+        {
+          "if": {
+            "properties": {"type": {"const": "callActivity"}}
+          },
+          "then": {
+            "required": ["calledElement"]
+          }
+        }
+      ]
+    },
+    "gateway": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["exclusiveGateway", "parallelGateway", "inclusiveGateway", "eventBasedGateway", "complexGateway"]
+        },
+        "gatewayDirection": {
+          "type": "string",
+          "enum": ["converging", "diverging", "mixed"],
+          "default": "mixed"
+        },
+        "default": {
+          "type": "string",
+          "description": "Default sequence flow id for exclusive/inclusive gateways"
+        },
+        "position": {
+          "$ref": "bpmn-common.json#/definitions/position"
+        },
+        "documentation": {
+          "$ref": "bpmn-common.json#/definitions/documentation"
+        }
+      },
+      "required": ["id", "type"]
+    },
+    "agentAssignment": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "bpmn-common.json#/definitions/agentType"
+        },
+        "strategy": {
+          "$ref": "bpmn-common.json#/definitions/assignmentStrategy"
+        },
+        "preferredAgent": {
+          "$ref": "bpmn-common.json#/definitions/agentType"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-common.json#/definitions/agentCapability"
+          },
+          "description": "Required capabilities for the agent"
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-common.json#/definitions/constraint"
+          }
+        },
+        "assignmentRules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/assignmentRule"
+          }
+        }
+      },
+      "required": ["type", "strategy"]
+    },
+    "reviewConfig": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "reviewer": {
+          "$ref": "bpmn-common.json#/definitions/agentType"
+        },
+        "strategy": {
+          "$ref": "bpmn-common.json#/definitions/reviewStrategy"
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/reviewCondition"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["approve", "reject", "revise", "escalate"]
+          },
+          "default": ["approve", "reject", "revise"]
+        }
+      },
+      "required": ["required"],
+      "if": {
+        "properties": {"required": {"const": true}}
+      },
+      "then": {
+        "required": ["reviewer", "strategy"]
+      }
+    },
+    "assignmentRule": {
+      "type": "object",
+      "properties": {
+        "condition": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        },
+        "assignTo": {
+          "$ref": "bpmn-common.json#/definitions/agentType"
+        },
+        "withReview": {
+          "$ref": "bpmn-common.json#/definitions/agentType"
+        }
+      },
+      "required": ["condition", "assignTo"]
+    },
+    "reviewCondition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["confidence-threshold", "error-detection", "complexity-threshold", "custom"]
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "expression": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        }
+      },
+      "required": ["type"]
+    },
+    "loopCharacteristics": {
+      "type": "object",
+      "oneOf": [
+        {"$ref": "#/definitions/standardLoopCharacteristics"},
+        {"$ref": "#/definitions/multiInstanceLoopCharacteristics"}
+      ]
+    },
+    "standardLoopCharacteristics": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "standardLoop"
+        },
+        "testBefore": {
+          "type": "boolean",
+          "default": false
+        },
+        "loopCondition": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        },
+        "loopMaximum": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["type", "loopCondition"]
+    },
+    "multiInstanceLoopCharacteristics": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "multiInstance"
+        },
+        "isSequential": {
+          "type": "boolean",
+          "default": false
+        },
+        "loopCardinality": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        },
+        "loopDataInputRef": {
+          "type": "string"
+        },
+        "loopDataOutputRef": {
+          "type": "string"
+        },
+        "inputDataItem": {
+          "type": "string"
+        },
+        "outputDataItem": {
+          "type": "string"
+        },
+        "completionCondition": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        }
+      },
+      "required": ["type"]
+    },
+    "ioSpecification": {
+      "type": "object",
+      "properties": {
+        "dataInputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/dataInput"
+          }
+        },
+        "dataOutputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/dataOutput"
+          }
+        },
+        "inputSets": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        },
+        "outputSets": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    "dataInput": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "itemSubjectRef": {
+          "type": "string"
+        },
+        "isCollection": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "dataOutput": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "itemSubjectRef": {
+          "type": "string"
+        },
+        "isCollection": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "messageEventDefinition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "message"
+        },
+        "messageRef": {
+          "$ref": "bpmn-common.json#/definitions/messageRef"
+        }
+      },
+      "required": ["type", "messageRef"]
+    },
+    "timerEventDefinition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "timer"
+        },
+        "timeDate": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        },
+        "timeDuration": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        },
+        "timeCycle": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        }
+      },
+      "required": ["type"],
+      "oneOf": [
+        {"required": ["timeDate"]},
+        {"required": ["timeDuration"]},
+        {"required": ["timeCycle"]}
+      ]
+    },
+    "errorEventDefinition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "error"
+        },
+        "errorRef": {
+          "$ref": "bpmn-common.json#/definitions/errorRef"
+        }
+      },
+      "required": ["type"]
+    },
+    "signalEventDefinition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "signal"
+        },
+        "signalRef": {
+          "type": "string"
+        }
+      },
+      "required": ["type", "signalRef"]
+    },
+    "conditionalEventDefinition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "conditional"
+        },
+        "condition": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        }
+      },
+      "required": ["type", "condition"]
+    },
+    "terminateEventDefinition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "terminate"
+        }
+      },
+      "required": ["type"]
+    }
+  }
+}

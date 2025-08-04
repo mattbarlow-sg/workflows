@@ -1,0 +1,179 @@
+{
+  "$schema": "../schemas/bpmn-process.json",
+  "process": {
+    "id": "parallel_processing",
+    "name": "Parallel Document Processing",
+    "processType": "private",
+    "isExecutable": true,
+    "elements": {
+      "events": [
+        {
+          "id": "start_1",
+          "name": "Document Received",
+          "type": "startEvent"
+        },
+        {
+          "id": "end_1",
+          "name": "Processing Complete",
+          "type": "endEvent"
+        }
+      ],
+      "activities": [
+        {
+          "id": "task_validate",
+          "name": "Validate Document",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "validation-service"
+        },
+        {
+          "id": "task_extract_data",
+          "name": "Extract Data",
+          "type": "serviceTask",
+          "agent": {
+            "type": "ai",
+            "strategy": "static",
+            "capabilities": ["text-analysis", "data-processing"]
+          },
+          "review": {
+            "required": true,
+            "reviewer": "human",
+            "strategy": "automatic",
+            "conditions": [
+              {
+                "type": "confidence-threshold",
+                "threshold": 0.85
+              }
+            ]
+          }
+        },
+        {
+          "id": "task_check_compliance",
+          "name": "Check Compliance",
+          "type": "businessRuleTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static",
+            "capabilities": ["validation", "decision-making"]
+          }
+        },
+        {
+          "id": "task_generate_report",
+          "name": "Generate Report",
+          "type": "serviceTask",
+          "agent": {
+            "type": "ai",
+            "strategy": "static",
+            "capabilities": ["document-creation", "text-analysis"]
+          }
+        },
+        {
+          "id": "task_finalize",
+          "name": "Finalize Processing",
+          "type": "userTask",
+          "agent": {
+            "type": "human",
+            "strategy": "static"
+          }
+        }
+      ],
+      "gateways": [
+        {
+          "id": "parallel_split",
+          "name": "Start Parallel Processing",
+          "type": "parallelGateway",
+          "gatewayDirection": "diverging"
+        },
+        {
+          "id": "parallel_join",
+          "name": "Synchronize Results",
+          "type": "parallelGateway",
+          "gatewayDirection": "converging"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow_1",
+          "sourceRef": "start_1",
+          "targetRef": "task_validate"
+        },
+        {
+          "id": "flow_2",
+          "sourceRef": "task_validate",
+          "targetRef": "parallel_split"
+        },
+        {
+          "id": "flow_3",
+          "sourceRef": "parallel_split",
+          "targetRef": "task_extract_data"
+        },
+        {
+          "id": "flow_4",
+          "sourceRef": "parallel_split",
+          "targetRef": "task_check_compliance"
+        },
+        {
+          "id": "flow_5",
+          "sourceRef": "parallel_split",
+          "targetRef": "task_generate_report"
+        },
+        {
+          "id": "flow_6",
+          "sourceRef": "task_extract_data",
+          "targetRef": "parallel_join"
+        },
+        {
+          "id": "flow_7",
+          "sourceRef": "task_check_compliance",
+          "targetRef": "parallel_join"
+        },
+        {
+          "id": "flow_8",
+          "sourceRef": "task_generate_report",
+          "targetRef": "parallel_join"
+        },
+        {
+          "id": "flow_9",
+          "sourceRef": "parallel_join",
+          "targetRef": "task_finalize"
+        },
+        {
+          "id": "flow_10",
+          "sourceRef": "task_finalize",
+          "targetRef": "end_1"
+        }
+      ]
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "document_data",
+          "name": "Document",
+          "dataType": "file",
+          "dataState": "received"
+        },
+        {
+          "id": "extracted_data",
+          "name": "Extracted Data",
+          "dataType": "object",
+          "dataState": "processed"
+        },
+        {
+          "id": "compliance_result",
+          "name": "Compliance Result",
+          "dataType": "object",
+          "dataState": "checked"
+        },
+        {
+          "id": "report",
+          "name": "Processing Report",
+          "dataType": "file",
+          "dataState": "generated"
+        }
+      ]
+    }
+  }
+}

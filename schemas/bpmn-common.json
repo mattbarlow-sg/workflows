@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://workflows.example.com/schemas/bpmn-common.json",
+  "title": "BPMN Common Definitions",
+  "description": "Shared definitions and types for BPMN 2.0 elements",
+  "definitions": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_-]*$",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Unique identifier for BPMN elements"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Human-readable name for the element"
+    },
+    "documentation": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Documentation text"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["text/plain", "text/markdown", "text/html"],
+          "default": "text/plain"
+        }
+      },
+      "required": ["text"]
+    },
+    "extensionElements": {
+      "type": "object",
+      "description": "Container for custom extensions",
+      "additionalProperties": true
+    },
+    "expression": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "description": "Expression language (e.g., 'javascript', 'python', 'jexl')"
+        },
+        "body": {
+          "type": "string",
+          "description": "Expression body"
+        }
+      },
+      "required": ["body"]
+    },
+    "agentType": {
+      "type": "string",
+      "enum": ["ai", "human", "system", "dynamic"],
+      "description": "Type of agent that can perform a task"
+    },
+    "assignmentStrategy": {
+      "type": "string",
+      "enum": ["static", "dynamic", "rule-based", "capability-based", "load-balanced"],
+      "description": "Strategy for assigning agents to tasks"
+    },
+    "reviewStrategy": {
+      "type": "string",
+      "enum": ["automatic", "manual", "conditional", "none"],
+      "description": "Strategy for reviewing task completion"
+    },
+    "agentCapability": {
+      "type": "string",
+      "enum": [
+        "text-analysis",
+        "code-generation",
+        "code-review",
+        "decision-making",
+        "data-processing",
+        "document-creation",
+        "validation",
+        "approval",
+        "domain-expertise"
+      ],
+      "description": "Capabilities that agents may possess"
+    },
+    "constraint": {
+      "type": "string",
+      "description": "Constraint or requirement for task execution"
+    },
+    "dataType": {
+      "type": "string",
+      "enum": ["string", "number", "boolean", "object", "array", "date", "file"],
+      "description": "Data type for variables and data objects"
+    },
+    "messageRef": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_-]*$",
+      "description": "Reference to a message definition"
+    },
+    "errorRef": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_-]*$",
+      "description": "Reference to an error definition"
+    },
+    "position": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "X coordinate"
+        },
+        "y": {
+          "type": "number",
+          "description": "Y coordinate"
+        }
+      },
+      "required": ["x", "y"],
+      "description": "Position coordinates for visual representation"
+    },
+    "bounds": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": ["x", "y", "width", "height"],
+      "description": "Bounding box for visual elements"
+    }
+  }
+}

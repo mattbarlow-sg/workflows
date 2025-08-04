@@ -1,0 +1,94 @@
+{
+  "$schema": "../schemas/bpmn-process.json",
+  "process": {
+    "id": "simple_approval_process",
+    "name": "Simple Approval Process",
+    "processType": "private",
+    "isExecutable": true,
+    "elements": {
+      "events": [
+        {
+          "id": "start_event_1",
+          "name": "Request Received",
+          "type": "startEvent"
+        },
+        {
+          "id": "end_event_1",
+          "name": "Request Processed",
+          "type": "endEvent"
+        }
+      ],
+      "activities": [
+        {
+          "id": "task_review_request",
+          "name": "Review Request",
+          "type": "userTask",
+          "agent": {
+            "type": "human",
+            "strategy": "static",
+            "capabilities": ["validation", "decision-making"]
+          },
+          "documentation": {
+            "text": "Review the incoming request and prepare initial assessment"
+          }
+        },
+        {
+          "id": "task_approve_request",
+          "name": "Approve Request",
+          "type": "userTask",
+          "agent": {
+            "type": "human",
+            "strategy": "static",
+            "capabilities": ["approval"]
+          },
+          "review": {
+            "required": false
+          }
+        },
+        {
+          "id": "task_notify_requester",
+          "name": "Notify Requester",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "email-service"
+        }
+      ],
+      "gateways": [],
+      "sequenceFlows": [
+        {
+          "id": "flow_1",
+          "sourceRef": "start_event_1",
+          "targetRef": "task_review_request"
+        },
+        {
+          "id": "flow_2",
+          "sourceRef": "task_review_request",
+          "targetRef": "task_approve_request"
+        },
+        {
+          "id": "flow_3",
+          "sourceRef": "task_approve_request",
+          "targetRef": "task_notify_requester"
+        },
+        {
+          "id": "flow_4",
+          "sourceRef": "task_notify_requester",
+          "targetRef": "end_event_1"
+        }
+      ]
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "data_request",
+          "name": "Request Data",
+          "dataType": "object",
+          "dataState": "submitted"
+        }
+      ]
+    }
+  }
+}

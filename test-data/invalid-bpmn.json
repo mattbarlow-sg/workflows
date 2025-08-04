@@ -1,0 +1,120 @@
+{
+  "$schema": "../schemas/bpmn-process.json",
+  "process": {
+    "id": "invalid_process",
+    "name": "Invalid Process for Testing",
+    "elements": {
+      "events": [
+        {
+          "id": "start_1",
+          "type": "startEvent"
+        },
+        {
+          "id": "end_1",
+          "name": "End Event",
+          "type": "endEvent"
+        },
+        {
+          "id": "boundary_1",
+          "name": "Orphaned Boundary Event",
+          "type": "boundaryEvent"
+        }
+      ],
+      "activities": [
+        {
+          "id": "task_1",
+          "type": "invalidTaskType",
+          "agent": {
+            "type": "unknown",
+            "strategy": "invalid-strategy"
+          }
+        },
+        {
+          "id": "task_2",
+          "name": "Task Without ID"
+        },
+        {
+          "id": "script_task_no_script",
+          "name": "Script Task Without Script",
+          "type": "scriptTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          }
+        }
+      ],
+      "gateways": [
+        {
+          "id": "gateway_1",
+          "name": "Gateway Without Type"
+        },
+        {
+          "id": "exclusive_no_conditions",
+          "name": "Exclusive Gateway Without Conditions",
+          "type": "exclusiveGateway"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow_1",
+          "sourceRef": "start_1",
+          "targetRef": "nonexistent_task"
+        },
+        {
+          "id": "flow_2",
+          "sourceRef": "task_1"
+        },
+        {
+          "id": "flow_3",
+          "targetRef": "end_1"
+        },
+        {
+          "id": "flow_circular_1",
+          "sourceRef": "task_1",
+          "targetRef": "task_1"
+        }
+      ]
+    },
+    "agents": {
+      "definitions": [
+        {
+          "id": "invalid_agent",
+          "name": "Invalid Agent",
+          "type": "invalid_type",
+          "capabilities": ["non-existent-capability"],
+          "availability": "sometimes"
+        },
+        {
+          "id": "scheduled_agent_no_schedule",
+          "name": "Scheduled Agent Without Schedule",
+          "type": "human",
+          "capabilities": ["approval"],
+          "availability": "scheduled"
+        }
+      ],
+      "reviewWorkflows": [
+        {
+          "id": "invalid_workflow",
+          "name": "Invalid Review Workflow",
+          "pattern": "unknown-pattern",
+          "steps": []
+        }
+      ]
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "data_1",
+          "dataType": "invalid-type"
+        }
+      ],
+      "messageFlows": [
+        {
+          "id": "message_flow_same_pool",
+          "sourceRef": "task_1",
+          "targetRef": "task_2"
+        }
+      ]
+    }
+  }
+}

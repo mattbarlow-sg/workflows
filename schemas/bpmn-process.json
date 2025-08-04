@@ -1,0 +1,431 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://workflows.example.com/schemas/bpmn-process.json",
+  "title": "BPMN Process",
+  "description": "Root schema for BPMN 2.0 process definitions",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference"
+    },
+    "process": {
+      "$ref": "#/definitions/process"
+    },
+    "collaboration": {
+      "$ref": "#/definitions/collaboration"
+    },
+    "definitions": {
+      "$ref": "#/definitions/definitions"
+    }
+  },
+  "required": ["process"],
+  "definitions": {
+    "process": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "processType": {
+          "type": "string",
+          "enum": ["none", "public", "private"],
+          "default": "private"
+        },
+        "isExecutable": {
+          "type": "boolean",
+          "default": true
+        },
+        "isClosed": {
+          "type": "boolean",
+          "default": false
+        },
+        "elements": {
+          "$ref": "#/definitions/processElements"
+        },
+        "swimlanes": {
+          "$ref": "#/definitions/swimlanes"
+        },
+        "artifacts": {
+          "$ref": "#/definitions/artifacts"
+        },
+        "agents": {
+          "$ref": "#/definitions/agentConfig"
+        },
+        "documentation": {
+          "$ref": "bpmn-common.json#/definitions/documentation"
+        },
+        "extensionElements": {
+          "$ref": "bpmn-common.json#/definitions/extensionElements"
+        },
+        "auditing": {
+          "$ref": "#/definitions/auditing"
+        },
+        "monitoring": {
+          "$ref": "#/definitions/monitoring"
+        }
+      },
+      "required": ["id", "name", "elements"]
+    },
+    "processElements": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-flow-objects.json#/definitions/event"
+          }
+        },
+        "activities": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-flow-objects.json#/definitions/activity"
+          }
+        },
+        "gateways": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-flow-objects.json#/definitions/gateway"
+          }
+        },
+        "sequenceFlows": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-connectors.json#/definitions/sequenceFlow"
+          }
+        },
+        "dataAssociations": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-connectors.json#/definitions/dataAssociation"
+          }
+        }
+      }
+    },
+    "swimlanes": {
+      "type": "object",
+      "properties": {
+        "pools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pool"
+          }
+        },
+        "lanes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/lane"
+          }
+        }
+      }
+    },
+    "pool": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "processRef": {
+          "type": "string",
+          "description": "Reference to the process contained in this pool"
+        },
+        "participantMultiplicity": {
+          "$ref": "#/definitions/participantMultiplicity"
+        },
+        "lanes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "References to lane IDs"
+          }
+        },
+        "bounds": {
+          "$ref": "bpmn-common.json#/definitions/bounds"
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "lane": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "partitionElement": {
+          "type": "string",
+          "description": "Reference to partition element"
+        },
+        "flowNodeRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "References to flow nodes in this lane"
+          }
+        },
+        "childLaneSet": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "References to child lane IDs"
+          }
+        },
+        "bounds": {
+          "$ref": "bpmn-common.json#/definitions/bounds"
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "participantMultiplicity": {
+      "type": "object",
+      "properties": {
+        "minimum": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "maximum": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "dataObjects": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-artifacts.json#/definitions/dataObject"
+          }
+        },
+        "dataStores": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-artifacts.json#/definitions/dataStore"
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-artifacts.json#/definitions/group"
+          }
+        },
+        "textAnnotations": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-artifacts.json#/definitions/textAnnotation"
+          }
+        },
+        "associations": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-connectors.json#/definitions/association"
+          }
+        }
+      }
+    },
+    "agentConfig": {
+      "type": "object",
+      "properties": {
+        "definitions": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-agents.json#/definitions/agentDefinition"
+          }
+        },
+        "pools": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-agents.json#/definitions/agentPool"
+          }
+        },
+        "reviewWorkflows": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-agents.json#/definitions/reviewWorkflow"
+          }
+        },
+        "defaultAssignmentStrategy": {
+          "$ref": "bpmn-common.json#/definitions/assignmentStrategy"
+        },
+        "performanceTracking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to track agent performance metrics"
+        }
+      }
+    },
+    "collaboration": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/participant"
+          }
+        },
+        "messageFlows": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-connectors.json#/definitions/messageFlow"
+          }
+        },
+        "artifacts": {
+          "$ref": "#/definitions/artifacts"
+        }
+      },
+      "required": ["id", "participants"]
+    },
+    "participant": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "processRef": {
+          "type": "string",
+          "description": "Reference to the process"
+        },
+        "participantMultiplicity": {
+          "$ref": "#/definitions/participantMultiplicity"
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "definitions": {
+      "type": "object",
+      "properties": {
+        "itemDefinitions": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-artifacts.json#/definitions/itemDefinition"
+          }
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-artifacts.json#/definitions/message"
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-artifacts.json#/definitions/error"
+          }
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-artifacts.json#/definitions/signal"
+          }
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-artifacts.json#/definitions/resource"
+          }
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-artifacts.json#/definitions/category"
+          }
+        }
+      }
+    },
+    "auditing": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "level": {
+          "type": "string",
+          "enum": ["none", "basic", "detailed", "full"],
+          "default": "basic"
+        },
+        "storage": {
+          "type": "string",
+          "description": "Where audit logs are stored"
+        }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["execution-time", "error-rate", "throughput", "resource-usage", "agent-performance"]
+          }
+        },
+        "alerting": {
+          "$ref": "#/definitions/alerting"
+        }
+      }
+    },
+    "alerting": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/alertRule"
+          }
+        }
+      }
+    },
+    "alertRule": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "condition": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning", "error", "critical"],
+          "default": "warning"
+        },
+        "notification": {
+          "$ref": "bpmn-agents.json#/definitions/notification"
+        }
+      },
+      "required": ["id", "name", "condition", "notification"]
+    }
+  }
+}

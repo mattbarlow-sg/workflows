@@ -1,0 +1,203 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://workflows.example.com/schemas/bpmn-connectors.json",
+  "title": "BPMN Connectors",
+  "description": "Sequence flows, message flows, and associations for BPMN 2.0 processes",
+  "definitions": {
+    "sequenceFlow": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "sourceRef": {
+          "type": "string",
+          "description": "Reference to the source element"
+        },
+        "targetRef": {
+          "type": "string",
+          "description": "Reference to the target element"
+        },
+        "conditionExpression": {
+          "$ref": "bpmn-common.json#/definitions/expression",
+          "description": "Condition for conditional sequence flows"
+        },
+        "isImmediate": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the flow should be taken immediately"
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-common.json#/definitions/position"
+          },
+          "minItems": 2,
+          "description": "Waypoints for visual representation"
+        },
+        "documentation": {
+          "$ref": "bpmn-common.json#/definitions/documentation"
+        }
+      },
+      "required": ["id", "sourceRef", "targetRef"]
+    },
+    "messageFlow": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "sourceRef": {
+          "type": "string",
+          "description": "Reference to the source element (must be in different pool)"
+        },
+        "targetRef": {
+          "type": "string",
+          "description": "Reference to the target element (must be in different pool)"
+        },
+        "messageRef": {
+          "$ref": "bpmn-common.json#/definitions/messageRef"
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-common.json#/definitions/position"
+          },
+          "minItems": 2
+        },
+        "documentation": {
+          "$ref": "bpmn-common.json#/definitions/documentation"
+        }
+      },
+      "required": ["id", "sourceRef", "targetRef"]
+    },
+    "association": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "associationDirection": {
+          "type": "string",
+          "enum": ["none", "one", "both"],
+          "default": "none"
+        },
+        "sourceRef": {
+          "type": "string",
+          "description": "Reference to the source element"
+        },
+        "targetRef": {
+          "type": "string",
+          "description": "Reference to the target element"
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-common.json#/definitions/position"
+          },
+          "minItems": 2
+        },
+        "documentation": {
+          "$ref": "bpmn-common.json#/definitions/documentation"
+        }
+      },
+      "required": ["id", "sourceRef", "targetRef"]
+    },
+    "dataAssociation": {
+      "type": "object",
+      "oneOf": [
+        {"$ref": "#/definitions/dataInputAssociation"},
+        {"$ref": "#/definitions/dataOutputAssociation"}
+      ]
+    },
+    "dataInputAssociation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "dataInputAssociation"
+        },
+        "sourceRef": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "References to source data objects"
+        },
+        "targetRef": {
+          "type": "string",
+          "description": "Reference to target data input"
+        },
+        "transformation": {
+          "$ref": "bpmn-common.json#/definitions/expression",
+          "description": "Optional transformation expression"
+        },
+        "assignment": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/assignment"
+          }
+        }
+      },
+      "required": ["id", "type", "sourceRef", "targetRef"]
+    },
+    "dataOutputAssociation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "dataOutputAssociation"
+        },
+        "sourceRef": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "References to source data outputs"
+        },
+        "targetRef": {
+          "type": "string",
+          "description": "Reference to target data object"
+        },
+        "transformation": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        },
+        "assignment": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/assignment"
+          }
+        }
+      },
+      "required": ["id", "type", "sourceRef", "targetRef"]
+    },
+    "assignment": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "$ref": "bpmn-common.json#/definitions/expression",
+          "description": "Source expression"
+        },
+        "to": {
+          "$ref": "bpmn-common.json#/definitions/expression",
+          "description": "Target expression"
+        }
+      },
+      "required": ["from", "to"]
+    }
+  }
+}

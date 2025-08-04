@@ -1,0 +1,237 @@
+{
+  "$schema": "../schemas/bpmn-process.json",
+  "process": {
+    "id": "loan_approval_process",
+    "name": "Loan Approval Process",
+    "processType": "private",
+    "isExecutable": true,
+    "elements": {
+      "events": [
+        {
+          "id": "start_1",
+          "name": "Loan Application Received",
+          "type": "startEvent"
+        },
+        {
+          "id": "end_approved",
+          "name": "Loan Approved",
+          "type": "endEvent"
+        },
+        {
+          "id": "end_rejected",
+          "name": "Loan Rejected",
+          "type": "endEvent"
+        }
+      ],
+      "activities": [
+        {
+          "id": "task_initial_check",
+          "name": "Initial Application Check",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "credit-check-service"
+        },
+        {
+          "id": "task_risk_assessment",
+          "name": "Perform Risk Assessment",
+          "type": "businessRuleTask",
+          "agent": {
+            "type": "ai",
+            "strategy": "static",
+            "capabilities": ["decision-making", "data-processing"]
+          }
+        },
+        {
+          "id": "task_manual_review",
+          "name": "Manual Review",
+          "type": "userTask",
+          "agent": {
+            "type": "human",
+            "strategy": "capability-based",
+            "capabilities": ["domain-expertise", "decision-making"],
+            "constraints": ["loan-officer-certified"]
+          }
+        },
+        {
+          "id": "task_approve_loan",
+          "name": "Approve Loan",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          }
+        },
+        {
+          "id": "task_reject_loan",
+          "name": "Reject Loan",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          }
+        },
+        {
+          "id": "task_notify_applicant",
+          "name": "Notify Applicant",
+          "type": "sendTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          }
+        }
+      ],
+      "gateways": [
+        {
+          "id": "gateway_risk_check",
+          "name": "Risk Level?",
+          "type": "exclusiveGateway",
+          "default": "flow_to_manual"
+        },
+        {
+          "id": "gateway_decision",
+          "name": "Approval Decision?",
+          "type": "exclusiveGateway"
+        },
+        {
+          "id": "gateway_merge",
+          "name": "Merge Paths",
+          "type": "exclusiveGateway",
+          "gatewayDirection": "converging"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow_1",
+          "sourceRef": "start_1",
+          "targetRef": "task_initial_check"
+        },
+        {
+          "id": "flow_2",
+          "sourceRef": "task_initial_check",
+          "targetRef": "task_risk_assessment"
+        },
+        {
+          "id": "flow_3",
+          "sourceRef": "task_risk_assessment",
+          "targetRef": "gateway_risk_check"
+        },
+        {
+          "id": "flow_low_risk",
+          "name": "Low Risk",
+          "sourceRef": "gateway_risk_check",
+          "targetRef": "task_approve_loan",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "riskScore < 30"
+          }
+        },
+        {
+          "id": "flow_high_risk",
+          "name": "High Risk",
+          "sourceRef": "gateway_risk_check",
+          "targetRef": "task_reject_loan",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "riskScore > 70"
+          }
+        },
+        {
+          "id": "flow_to_manual",
+          "name": "Medium Risk",
+          "sourceRef": "gateway_risk_check",
+          "targetRef": "task_manual_review"
+        },
+        {
+          "id": "flow_4",
+          "sourceRef": "task_manual_review",
+          "targetRef": "gateway_decision"
+        },
+        {
+          "id": "flow_manual_approve",
+          "name": "Approved",
+          "sourceRef": "gateway_decision",
+          "targetRef": "task_approve_loan",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "decision === 'approve'"
+          }
+        },
+        {
+          "id": "flow_manual_reject",
+          "name": "Rejected",
+          "sourceRef": "gateway_decision",
+          "targetRef": "task_reject_loan",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "decision === 'reject'"
+          }
+        },
+        {
+          "id": "flow_5",
+          "sourceRef": "task_approve_loan",
+          "targetRef": "gateway_merge"
+        },
+        {
+          "id": "flow_6",
+          "sourceRef": "task_reject_loan",
+          "targetRef": "gateway_merge"
+        },
+        {
+          "id": "flow_7",
+          "sourceRef": "gateway_merge",
+          "targetRef": "task_notify_applicant"
+        },
+        {
+          "id": "flow_8",
+          "sourceRef": "task_notify_applicant",
+          "targetRef": "end_approved",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "loanStatus === 'approved'"
+          }
+        },
+        {
+          "id": "flow_9",
+          "sourceRef": "task_notify_applicant",
+          "targetRef": "end_rejected",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "loanStatus === 'rejected'"
+          }
+        }
+      ]
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "loan_application",
+          "name": "Loan Application",
+          "dataType": "object",
+          "dataState": "submitted"
+        },
+        {
+          "id": "risk_score",
+          "name": "Risk Score",
+          "dataType": "number",
+          "dataState": "calculated"
+        },
+        {
+          "id": "approval_decision",
+          "name": "Approval Decision",
+          "dataType": "string",
+          "dataState": "decided"
+        }
+      ],
+      "textAnnotations": [
+        {
+          "id": "note_1",
+          "text": "Risk scores: Low < 30, Medium 30-70, High > 70",
+          "textFormat": "text/plain"
+        }
+      ]
+    }
+  }
+}

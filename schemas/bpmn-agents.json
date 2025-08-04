@@ -1,0 +1,379 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://workflows.example.com/schemas/bpmn-agents.json",
+  "title": "BPMN Agent Definitions",
+  "description": "Agent definitions, assignment rules, and review workflows for BPMN 2.0 processes",
+  "definitions": {
+    "agentDefinition": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "type": {
+          "$ref": "bpmn-common.json#/definitions/agentType"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the agent's role and responsibilities"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-common.json#/definitions/agentCapability"
+          },
+          "description": "List of capabilities this agent possesses"
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "bpmn-common.json#/definitions/constraint"
+          },
+          "description": "Constraints or limitations on the agent"
+        },
+        "availability": {
+          "type": "string",
+          "enum": ["always", "scheduled", "on-demand"],
+          "default": "always",
+          "description": "Agent availability pattern"
+        },
+        "schedule": {
+          "$ref": "#/definitions/schedule",
+          "description": "Schedule details if availability is 'scheduled'"
+        },
+        "maxConcurrentTasks": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of tasks the agent can handle concurrently"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 5,
+          "description": "Agent priority for task assignment (1-10, higher is preferred)"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Additional agent-specific metadata"
+        }
+      },
+      "required": ["id", "name", "type", "capabilities"],
+      "if": {
+        "properties": {"availability": {"const": "scheduled"}}
+      },
+      "then": {
+        "required": ["schedule"]
+      }
+    },
+    "schedule": {
+      "type": "object",
+      "properties": {
+        "timezone": {
+          "type": "string",
+          "description": "Timezone for the schedule (e.g., 'UTC', 'America/New_York')"
+        },
+        "workingHours": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/workingHours"
+          }
+        },
+        "exceptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/scheduleException"
+          }
+        }
+      },
+      "required": ["timezone", "workingHours"]
+    },
+    "workingHours": {
+      "type": "object",
+      "properties": {
+        "dayOfWeek": {
+          "type": "string",
+          "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+        },
+        "startTime": {
+          "type": "string",
+          "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+          "description": "Start time in HH:MM format"
+        },
+        "endTime": {
+          "type": "string",
+          "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+          "description": "End time in HH:MM format"
+        }
+      },
+      "required": ["dayOfWeek", "startTime", "endTime"]
+    },
+    "scheduleException": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "Date of the exception"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Reason for the exception"
+        },
+        "available": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the agent is available on this date"
+        }
+      },
+      "required": ["date", "reason"]
+    },
+    "agentPool": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "description": {
+          "type": "string"
+        },
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Reference to agent definition ID"
+          },
+          "minItems": 1
+        },
+        "assignmentStrategy": {
+          "$ref": "bpmn-common.json#/definitions/assignmentStrategy"
+        },
+        "loadBalancingStrategy": {
+          "type": "string",
+          "enum": ["round-robin", "least-loaded", "priority-based", "random"],
+          "default": "round-robin"
+        }
+      },
+      "required": ["id", "name", "agents", "assignmentStrategy"]
+    },
+    "reviewWorkflow": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "description": {
+          "type": "string"
+        },
+        "pattern": {
+          "type": "string",
+          "enum": ["ai-human", "human-ai", "collaborative", "peer-review", "hierarchical", "custom"],
+          "description": "Review workflow pattern"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/reviewStep"
+          },
+          "minItems": 1
+        },
+        "escalationRules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/escalationRule"
+          }
+        },
+        "timeouts": {
+          "$ref": "#/definitions/reviewTimeouts"
+        }
+      },
+      "required": ["id", "name", "pattern", "steps"]
+    },
+    "reviewStep": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "name": {
+          "$ref": "bpmn-common.json#/definitions/name"
+        },
+        "agent": {
+          "$ref": "bpmn-common.json#/definitions/agentType"
+        },
+        "agentRef": {
+          "type": "string",
+          "description": "Reference to specific agent definition"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["execute", "review", "approve", "reject", "revise", "validate", "draft", "finalize", "flag-issues", "pass"],
+          "description": "Action to be performed in this step"
+        },
+        "criteria": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/reviewCriteria"
+          },
+          "description": "Criteria for this review step"
+        },
+        "nextStepConditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/nextStepCondition"
+          }
+        }
+      },
+      "required": ["id", "name", "agent", "action"]
+    },
+    "reviewCriteria": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["quality", "completeness", "accuracy", "compliance", "performance", "custom"]
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Threshold value for the criteria"
+        },
+        "description": {
+          "type": "string"
+        },
+        "expression": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        }
+      },
+      "required": ["type"]
+    },
+    "nextStepCondition": {
+      "type": "object",
+      "properties": {
+        "condition": {
+          "$ref": "bpmn-common.json#/definitions/expression"
+        },
+        "nextStepId": {
+          "type": "string",
+          "description": "ID of the next step to execute"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["continue", "repeat", "skip", "end"],
+          "description": "Action to take if condition is met"
+        }
+      },
+      "required": ["condition", "action"]
+    },
+    "escalationRule": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "bpmn-common.json#/definitions/id"
+        },
+        "trigger": {
+          "type": "string",
+          "enum": ["timeout", "rejection-count", "error", "custom"],
+          "description": "Trigger for escalation"
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Threshold value for trigger"
+        },
+        "escalateTo": {
+          "type": "string",
+          "description": "Agent or role to escalate to"
+        },
+        "notification": {
+          "$ref": "#/definitions/notification"
+        }
+      },
+      "required": ["id", "trigger", "escalateTo"]
+    },
+    "reviewTimeouts": {
+      "type": "object",
+      "properties": {
+        "stepTimeout": {
+          "type": "string",
+          "pattern": "^P(?!$)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?(\\d+S)?)?$",
+          "description": "ISO 8601 duration for step timeout"
+        },
+        "overallTimeout": {
+          "type": "string",
+          "pattern": "^P(?!$)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?(\\d+S)?)?$",
+          "description": "ISO 8601 duration for overall review timeout"
+        },
+        "warningThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.8,
+          "description": "Percentage of timeout to trigger warning"
+        }
+      }
+    },
+    "notification": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["email", "webhook", "message", "custom"]
+        },
+        "recipients": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "template": {
+          "type": "string",
+          "description": "Notification template ID or content"
+        }
+      },
+      "required": ["type", "recipients"]
+    },
+    "performanceMetrics": {
+      "type": "object",
+      "properties": {
+        "agentId": {
+          "type": "string"
+        },
+        "taskCompletionRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "averageTaskDuration": {
+          "type": "string",
+          "pattern": "^P(?!$)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?(\\d+S)?)?$"
+        },
+        "reviewApprovalRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "errorRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["agentId", "lastUpdated"]
+    }
+  }
+}

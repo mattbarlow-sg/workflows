@@ -1,0 +1,441 @@
+{
+  "$schema": "../schemas/bpmn-process.json",
+  "process": {
+    "id": "incident_management",
+    "name": "Dynamic Incident Management Process",
+    "processType": "private",
+    "isExecutable": true,
+    "elements": {
+      "events": [
+        {
+          "id": "start_incident",
+          "name": "Incident Reported",
+          "type": "startEvent",
+          "eventDefinition": {
+            "type": "message",
+            "messageRef": "incident_report"
+          }
+        },
+        {
+          "id": "end_resolved",
+          "name": "Incident Resolved",
+          "type": "endEvent"
+        },
+        {
+          "id": "timer_escalation",
+          "name": "Escalation Timer",
+          "type": "intermediateEvent",
+          "eventDefinition": {
+            "type": "timer",
+            "timeDuration": {
+              "language": "iso8601",
+              "body": "PT1H"
+            }
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "task_initial_triage",
+          "name": "Initial Incident Triage",
+          "type": "businessRuleTask",
+          "agent": {
+            "type": "ai",
+            "strategy": "static",
+            "capabilities": ["text-analysis", "decision-making"]
+          },
+          "documentation": {
+            "text": "AI performs initial assessment and categorization"
+          }
+        },
+        {
+          "id": "task_assign_handler",
+          "name": "Assign Incident Handler",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "assignment-engine"
+        },
+        {
+          "id": "task_investigate",
+          "name": "Investigate Incident",
+          "type": "userTask",
+          "agent": {
+            "type": "dynamic",
+            "strategy": "rule-based",
+            "assignmentRules": [
+              {
+                "condition": {
+                  "language": "javascript",
+                  "body": "incident.severity === 'critical' && incident.type === 'security'"
+                },
+                "assignTo": "human",
+                "withReview": "ai"
+              },
+              {
+                "condition": {
+                  "language": "javascript",
+                  "body": "incident.severity === 'critical' && incident.type !== 'security'"
+                },
+                "assignTo": "human"
+              },
+              {
+                "condition": {
+                  "language": "javascript",
+                  "body": "incident.severity === 'high' && incident.complexity > 7"
+                },
+                "assignTo": "human"
+              },
+              {
+                "condition": {
+                  "language": "javascript",
+                  "body": "incident.severity === 'high' && incident.complexity <= 7"
+                },
+                "assignTo": "ai",
+                "withReview": "human"
+              },
+              {
+                "condition": {
+                  "language": "javascript",
+                  "body": "incident.severity === 'medium' || incident.severity === 'low'"
+                },
+                "assignTo": "ai"
+              }
+            ],
+            "capabilities": ["domain-expertise", "decision-making", "validation"]
+          },
+          "loopCharacteristics": {
+            "type": "standardLoop",
+            "testBefore": false,
+            "loopCondition": {
+              "language": "javascript",
+              "body": "investigationComplete === false"
+            },
+            "loopMaximum": 3
+          }
+        },
+        {
+          "id": "task_implement_fix",
+          "name": "Implement Fix",
+          "type": "serviceTask",
+          "agent": {
+            "type": "dynamic",
+            "strategy": "capability-based",
+            "capabilities": ["code-generation", "validation"],
+            "preferredAgent": "ai",
+            "assignmentRules": [
+              {
+                "condition": {
+                  "language": "javascript",
+                  "body": "fix.type === 'code' && fix.riskLevel === 'high'"
+                },
+                "assignTo": "human"
+              },
+              {
+                "condition": {
+                  "language": "javascript",
+                  "body": "fix.type === 'configuration'"
+                },
+                "assignTo": "system"
+              }
+            ]
+          },
+          "review": {
+            "required": true,
+            "reviewer": "dynamic",
+            "strategy": "conditional",
+            "conditions": [
+              {
+                "type": "custom",
+                "expression": {
+                  "language": "javascript",
+                  "body": "fix.impactScore > 8 || fix.affectedSystems.length > 3"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "task_verify_resolution",
+          "name": "Verify Resolution",
+          "type": "businessRuleTask",
+          "agent": {
+            "type": "dynamic",
+            "strategy": "load-balanced",
+            "capabilities": ["validation", "decision-making"]
+          }
+        },
+        {
+          "id": "task_document_incident",
+          "name": "Document Incident",
+          "type": "serviceTask",
+          "agent": {
+            "type": "ai",
+            "strategy": "static",
+            "capabilities": ["document-creation", "text-analysis"]
+          }
+        },
+        {
+          "id": "task_escalate",
+          "name": "Escalate to Senior Staff",
+          "type": "userTask",
+          "agent": {
+            "type": "human",
+            "strategy": "static",
+            "constraints": ["senior-staff", "incident-manager"]
+          }
+        }
+      ],
+      "gateways": [
+        {
+          "id": "gateway_severity",
+          "name": "Check Severity",
+          "type": "exclusiveGateway"
+        },
+        {
+          "id": "gateway_resolution",
+          "name": "Resolution Check",
+          "type": "exclusiveGateway"
+        },
+        {
+          "id": "event_gateway",
+          "name": "Wait for Action",
+          "type": "eventBasedGateway"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow_1",
+          "sourceRef": "start_incident",
+          "targetRef": "task_initial_triage"
+        },
+        {
+          "id": "flow_2",
+          "sourceRef": "task_initial_triage",
+          "targetRef": "gateway_severity"
+        },
+        {
+          "id": "flow_critical",
+          "name": "Critical",
+          "sourceRef": "gateway_severity",
+          "targetRef": "task_escalate",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "incident.severity === 'critical'"
+          }
+        },
+        {
+          "id": "flow_normal",
+          "name": "Normal Priority",
+          "sourceRef": "gateway_severity",
+          "targetRef": "task_assign_handler",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "incident.severity !== 'critical'"
+          }
+        },
+        {
+          "id": "flow_3",
+          "sourceRef": "task_assign_handler",
+          "targetRef": "event_gateway"
+        },
+        {
+          "id": "flow_4",
+          "sourceRef": "event_gateway",
+          "targetRef": "task_investigate"
+        },
+        {
+          "id": "flow_5",
+          "sourceRef": "event_gateway",
+          "targetRef": "timer_escalation"
+        },
+        {
+          "id": "flow_6",
+          "sourceRef": "timer_escalation",
+          "targetRef": "task_escalate"
+        },
+        {
+          "id": "flow_7",
+          "sourceRef": "task_escalate",
+          "targetRef": "task_investigate"
+        },
+        {
+          "id": "flow_8",
+          "sourceRef": "task_investigate",
+          "targetRef": "task_implement_fix"
+        },
+        {
+          "id": "flow_9",
+          "sourceRef": "task_implement_fix",
+          "targetRef": "task_verify_resolution"
+        },
+        {
+          "id": "flow_10",
+          "sourceRef": "task_verify_resolution",
+          "targetRef": "gateway_resolution"
+        },
+        {
+          "id": "flow_resolved",
+          "name": "Resolved",
+          "sourceRef": "gateway_resolution",
+          "targetRef": "task_document_incident",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "resolution.verified === true"
+          }
+        },
+        {
+          "id": "flow_retry",
+          "name": "Retry Fix",
+          "sourceRef": "gateway_resolution",
+          "targetRef": "task_investigate",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "resolution.verified === false"
+          }
+        },
+        {
+          "id": "flow_11",
+          "sourceRef": "task_document_incident",
+          "targetRef": "end_resolved"
+        }
+      ]
+    },
+    "agents": {
+      "definitions": [
+        {
+          "id": "ai_incident_handler",
+          "name": "AI Incident Handler",
+          "type": "ai",
+          "capabilities": ["text-analysis", "decision-making", "code-generation", "validation", "document-creation"],
+          "availability": "always",
+          "maxConcurrentTasks": 10,
+          "priority": 6
+        },
+        {
+          "id": "human_l1_support",
+          "name": "L1 Support Engineer",
+          "type": "human",
+          "capabilities": ["domain-expertise", "decision-making"],
+          "constraints": ["l1-support"],
+          "availability": "always",
+          "maxConcurrentTasks": 5,
+          "priority": 5
+        },
+        {
+          "id": "human_l2_support",
+          "name": "L2 Support Engineer",
+          "type": "human",
+          "capabilities": ["domain-expertise", "decision-making", "code-review"],
+          "constraints": ["l2-support"],
+          "availability": "scheduled",
+          "schedule": {
+            "timezone": "UTC",
+            "workingHours": [
+              {
+                "dayOfWeek": "monday",
+                "startTime": "08:00",
+                "endTime": "20:00"
+              },
+              {
+                "dayOfWeek": "tuesday",
+                "startTime": "08:00",
+                "endTime": "20:00"
+              },
+              {
+                "dayOfWeek": "wednesday",
+                "startTime": "08:00",
+                "endTime": "20:00"
+              },
+              {
+                "dayOfWeek": "thursday",
+                "startTime": "08:00",
+                "endTime": "20:00"
+              },
+              {
+                "dayOfWeek": "friday",
+                "startTime": "08:00",
+                "endTime": "20:00"
+              }
+            ]
+          },
+          "priority": 7
+        },
+        {
+          "id": "human_senior_engineer",
+          "name": "Senior Engineer",
+          "type": "human",
+          "capabilities": ["domain-expertise", "decision-making", "code-review", "approval"],
+          "constraints": ["senior-staff", "incident-manager"],
+          "availability": "on-demand",
+          "priority": 9
+        },
+        {
+          "id": "system_automation",
+          "name": "Automation System",
+          "type": "system",
+          "capabilities": ["validation"],
+          "availability": "always",
+          "priority": 4
+        }
+      ],
+      "pools": [
+        {
+          "id": "support_pool",
+          "name": "Support Engineer Pool",
+          "agents": ["human_l1_support", "human_l2_support"],
+          "assignmentStrategy": "load-balanced",
+          "loadBalancingStrategy": "least-loaded"
+        },
+        {
+          "id": "ai_pool",
+          "name": "AI Agent Pool",
+          "agents": ["ai_incident_handler"],
+          "assignmentStrategy": "static",
+          "loadBalancingStrategy": "round-robin"
+        }
+      ],
+      "defaultAssignmentStrategy": "rule-based",
+      "performanceTracking": true
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "incident_data",
+          "name": "Incident Data",
+          "dataType": "object",
+          "dataState": "reported"
+        },
+        {
+          "id": "investigation_results",
+          "name": "Investigation Results",
+          "dataType": "object",
+          "dataState": "analyzed"
+        },
+        {
+          "id": "fix_implementation",
+          "name": "Fix Implementation",
+          "dataType": "object",
+          "dataState": "implemented"
+        },
+        {
+          "id": "incident_report",
+          "name": "Incident Report",
+          "dataType": "file",
+          "dataState": "documented"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "messages": [
+      {
+        "id": "incident_report",
+        "name": "Incident Report Message",
+        "itemRef": "incident_data"
+      }
+    ]
+  }
+}
