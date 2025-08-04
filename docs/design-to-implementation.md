@@ -414,6 +414,99 @@ OrderFulfillmentSpec.invariants["partial fulfillment"] = (order, result) => {
 // Update implementation to handle new case
 ```
 
+## The Developer Experience
+
+### Session 1: Planning
+```
+Developer: "I need to build a secure authentication service"
+
+AI Coordinator: "Let's start with Stage 0 - defining the problem..."
+[Creates problem statement]
+
+AI Coordinator: "Now for Stage 0.5 - let's break this into manageable nodes..."
+[Creates MPC plan with nodes]
+
+AI Coordinator: "Great! You have 5 nodes. The first ready node is 'setup-project-structure'. 
+                 When you're ready, we'll work through Stages 1-5 for this node."
+```
+
+### Session 2: Working Through First Node
+```
+Developer: "Let's work on the 'implement-auth-endpoints' node"
+
+AI Coordinator: "Starting Stage 1 for 'implement-auth-endpoints'. 
+                 Let's design the BPMN process flow. What happens when a user logs in?"
+
+Developer: "They submit credentials, we validate them, check if account is locked, 
+           generate JWT if valid..."
+
+AI Coordinator: "I'll create the BPMN. Here's what I captured:
+                 [Shows BPMN JSON with decision points, schemas, invariants]
+                 Does this flow look correct? What about MFA?"
+
+Developer: "Oh right, we need to handle MFA after password validation"
+
+AI Coordinator: "Updated. Now Stage 2 - let's extract formal properties from this flow.
+                 I see these invariants:
+                 - JWT tokens expire within 1 hour
+                 - Failed attempts increment lockout counter
+                 - MFA codes are single-use
+                 Should we add any others?"
+
+Developer: "Add that refresh tokens must be revokable"
+
+AI Coordinator: "Added. Moving to Stage 3 - I'll generate tests for these properties:
+                 [Generates property-based tests, deterministic tests, fuzz tests]
+                 Here are 23 tests that verify our specifications."
+
+Developer: "Looks good, let's implement"
+
+AI Coordinator: "Stage 4 - I'll implement the auth endpoints to pass all these tests...
+                 [Implements code]
+                 
+                 23/23 tests passing
+                 All invariants enforced
+                 Schemas validated
+                 
+                 The 'implement-auth-endpoints' node is complete!"
+```
+
+### Key Benefits of This Flow
++ The AI won't let you skip to implementation without specs.
++ Each stage reveals requirements.
++ Test-First Implementation
++ By Stage 4, the implementation has clear success criteria.
++ Traceable Decisions
++ The AI acts as a **methodology enforcer** and **knowledge keeper**:
+
+### Example Multi-Session Flow
+
+**Session 1**: Plan creation
+- Output: MPC plan with 5 nodes
+
+**Session 2**: Node "setup-project-structure"
+- Stages 1-5 for basic setup
+- Output: Working project skeleton
+
+**Session 3**: Node "create-user-model"  
+- Stages 1-5 for data model
+- Output: Database schema, entities, migrations
+
+**Session 4**: Node "implement-auth-endpoints"
+- Stages 1-5 for auth logic
+- Output: Working auth endpoints
+
+Each session builds on the previous one, but focuses on one logical unit of work. The AI
+maintains context across sessions through the plan file and artifacts.
+
+This approach ensures that by the time the AI implements code, it has:
+1. A visual process model (BPMN)
+2. Mathematical properties to maintain (Formal spec)
+3. Comprehensive tests to pass
+4. Clear success criteria
+
+Goal: Make the tests pass while following the spec.
+
 ## Summary
 
 This workflow ensures:
