@@ -25,7 +25,7 @@ func run() error {
 	// Create command manager
 	manager := cli.NewManager(
 		"Schema Validation CLI",
-		"A tool for managing and validating JSON schemas, Architecture Decision Records (ADRs), and BPMN workflows.",
+		"A tool for managing and validating JSON schemas, Architecture Decision Records (ADRs), BPMN workflows, and MPC (Model Predictive Control) workflows.",
 	)
 	
 	// Register commands
@@ -42,6 +42,10 @@ func run() error {
 	}
 	
 	if err := manager.Register(commands.NewBPMNCommand()); err != nil {
+		return err
+	}
+	
+	if err := manager.Register(commands.NewMPCCommand()); err != nil {
 		return err
 	}
 	

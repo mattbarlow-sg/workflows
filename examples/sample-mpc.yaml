@@ -1,0 +1,206 @@
+version: "0.4"
+plan_id: "1754166705-user-authentication-service"
+project_name: "User Authentication Service"
+
+# --- Global context the agent will reuse in every node -------------
+context:
+  business_goal: "Provide secure user authentication and authorization for multiple applications."
+  non_functional_requirements:
+    - "99.9% uptime SLA"
+    - "Support 10K concurrent users"
+    - "JWT token expiry < 1 hour"
+
+architecture:
+  overview: "Node.js Express API with PostgreSQL, Redis for sessions, deployed on Kubernetes."
+  adrs:
+    - "docs/adr/ADR-3942.md"
+  constraints:
+    - "Must support OAuth2.0 and SAML"
+    - "GDPR compliant data handling"
+    - "Zero-downtime deployments"
+
+tooling:
+  primary_language: "TypeScript"
+  secondary_languages: ["SQL", "YAML"]
+  frameworks: ["Express.js", "TypeORM", "Passport.js", "Jest"]
+  coding_standards:
+    lint: "eslint with airbnb config"
+    formatting: "prettier"
+    testing: "90% code coverage minimum"
+
+entry_node: "setup-project-structure"
+
+# ------------------- Symbolic MPC Nodes -----------------------------
+nodes:
+  - id: "setup-project-structure"
+    status: "Ready"
+    materialization: 1.0
+    description: "Initialize TypeScript project with Express and dependencies."
+    detailed_description: |
+      Set up a new TypeScript-based Node.js project with Express framework and all required dependencies. This involves creating the foundational structure for a production-ready authentication service with proper tooling and configuration for development, testing, and deployment.
+    subtasks:
+      - description: "Create package.json with all required dependencies"
+        completed: false
+      - description: "Setup TypeScript configuration (tsconfig.json)"
+        completed: false
+      - description: "Configure ESLint and Prettier"
+        completed: false
+      - description: "Create basic folder structure: src/, tests/, config/"
+        completed: false
+      - description: "Setup build scripts and dev environment"
+        completed: false
+    outputs: ["package.json", "tsconfig.json", ".eslintrc.js", "src/index.ts"]
+    acceptance_criteria:
+      - "npm install completes successfully"
+      - "npm run build compiles without errors"
+      - "npm run lint passes"
+    definition_of_done: |
+      Basic project structure ready with all tooling configured.
+    required_knowledge:
+      - "Node.js project setup"
+      - "TypeScript configuration"
+    downstream: ["create-user-model"]
+
+  - id: "create-user-model"
+    status: "Blocked"
+    materialization: 0.8
+    description: "Define User entity and database schema."
+    detailed_description: |
+      Design and implement the core data models for user authentication and authorization. This includes creating TypeORM entities for users and roles with proper relationships, implementing secure password storage, and setting up database migrations for PostgreSQL.
+    subtasks:
+      - description: "Create User table with fields: id, email, password_hash, created_at, updated_at"
+        completed: false
+      - description: "Create Roles table for RBAC"
+        completed: false
+      - description: "Create User_Roles junction table"
+        completed: false
+      - description: "Implement TypeORM entities and migrations"
+        completed: false
+      - description: "Set up password hashing with bcrypt"
+        completed: false
+    outputs: ["src/entities/User.ts", "src/entities/Role.ts", "migrations/*.ts"]
+    acceptance_criteria:
+      - "TypeORM migrations run successfully"
+      - "User entity validates email format"
+      - "Password is properly hashed"
+    definition_of_done: "Database schema created with proper indices."
+    required_knowledge: ["TypeORM", "PostgreSQL", "Security best practices"]
+    artifacts:
+      bpmn: "docs/bpmn/user-data-flow.json"
+      spec: "docs/specs/user-entities.yaml"
+      tests: "tests/entities/*"
+      properties: "docs/properties/user-model.json"
+    downstream: ["implement-auth-endpoints"]
+
+  - id: "implement-auth-endpoints"
+    status: "Blocked"
+    materialization: 0.7
+    description: "Create authentication REST endpoints."
+    detailed_description: |
+      Implement the core authentication API endpoints for user registration, login, token management, and profile access. This includes setting up JWT-based authentication with refresh tokens, implementing proper security measures, and integrating with Redis for session management.
+    subtasks:
+      - description: "Implement POST /auth/register endpoint for user registration"
+        completed: false
+      - description: "Implement POST /auth/login endpoint with JWT generation"
+        completed: false
+      - description: "Implement POST /auth/refresh endpoint for token refresh"
+        completed: false
+      - description: "Implement POST /auth/logout endpoint for session invalidation"
+        completed: false
+      - description: "Implement GET /auth/profile endpoint for current user info"
+        completed: false
+      - description: "Configure JWT strategy with Passport.js"
+        completed: false
+    outputs: ["src/routes/auth.ts", "src/middleware/auth.ts", "src/services/auth.service.ts"]
+    acceptance_criteria:
+      - "All endpoints return proper HTTP status codes"
+      - "JWT tokens are properly signed"
+      - "Refresh tokens stored in Redis"
+    definition_of_done: "Auth endpoints working with Postman tests."
+    required_knowledge: ["JWT", "Passport.js", "Express middleware"]
+    artifacts:
+      bpmn: "docs/bpmn/auth-flow.json"
+      spec: "docs/specs/auth-endpoints.yaml"
+      tests: "tests/auth/*"
+      properties: "docs/properties/auth-invariants.json"
+    downstream: ["add-oauth-support", "write-auth-tests"]
+
+  - id: "add-oauth-support"
+    status: "Blocked"
+    materialization: 0.5
+    description: "Integrate OAuth2.0 providers."
+    detailed_description: |
+      Extend the authentication system to support third-party OAuth providers, initially focusing on Google and GitHub. This includes implementing OAuth flows, managing external user identities, and providing seamless account linking between OAuth and local accounts.
+    subtasks:
+      - description: "Configure and implement Google OAuth support"
+        completed: false
+      - description: "Configure and implement GitHub OAuth support"
+        completed: false
+      - description: "Implement OAuth callback handlers"
+        completed: false
+      - description: "Create logic to link OAuth accounts to local users"
+        completed: false
+      - description: "Implement secure OAuth token storage"
+        completed: false
+    outputs: ["src/strategies/oauth.ts", "src/routes/oauth.ts"]
+    acceptance_criteria:
+      - "OAuth flow completes successfully"
+      - "Users can link multiple OAuth accounts"
+    definition_of_done: "OAuth login working for Google and GitHub."
+    required_knowledge: ["OAuth2.0", "Passport OAuth strategies"]
+    artifacts:
+      bpmn: "docs/bpmn/oauth-flow.json"
+      spec: "docs/specs/oauth-integration.yaml"
+      tests: "tests/oauth/*"
+    downstream: ["write-integration-tests"]
+
+  - id: "write-auth-tests"
+    status: "Blocked"
+    materialization: 0.9
+    description: "Write comprehensive test suite for auth module."
+    detailed_description: |
+      Develop a comprehensive test suite covering all authentication functionality. This includes unit tests for individual service methods, integration tests for API endpoints, and edge case testing to ensure robust error handling and security.
+    subtasks:
+      - description: "Write unit tests for auth service methods"
+        completed: false
+      - description: "Write integration tests for auth endpoints"
+        completed: false
+      - description: "Test edge cases: invalid tokens, expired tokens, etc."
+        completed: false
+      - description: "Implement mocks for external dependencies"
+        completed: false
+    outputs: ["tests/unit/auth.test.ts", "tests/integration/auth.test.ts"]
+    acceptance_criteria:
+      - "90% code coverage achieved"
+      - "All auth scenarios tested"
+    definition_of_done: "All tests passing in CI pipeline."
+    required_knowledge: ["Jest", "Supertest", "Testing best practices"]
+    artifacts:
+      tests: "tests/auth/**/*"
+    downstream: []
+
+  - id: "write-integration-tests"
+    status: "Blocked"
+    materialization: 0.6
+    description: "Create end-to-end tests with test database."
+    detailed_description: |
+      Build a complete end-to-end testing environment using Docker to test the authentication system in realistic conditions. This includes testing complete user flows, performance under load, and security vulnerabilities in an isolated test environment.
+    subtasks:
+      - description: "Set up Docker compose for test environment"
+        completed: false
+      - description: "Write tests for complete auth flows"
+        completed: false
+      - description: "Implement performance tests for concurrent logins"
+        completed: false
+      - description: "Create security tests for common vulnerabilities"
+        completed: false
+    outputs: ["tests/e2e/*.test.ts", "docker-compose.test.yml"]
+    acceptance_criteria:
+      - "E2E tests cover all user journeys"
+      - "Tests run in isolated environment"
+    definition_of_done: "Integration tests automated in CI."
+    required_knowledge: ["Docker", "E2E testing", "Security testing"]
+    artifacts:
+      tests: "tests/e2e/**/*"
+      properties: "docs/properties/system-invariants.json"
+    downstream: []

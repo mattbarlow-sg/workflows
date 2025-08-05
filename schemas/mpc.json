@@ -1,0 +1,266 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MPC Workflow Schema",
+  "description": "Schema for Model Predictive Control workflow definitions",
+  "type": "object",
+  "required": [
+    "version",
+    "plan_id",
+    "project_name",
+    "context",
+    "architecture",
+    "tooling",
+    "entry_node",
+    "nodes"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Version of the MPC workflow schema",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "plan_id": {
+      "type": "string",
+      "description": "Unique identifier for the plan",
+      "pattern": "^[0-9]+-[a-z0-9-]+$"
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Name of the project",
+      "minLength": 1
+    },
+    "context": {
+      "type": "object",
+      "required": ["business_goal", "non_functional_requirements"],
+      "properties": {
+        "business_goal": {
+          "type": "string",
+          "description": "The business goal this project aims to achieve",
+          "minLength": 1
+        },
+        "non_functional_requirements": {
+          "type": "array",
+          "description": "List of non-functional requirements",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "required": ["overview", "adrs", "constraints"],
+      "properties": {
+        "overview": {
+          "type": "string",
+          "description": "High-level architecture overview",
+          "minLength": 1
+        },
+        "adrs": {
+          "type": "array",
+          "description": "Architecture Decision Records",
+          "items": {
+            "type": "string",
+            "pattern": "\\.md$"
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "description": "Technical and business constraints",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "tooling": {
+      "type": "object",
+      "required": ["primary_language", "secondary_languages", "frameworks", "coding_standards"],
+      "properties": {
+        "primary_language": {
+          "type": "string",
+          "description": "Primary programming language",
+          "minLength": 1
+        },
+        "secondary_languages": {
+          "type": "array",
+          "description": "Additional languages used",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "frameworks": {
+          "type": "array",
+          "description": "Frameworks and libraries used",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "coding_standards": {
+          "type": "object",
+          "required": ["lint", "formatting", "testing"],
+          "properties": {
+            "lint": {
+              "type": "string",
+              "description": "Linting configuration"
+            },
+            "formatting": {
+              "type": "string",
+              "description": "Code formatting standards"
+            },
+            "testing": {
+              "type": "string",
+              "description": "Testing requirements"
+            }
+          }
+        }
+      }
+    },
+    "entry_node": {
+      "type": "string",
+      "description": "ID of the entry node",
+      "minLength": 1
+    },
+    "nodes": {
+      "type": "array",
+      "description": "MPC workflow nodes",
+      "items": {
+        "$ref": "#/definitions/node"
+      },
+      "minItems": 1
+    }
+  },
+  "definitions": {
+    "node": {
+      "type": "object",
+      "required": [
+        "id",
+        "status",
+        "materialization",
+        "description",
+        "detailed_description",
+        "subtasks",
+        "acceptance_criteria",
+        "definition_of_done",
+        "downstream"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique node identifier",
+          "pattern": "^[a-z0-9-]+$",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the node",
+          "enum": ["Ready", "In Progress", "Blocked", "Completed"]
+        },
+        "materialization": {
+          "type": "number",
+          "description": "Materialization score (0.0 to 1.0)",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief description of the node",
+          "minLength": 1
+        },
+        "detailed_description": {
+          "type": "string",
+          "description": "Detailed description of the node",
+          "minLength": 1
+        },
+        "subtasks": {
+          "type": "array",
+          "description": "List of subtasks",
+          "items": {
+            "$ref": "#/definitions/subtask"
+          },
+          "minItems": 1
+        },
+        "outputs": {
+          "type": "array",
+          "description": "Outputs produced by this node",
+          "items": {
+            "type": "string"
+          }
+        },
+        "acceptance_criteria": {
+          "type": "array",
+          "description": "Criteria that must be met for acceptance",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "definition_of_done": {
+          "type": "string",
+          "description": "Definition of when this node is complete",
+          "minLength": 1
+        },
+        "required_knowledge": {
+          "type": "array",
+          "description": "Knowledge required to complete this node",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "artifacts": {
+          "type": "object",
+          "description": "Associated artifacts",
+          "properties": {
+            "bpmn": {
+              "type": "string",
+              "description": "Path to BPMN diagram"
+            },
+            "spec": {
+              "type": "string",
+              "description": "Path to specification"
+            },
+            "tests": {
+              "type": "string",
+              "description": "Path to tests"
+            },
+            "properties": {
+              "type": "string",
+              "description": "Path to properties file"
+            }
+          },
+          "minProperties": 1
+        },
+        "downstream": {
+          "type": "array",
+          "description": "IDs of downstream nodes",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        }
+      }
+    },
+    "subtask": {
+      "type": "object",
+      "required": ["description", "completed"],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Description of the subtask",
+          "minLength": 1
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Whether the subtask is completed"
+        }
+      }
+    }
+  }
+}
