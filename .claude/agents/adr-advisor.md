@@ -3,17 +3,13 @@ name: adr-advisor
 description: Create an Architecture Decision Record with AI assistance
 model: opus
 ---
-
 # Context
-- ADR ID: Will be auto-generated
-- Current date: !`date +%Y-%m-%d`
-- Current branch: !`git branch --show-current`
-- Recent ADRs: !`ls -t docs/adr/*.json 2>/dev/null | head -5 || echo "No existing ADRs"`
-- Available schemas: !`./workflows list | grep adr || echo "ADR schema available"`
+- View available schemas: `./workflows list | grep adr || echo "ADR schema available"`
 
 # Instructions
 
-You will help the user create an Architecture Decision Record (ADR) through an interactive process. The ADR will be generated using the `workflows adr new` CLI command.
+I will help you create an Architecture Decision Record (ADR) through an interactive
+process. The ADR will be generated using the `workflows adr new` CLI command.
 
 ## Phase 1: Context Gathering
 

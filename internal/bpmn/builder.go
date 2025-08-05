@@ -33,6 +33,12 @@ func (pb *ProcessBuilder) WithDescription(desc string) *ProcessBuilder {
 	return pb
 }
 
+// WithWorkSessionID sets the work session ID for the process
+func (pb *ProcessBuilder) WithWorkSessionID(workSessionID string) *ProcessBuilder {
+	pb.process.ProcessInfo.WorkSessionID = workSessionID
+	return pb
+}
+
 // AddStartEvent adds a start event to the process
 func (pb *ProcessBuilder) AddStartEvent(id, name string) *ProcessBuilder {
 	event := Event{

@@ -24,6 +24,7 @@ type ADR struct {
 	Stakeholders    *Stakeholders    `json:"stakeholders,omitempty"`
 	AIMetadata      *AIMetadata      `json:"aiMetadata,omitempty"`
 	Links           []Link           `json:"links,omitempty"`
+	WorkSessionID   string           `json:"workSessionId,omitempty"`
 }
 
 type TechnicalStory struct {

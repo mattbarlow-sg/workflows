@@ -3,7 +3,7 @@ package mpc
 type MPC struct {
 	Version      string       `json:"version" yaml:"version"`
 	PlanID       string       `json:"plan_id" yaml:"plan_id"`
-	ProjectName  string       `json:"project_name" yaml:"project_name"`
+	PlanName     string       `json:"plan_name" yaml:"plan_name"`
 	Context      Context      `json:"context" yaml:"context"`
 	Architecture Architecture `json:"architecture" yaml:"architecture"`
 	Tooling      Tooling      `json:"tooling" yaml:"tooling"`
@@ -55,11 +55,41 @@ type Subtask struct {
 	Completed   bool   `json:"completed" yaml:"completed"`
 }
 
+// Artifacts supports both old (simple string) and new (structured) formats
 type Artifacts struct {
-	BPMN       string `json:"bpmn,omitempty" yaml:"bpmn,omitempty"`
+	BPMN string `json:"bpmn,omitempty" yaml:"bpmn,omitempty"`
+	
+	// Old format - simple strings (backward compatibility)
 	Spec       string `json:"spec,omitempty" yaml:"spec,omitempty"`
 	Tests      string `json:"tests,omitempty" yaml:"tests,omitempty"`
 	Properties string `json:"properties,omitempty" yaml:"properties,omitempty"`
+	
+	// New format - structured (enhanced)
+	PropertiesStruct *ArtifactProperties `json:"properties_struct,omitempty" yaml:"properties_struct,omitempty"`
+	SpecsStruct      *ArtifactSpecs      `json:"specs,omitempty" yaml:"specs,omitempty"`
+	TestsStruct      *ArtifactTests      `json:"tests_struct,omitempty" yaml:"tests_struct,omitempty"`
+}
+
+type ArtifactProperties struct {
+	Invariants      string `json:"invariants,omitempty" yaml:"invariants,omitempty"`
+	StateProperties string `json:"state_properties,omitempty" yaml:"state_properties,omitempty"`
+	Generators      string `json:"generators,omitempty" yaml:"generators,omitempty"`
+}
+
+type ArtifactSpecs struct {
+	API     string `json:"api,omitempty" yaml:"api,omitempty"`
+	Models  string `json:"models,omitempty" yaml:"models,omitempty"`
+	Schemas string `json:"schemas,omitempty" yaml:"schemas,omitempty"`
+}
+
+type ArtifactTests struct {
+	Property      string `json:"property,omitempty" yaml:"property,omitempty"`
+	Deterministic string `json:"deterministic,omitempty" yaml:"deterministic,omitempty"`
+	Fuzz          string `json:"fuzz,omitempty" yaml:"fuzz,omitempty"`
+	Contract      string `json:"contract,omitempty" yaml:"contract,omitempty"`
+	Unit          string `json:"unit,omitempty" yaml:"unit,omitempty"`
+	Integration   string `json:"integration,omitempty" yaml:"integration,omitempty"`
+	E2E           string `json:"e2e,omitempty" yaml:"e2e,omitempty"`
 }
 
 const (

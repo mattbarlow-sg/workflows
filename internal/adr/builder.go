@@ -189,3 +189,9 @@ func (b *Builder) AddKeyword(keyword string) *Builder {
 	b.adr.AIMetadata.Keywords = append(b.adr.AIMetadata.Keywords, keyword)
 	return b
 }
+
+// SetWorkSessionID sets the work session ID
+func (b *Builder) SetWorkSessionID(workSessionID string) *Builder {
+	b.adr.WorkSessionID = workSessionID
+	return b
+}

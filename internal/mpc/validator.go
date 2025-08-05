@@ -224,12 +224,16 @@ func (v *Validator) validateSemantics(mpc *MPC) ([]ValidationError, []Validation
 func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) error {
 	// Check if at least one artifact is specified
 	hasArtifact := false
+	
+	// BPMN
 	if artifacts.BPMN != "" {
 		hasArtifact = true
 		if !strings.HasSuffix(artifacts.BPMN, ".json") && !strings.HasSuffix(artifacts.BPMN, ".bpmn") {
 			return fmt.Errorf("BPMN file should have .json or .bpmn extension")
 		}
 	}
+	
+	// Old format validation
 	if artifacts.Spec != "" {
 		hasArtifact = true
 		if !strings.HasSuffix(artifacts.Spec, ".yaml") && !strings.HasSuffix(artifacts.Spec, ".yml") && !strings.HasSuffix(artifacts.Spec, ".json") {
@@ -244,6 +248,38 @@ func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) err
 		if !strings.HasSuffix(artifacts.Properties, ".json") {
 			return fmt.Errorf("properties file should have .json extension")
 		}
+	}
+	
+	// New format validation
+	if artifacts.PropertiesStruct != nil {
+		hasArtifact = true
+		if artifacts.PropertiesStruct.Invariants != "" && !strings.HasSuffix(artifacts.PropertiesStruct.Invariants, ".json") {
+			return fmt.Errorf("invariants file should have .json extension")
+		}
+		if artifacts.PropertiesStruct.StateProperties != "" && !strings.HasSuffix(artifacts.PropertiesStruct.StateProperties, ".json") {
+			return fmt.Errorf("state properties file should have .json extension")
+		}
+		if artifacts.PropertiesStruct.Generators != "" && !strings.HasSuffix(artifacts.PropertiesStruct.Generators, ".json") && !strings.HasSuffix(artifacts.PropertiesStruct.Generators, ".ts") {
+			return fmt.Errorf("generators file should have .json or .ts extension")
+		}
+	}
+	
+	if artifacts.SpecsStruct != nil {
+		hasArtifact = true
+		if artifacts.SpecsStruct.API != "" && !strings.HasSuffix(artifacts.SpecsStruct.API, ".yaml") && !strings.HasSuffix(artifacts.SpecsStruct.API, ".yml") {
+			return fmt.Errorf("API spec file should have .yaml or .yml extension")
+		}
+		if artifacts.SpecsStruct.Models != "" && !strings.HasSuffix(artifacts.SpecsStruct.Models, ".tla") && !strings.HasSuffix(artifacts.SpecsStruct.Models, ".als") {
+			return fmt.Errorf("models file should have .tla or .als extension")
+		}
+		if artifacts.SpecsStruct.Schemas != "" && !strings.HasSuffix(artifacts.SpecsStruct.Schemas, ".json") {
+			return fmt.Errorf("schemas file should have .json extension")
+		}
+	}
+	
+	if artifacts.TestsStruct != nil {
+		hasArtifact = true
+		// Test paths can have wildcards, so we don't validate extensions
 	}
 
 	if !hasArtifact {

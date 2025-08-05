@@ -1,0 +1,316 @@
+{
+  "$schema": "../schemas/bpmn-combined.json",
+  "process": {
+    "id": "code_review_process",
+    "name": "Code Review and Deployment Process",
+    "description": "Automated code review process with AI and human collaboration",
+    "processType": "private",
+    "isExecutable": true,
+    "workSessionId": "1754302282-code-review-implementation",
+    "elements": {
+      "events": [
+        {
+          "id": "start_pr_created",
+          "name": "PR Created",
+          "type": "startEvent",
+          "eventDefinition": {
+            "type": "message",
+            "messageRef": "msg_pr_webhook"
+          },
+          "outgoing": ["flow_start_to_ai"]
+        },
+        {
+          "id": "end_pr_merged",
+          "name": "PR Merged",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "terminate"
+          },
+          "incoming": ["flow_deploy_to_end"]
+        },
+        {
+          "id": "end_pr_rejected",
+          "name": "PR Rejected",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "terminate"
+          },
+          "incoming": ["flow_rejected", "flow_tests_failed"]
+        }
+      ],
+      "activities": [
+        {
+          "id": "task_ai_review",
+          "name": "AI Code Review",
+          "type": "serviceTask",
+          "description": "Automated code analysis and review by AI",
+          "agent": {
+            "type": "ai",
+            "strategy": "capability-based",
+            "capabilities": ["code-review", "validation"],
+            "constraints": ["Must complete within 5 minutes"]
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input_pr_data",
+                "name": "PR Data",
+                "itemSubjectRef": "pullRequestType"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output_ai_review",
+                "name": "AI Review Results",
+                "itemSubjectRef": "reviewResultType"
+              }
+            ]
+          },
+          "incoming": ["flow_start_to_ai"],
+          "outgoing": ["flow_ai_to_human"]
+        },
+        {
+          "id": "task_human_review",
+          "name": "Human Code Review",
+          "type": "userTask",
+          "description": "Manual code review by senior developer",
+          "agent": {
+            "type": "human",
+            "strategy": "rule-based",
+            "capabilities": ["code-review", "domain-expertise"],
+            "assignmentRules": [
+              {
+                "condition": {
+                  "language": "javascript",
+                  "body": "pr.files.some(f => f.path.includes('security'))"
+                },
+                "assignTo": "human",
+                "withReview": "ai"
+              }
+            ]
+          },
+          "review": {
+            "required": true,
+            "type": "approval",
+            "reviewer": {
+              "type": "human",
+              "strategy": "static"
+            }
+          },
+          "incoming": ["flow_ai_to_human"],
+          "outgoing": ["flow_human_to_decision"]
+        },
+        {
+          "id": "task_run_tests",
+          "name": "Run Test Suite",
+          "type": "scriptTask",
+          "description": "Execute automated test suite",
+          "script": {
+            "language": "bash",
+            "body": "npm test && npm run lint"
+          },
+          "incoming": ["flow_approved"],
+          "outgoing": ["flow_tests_to_gateway"]
+        },
+        {
+          "id": "task_deploy",
+          "name": "Deploy to Production",
+          "type": "serviceTask",
+          "description": "Deploy approved changes to production",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "deployment-service",
+          "incoming": ["flow_tests_passed"],
+          "outgoing": ["flow_deploy_to_end"]
+        }
+      ],
+      "gateways": [
+        {
+          "id": "gateway_review_decision",
+          "name": "Review Decision",
+          "type": "exclusiveGateway",
+          "gatewayDirection": "diverging",
+          "incoming": ["flow_human_to_decision"],
+          "outgoing": ["flow_approved", "flow_rejected"]
+        },
+        {
+          "id": "gateway_test_results",
+          "name": "Tests Passed?",
+          "type": "exclusiveGateway",
+          "gatewayDirection": "diverging",
+          "incoming": ["flow_tests_to_gateway"],
+          "outgoing": ["flow_tests_passed", "flow_tests_failed"]
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow_start_to_ai",
+          "sourceRef": "start_pr_created",
+          "targetRef": "task_ai_review"
+        },
+        {
+          "id": "flow_ai_to_human",
+          "sourceRef": "task_ai_review",
+          "targetRef": "task_human_review"
+        },
+        {
+          "id": "flow_human_to_decision",
+          "sourceRef": "task_human_review",
+          "targetRef": "gateway_review_decision"
+        },
+        {
+          "id": "flow_approved",
+          "name": "Approved",
+          "sourceRef": "gateway_review_decision",
+          "targetRef": "task_run_tests",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "review.status === 'approved'"
+          }
+        },
+        {
+          "id": "flow_rejected",
+          "name": "Rejected",
+          "sourceRef": "gateway_review_decision",
+          "targetRef": "end_pr_rejected",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "review.status === 'rejected'"
+          }
+        },
+        {
+          "id": "flow_tests_to_gateway",
+          "sourceRef": "task_run_tests",
+          "targetRef": "gateway_test_results"
+        },
+        {
+          "id": "flow_tests_passed",
+          "name": "Tests Passed",
+          "sourceRef": "gateway_test_results",
+          "targetRef": "task_deploy",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "testResults.passed === true"
+          }
+        },
+        {
+          "id": "flow_tests_failed",
+          "name": "Tests Failed",
+          "sourceRef": "gateway_test_results",
+          "targetRef": "end_pr_rejected",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "testResults.passed === false"
+          }
+        },
+        {
+          "id": "flow_deploy_to_end",
+          "sourceRef": "task_deploy",
+          "targetRef": "end_pr_merged"
+        }
+      ]
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "data_pr",
+          "name": "Pull Request Data",
+          "itemSubjectRef": "pullRequestType",
+          "dataState": "submitted"
+        },
+        {
+          "id": "data_review_results",
+          "name": "Review Results",
+          "itemSubjectRef": "reviewResultType",
+          "dataState": "completed"
+        }
+      ],
+      "textAnnotations": [
+        {
+          "id": "note_ai_capabilities",
+          "text": "AI review checks for code style, security vulnerabilities, and best practices",
+          "textFormat": "text/plain"
+        }
+      ]
+    },
+    "agents": {
+      "definitions": [
+        {
+          "id": "agent_ai_reviewer",
+          "name": "AI Code Reviewer",
+          "type": "ai",
+          "description": "AI agent specialized in code review and analysis",
+          "capabilities": ["code-review", "code-generation", "validation"],
+          "availability": "always",
+          "maxConcurrentTasks": 10,
+          "priority": 8
+        },
+        {
+          "id": "agent_senior_dev",
+          "name": "Senior Developer",
+          "type": "human",
+          "description": "Senior developer responsible for code reviews",
+          "capabilities": ["code-review", "approval", "domain-expertise"],
+          "availability": "scheduled",
+          "schedule": {
+            "timezone": "UTC",
+            "workingHours": [
+              {
+                "dayOfWeek": "monday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+              },
+              {
+                "dayOfWeek": "tuesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+              },
+              {
+                "dayOfWeek": "wednesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+              },
+              {
+                "dayOfWeek": "thursday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+              },
+              {
+                "dayOfWeek": "friday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+              }
+            ]
+          },
+          "maxConcurrentTasks": 3,
+          "priority": 10
+        }
+      ],
+      "defaultAssignmentStrategy": "capability-based",
+      "performanceTracking": true
+    }
+  },
+  "definitions": {
+    "itemDefinitions": [
+      {
+        "id": "pullRequestType",
+        "dataType": "object",
+        "structureRef": "PullRequest"
+      },
+      {
+        "id": "reviewResultType",
+        "dataType": "object",
+        "structureRef": "ReviewResult"
+      }
+    ],
+    "messages": [
+      {
+        "id": "msg_pr_webhook",
+        "name": "PR Webhook Message",
+        "itemRef": "pullRequestType"
+      }
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "id": "ADR-2165",
+  "title": "Use Temporal for workflow orchestration",
+  "status": "proposed",
+  "date": "2025-08-05",
+  "technicalStory": {
+    "id": "ARCH-001",
+    "title": "Implement workflow support for long-running processes",
+    "description": "Add workflow orchestration capability to support long-running workflows that mix AI and human tasks"
+  },
+  "context": {
+    "problem": "Need a robust workflow framework for a Golang project that supports long-running workflows mixing AI and human tasks, with workflows spanning days to weeks (e.g., learning workflows with daily lessons)",
+    "background": "Greenfield Golang project requiring a library of workflows accessible via CLI. Workflows must support human-in-the-loop interactions and provide durability for long-running processes. Need UI with three views: full view showing all workflows and step statuses, network graph view of single workflow, and queue view showing tasks awaiting human input",
+    "constraints": [
+      "Must integrate with Golang codebase",
+      "Must support long-running workflows (days to weeks)",
+      "Must handle human-in-the-loop tasks",
+      "Must be accessible via CLI"
+    ],
+    "assumptions": [
+      "Workflows will require dynamic routing capabilities",
+      "System needs to handle task escalation",
+      "Persistence and fault tolerance are critical requirements"
+    ]
+  },
+  "options": [
+    {
+      "name": "Temporal",
+      "description": "Workflow orchestration framework with code-based definitions and extreme durability"
+    },
+    {
+      "name": "Prefect",
+      "description": "Python-based workflow automation platform primarily for ETL pipelines"
+    },
+    {
+      "name": "State Machines",
+      "description": "Traditional state machine implementation without code-based definitions"
+    }
+  ],
+  "decision": {
+    "chosenOption": "Temporal",
+    "rationale": "Temporal provides extreme durability and fault tolerance for long-running workflows, uses code-based workflow definitions that fit well with Golang, supports dynamic routing for task escalation, and includes built-in persistence, retries, and versioning. It's specifically designed for human-in-the-loop workflows"
+  },
+  "consequences": {
+    "positive": [
+      "Extreme durability and fault tolerance",
+      "Code-based workflow definitions integrate naturally with Golang",
+      "Dynamic routing enables flexible task escalation",
+      "Built-in persistence and versioning",
+      "Excellent support for human-in-the-loop patterns",
+      "Handles retries and error recovery automatically",
+      "Strong community and enterprise support"
+    ],
+    "negative": [
+      "Learning curve for developers new to Temporal",
+      "Additional infrastructure to deploy and maintain",
+      "Potential complexity for simple workflows"
+    ],
+    "neutral": [
+      "May need to integrate with other systems later",
+      "Requires dedicated Temporal server deployment"
+    ]
+  },
+  "stakeholders": {
+    "deciders": [
+      "project-owner"
+    ]
+  },
+  "aiMetadata": {
+    "tags": [
+      "architecture",
+      "workflow",
+      "temporal",
+      "golang",
+      "infrastructure"
+    ],
+    "keywords": [
+      "temporal",
+      "workflow",
+      "orchestration",
+      "golang",
+      "human-in-the-loop",
+      "long-running"
+    ]
+  }
+}

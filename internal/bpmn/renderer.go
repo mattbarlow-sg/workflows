@@ -75,6 +75,9 @@ func (r *Renderer) renderText() string {
 	if r.process.ProcessInfo.Description != "" {
 		sb.WriteString(fmt.Sprintf("  Description: %s\n", r.process.ProcessInfo.Description))
 	}
+	if r.process.ProcessInfo.WorkSessionID != "" {
+		sb.WriteString(fmt.Sprintf("  Work Session ID: %s\n", r.process.ProcessInfo.WorkSessionID))
+	}
 	sb.WriteString("\n")
 
 	// Events
@@ -136,6 +139,9 @@ func (r *Renderer) renderMarkdown() string {
 	sb.WriteString(fmt.Sprintf("- **Name**: %s\n", r.process.ProcessInfo.Name))
 	if r.process.ProcessInfo.Description != "" {
 		sb.WriteString(fmt.Sprintf("- **Description**: %s\n", r.process.ProcessInfo.Description))
+	}
+	if r.process.ProcessInfo.WorkSessionID != "" {
+		sb.WriteString(fmt.Sprintf("- **Work Session ID**: `%s`\n", r.process.ProcessInfo.WorkSessionID))
 	}
 	sb.WriteString("\n")
 

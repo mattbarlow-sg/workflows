@@ -36,6 +36,10 @@ func (a *ADR) ToMarkdown() string {
 	if a.AIMetadata != nil && len(a.AIMetadata.Tags) > 0 {
 		sb.WriteString(fmt.Sprintf("| Tags | %s |\n", strings.Join(a.AIMetadata.Tags, ", ")))
 	}
+	
+	if a.WorkSessionID != "" {
+		sb.WriteString(fmt.Sprintf("| Work Session ID | %s |\n", a.WorkSessionID))
+	}
 
 	sb.WriteString("\n## Context and Problem Statement\n\n")
 	sb.WriteString(fmt.Sprintf("**Problem:** %s\n\n", a.Context.Problem))

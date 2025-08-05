@@ -62,7 +62,7 @@ func (c *MPCDiscoverCommand) Execute(args []string) error {
 	}
 
 	// Display the discovery analysis
-	fmt.Printf("MPC Workflow: %s\n", mpcData.ProjectName)
+	fmt.Printf("MPC Workflow: %s\n", mpcData.PlanName)
 	fmt.Printf("Plan ID: %s\n", mpcData.PlanID)
 	fmt.Println()
 	

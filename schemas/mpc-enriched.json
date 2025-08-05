@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "MPC Workflow Schema",
-  "description": "Schema for Model Predictive Control workflow definitions",
+  "title": "Enhanced MPC Workflow Schema",
+  "description": "Schema for Model Predictive Control workflow definitions with enriched artifacts",
   "type": "object",
   "required": [
     "version",
@@ -217,26 +217,97 @@
         },
         "artifacts": {
           "type": "object",
-          "description": "Associated artifacts",
+          "description": "Associated artifacts namespaced under plan name",
           "properties": {
             "bpmn": {
               "type": "string",
-              "description": "Path to BPMN diagram"
-            },
-            "spec": {
-              "type": "string",
-              "description": "Path to specification"
-            },
-            "tests": {
-              "type": "string",
-              "description": "Path to tests"
+              "description": "Path to BPMN process diagram",
+              "pattern": "^ai/[^/]+/bpmn/.*\\.json$"
             },
             "properties": {
-              "type": "string",
-              "description": "Path to properties file"
+              "type": "object",
+              "description": "Formal properties and invariants",
+              "properties": {
+                "invariants": {
+                  "type": "string",
+                  "description": "Path to invariants definition",
+                  "pattern": "^ai/[^/]+/properties/.*\\.json$"
+                },
+                "state_properties": {
+                  "type": "string",
+                  "description": "Path to state machine properties",
+                  "pattern": "^ai/[^/]+/properties/.*\\.json$"
+                },
+                "generators": {
+                  "type": "string",
+                  "description": "Path to test data generators",
+                  "pattern": "^ai/[^/]+/properties/.*\\.(json|ts)$"
+                }
+              }
+            },
+            "specs": {
+              "type": "object",
+              "description": "Various specification formats",
+              "properties": {
+                "api": {
+                  "type": "string",
+                  "description": "Path to OpenAPI/Swagger specification",
+                  "pattern": "^ai/[^/]+/specs/.*\\.yaml$"
+                },
+                "models": {
+                  "type": "string",
+                  "description": "Path to formal models (TLA+, Alloy)",
+                  "pattern": "^ai/[^/]+/specs/.*\\.(tla|als)$"
+                },
+                "schemas": {
+                  "type": "string",
+                  "description": "Path to JSON Schema definitions",
+                  "pattern": "^ai/[^/]+/specs/.*\\.json$"
+                }
+              }
+            },
+            "tests": {
+              "type": "object",
+              "description": "Test suite paths organized by type",
+              "properties": {
+                "property": {
+                  "type": "string",
+                  "description": "Property-based tests",
+                  "pattern": "^ai/[^/]+/tests/property/.*$"
+                },
+                "deterministic": {
+                  "type": "string",
+                  "description": "Deterministic simulation tests",
+                  "pattern": "^ai/[^/]+/tests/simulation/.*$"
+                },
+                "fuzz": {
+                  "type": "string",
+                  "description": "Fuzz tests for input validation",
+                  "pattern": "^ai/[^/]+/tests/fuzz/.*$"
+                },
+                "contract": {
+                  "type": "string",
+                  "description": "API contract tests",
+                  "pattern": "^ai/[^/]+/tests/contract/.*$"
+                },
+                "unit": {
+                  "type": "string",
+                  "description": "Unit tests",
+                  "pattern": "^ai/[^/]+/tests/unit/.*$"
+                },
+                "integration": {
+                  "type": "string",
+                  "description": "Integration tests",
+                  "pattern": "^ai/[^/]+/tests/integration/.*$"
+                },
+                "e2e": {
+                  "type": "string",
+                  "description": "End-to-end tests",
+                  "pattern": "^ai/[^/]+/tests/e2e/.*$"
+                }
+              }
             }
-          },
-          "minProperties": 1
+          }
         },
         "downstream": {
           "type": "array",

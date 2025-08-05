@@ -72,7 +72,7 @@ func (r *Renderer) renderText() (string, error) {
 	var sb strings.Builder
 
 	// Header
-	sb.WriteString(fmt.Sprintf("MPC Workflow: %s\n", r.mpc.ProjectName))
+	sb.WriteString(fmt.Sprintf("MPC Workflow: %s\n", r.mpc.PlanName))
 	sb.WriteString(fmt.Sprintf("Plan ID: %s\n", r.mpc.PlanID))
 	sb.WriteString(fmt.Sprintf("Version: %s\n", r.mpc.Version))
 	sb.WriteString(strings.Repeat("=", 80) + "\n\n")
@@ -192,6 +192,8 @@ func (r *Renderer) renderText() (string, error) {
 			if node.Artifacts.BPMN != "" {
 				sb.WriteString(fmt.Sprintf("  • BPMN: %s\n", node.Artifacts.BPMN))
 			}
+			
+			// Handle old format
 			if node.Artifacts.Spec != "" {
 				sb.WriteString(fmt.Sprintf("  • Spec: %s\n", node.Artifacts.Spec))
 			}
@@ -200,6 +202,58 @@ func (r *Renderer) renderText() (string, error) {
 			}
 			if node.Artifacts.Properties != "" {
 				sb.WriteString(fmt.Sprintf("  • Properties: %s\n", node.Artifacts.Properties))
+			}
+			
+			// Handle new format
+			if node.Artifacts.PropertiesStruct != nil {
+				sb.WriteString("  • Properties:\n")
+				if node.Artifacts.PropertiesStruct.Invariants != "" {
+					sb.WriteString(fmt.Sprintf("    - Invariants: %s\n", node.Artifacts.PropertiesStruct.Invariants))
+				}
+				if node.Artifacts.PropertiesStruct.StateProperties != "" {
+					sb.WriteString(fmt.Sprintf("    - State Properties: %s\n", node.Artifacts.PropertiesStruct.StateProperties))
+				}
+				if node.Artifacts.PropertiesStruct.Generators != "" {
+					sb.WriteString(fmt.Sprintf("    - Generators: %s\n", node.Artifacts.PropertiesStruct.Generators))
+				}
+			}
+			
+			if node.Artifacts.SpecsStruct != nil {
+				sb.WriteString("  • Specs:\n")
+				if node.Artifacts.SpecsStruct.API != "" {
+					sb.WriteString(fmt.Sprintf("    - API: %s\n", node.Artifacts.SpecsStruct.API))
+				}
+				if node.Artifacts.SpecsStruct.Models != "" {
+					sb.WriteString(fmt.Sprintf("    - Models: %s\n", node.Artifacts.SpecsStruct.Models))
+				}
+				if node.Artifacts.SpecsStruct.Schemas != "" {
+					sb.WriteString(fmt.Sprintf("    - Schemas: %s\n", node.Artifacts.SpecsStruct.Schemas))
+				}
+			}
+			
+			if node.Artifacts.TestsStruct != nil {
+				sb.WriteString("  • Tests:\n")
+				if node.Artifacts.TestsStruct.Property != "" {
+					sb.WriteString(fmt.Sprintf("    - Property: %s\n", node.Artifacts.TestsStruct.Property))
+				}
+				if node.Artifacts.TestsStruct.Deterministic != "" {
+					sb.WriteString(fmt.Sprintf("    - Deterministic: %s\n", node.Artifacts.TestsStruct.Deterministic))
+				}
+				if node.Artifacts.TestsStruct.Fuzz != "" {
+					sb.WriteString(fmt.Sprintf("    - Fuzz: %s\n", node.Artifacts.TestsStruct.Fuzz))
+				}
+				if node.Artifacts.TestsStruct.Contract != "" {
+					sb.WriteString(fmt.Sprintf("    - Contract: %s\n", node.Artifacts.TestsStruct.Contract))
+				}
+				if node.Artifacts.TestsStruct.Unit != "" {
+					sb.WriteString(fmt.Sprintf("    - Unit: %s\n", node.Artifacts.TestsStruct.Unit))
+				}
+				if node.Artifacts.TestsStruct.Integration != "" {
+					sb.WriteString(fmt.Sprintf("    - Integration: %s\n", node.Artifacts.TestsStruct.Integration))
+				}
+				if node.Artifacts.TestsStruct.E2E != "" {
+					sb.WriteString(fmt.Sprintf("    - E2E: %s\n", node.Artifacts.TestsStruct.E2E))
+				}
 			}
 		}
 

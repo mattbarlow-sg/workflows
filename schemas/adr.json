@@ -304,6 +304,11 @@
           }
         }
       }
+    },
+    "workSessionId": {
+      "type": "string",
+      "description": "Optional work session ID to track ADR creation within a larger work session",
+      "pattern": "^[0-9]+-[a-z0-9-]+$"
     }
   },
   "definitions": {

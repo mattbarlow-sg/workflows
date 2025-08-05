@@ -1,0 +1,165 @@
+version: "0.5"
+plan_id: "1754400000-payment-processing-system"
+plan_name: "payment-processing-system"
+
+# --- Global context the agent will reuse in every node -------------
+context:
+  business_goal: "Build a secure, scalable payment processing system with support for multiple payment methods."
+  non_functional_requirements:
+    - "PCI DSS compliance"
+    - "99.95% uptime SLA"
+    - "Process 10K transactions per second"
+    - "Sub-500ms transaction latency"
+
+architecture:
+  overview: "Microservices architecture with event sourcing, CQRS pattern, deployed on AWS EKS."
+  adrs:
+    - "docs/adr/ADR-001-event-sourcing.md"
+    - "docs/adr/ADR-002-payment-gateway-selection.md"
+  constraints:
+    - "Must maintain PCI DSS Level 1 compliance"
+    - "Zero data loss for financial transactions"
+    - "Support for idempotent operations"
+
+tooling:
+  primary_language: "Go"
+  secondary_languages: ["SQL", "Protocol Buffers"]
+  frameworks: ["Gin", "GORM", "Temporal", "OpenTelemetry"]
+  coding_standards:
+    lint: "golangci-lint with custom rules"
+    formatting: "gofmt"
+    testing: "95% code coverage, property-based testing required"
+
+entry_node: "design-payment-flow"
+
+# ------------------- Example nodes with enriched artifacts -------------
+nodes:
+  - id: "design-payment-flow"
+    status: "Completed"
+    materialization: 1.0
+    description: "Design the core payment processing workflow"
+    detailed_description: |
+      Create comprehensive BPMN diagrams and formal specifications for the payment processing workflow,
+      including happy paths, error handling, compensation flows, and regulatory compliance checkpoints.
+    subtasks:
+      - description: "Model payment authorization flow"
+        completed: true
+      - description: "Design compensation and rollback mechanisms"
+        completed: true
+      - description: "Define compliance checkpoints"
+        completed: true
+      - description: "Create formal state machine specification"
+        completed: true
+    outputs: ["BPMN diagrams", "State machine specs", "Compliance matrix"]
+    acceptance_criteria:
+      - "All payment states are clearly defined"
+      - "Compensation flows handle all failure modes"
+      - "Compliance requirements mapped to workflow steps"
+    definition_of_done: "Payment flow formally specified and validated"
+    required_knowledge: ["BPMN 2.0", "Payment processing", "PCI DSS"]
+    artifacts:
+      # Stage 1: BPMN Process Design
+      bpmn: "ai/payment-processing-system/bpmn/payment-flow.json"
+      
+      # Stage 2: Formal Properties and Invariants
+      properties:
+        invariants: "ai/payment-processing-system/properties/payment-invariants.json"
+        state_properties: "ai/payment-processing-system/properties/payment-state-machine.json"
+        generators: "ai/payment-processing-system/properties/payment-generators.ts"
+      
+      # Stage 2-3: Specifications
+      specs:
+        api: "ai/payment-processing-system/specs/payment-api.yaml"
+        models: "ai/payment-processing-system/specs/payment-state.tla"
+        schemas: "ai/payment-processing-system/specs/payment-schemas.json"
+      
+      # Stage 3: Generated Tests
+      tests:
+        property: "ai/payment-processing-system/tests/property/payment-flow/*"
+        deterministic: "ai/payment-processing-system/tests/simulation/payment-flow/*"
+        fuzz: "ai/payment-processing-system/tests/fuzz/payment-validation/*"
+    downstream: ["implement-payment-service"]
+
+  - id: "implement-payment-service"
+    status: "In Progress"
+    materialization: 0.8
+    description: "Implement core payment processing service"
+    detailed_description: |
+      Build the payment processing service implementing the formally specified workflow,
+      with all invariants enforced at runtime and comprehensive test coverage.
+    subtasks:
+      - description: "Implement payment state machine"
+        completed: true
+      - description: "Add runtime invariant checking"
+        completed: true
+      - description: "Implement idempotency layer"
+        completed: false
+      - description: "Add distributed tracing"
+        completed: false
+    outputs: ["payment-service/", "API documentation"]
+    acceptance_criteria:
+      - "All property tests pass"
+      - "Runtime invariants cannot be violated"
+      - "Meets performance requirements"
+    definition_of_done: "Service deployed with 95% test coverage"
+    required_knowledge: ["Go", "Event sourcing", "Distributed systems"]
+    artifacts:
+      # Previous stages artifacts inherited
+      bpmn: "ai/payment-processing-system/bpmn/payment-flow.json"
+      properties:
+        invariants: "ai/payment-processing-system/properties/payment-invariants.json"
+        state_properties: "ai/payment-processing-system/properties/payment-state-machine.json"
+        generators: "ai/payment-processing-system/properties/payment-generators.ts"
+      specs:
+        api: "ai/payment-processing-system/specs/payment-api.yaml"
+        models: "ai/payment-processing-system/specs/payment-state.tla"
+        schemas: "ai/payment-processing-system/specs/payment-schemas.json"
+      
+      # Additional tests for implementation
+      tests:
+        property: "ai/payment-processing-system/tests/property/payment-service/*"
+        deterministic: "ai/payment-processing-system/tests/simulation/payment-service/*"
+        fuzz: "ai/payment-processing-system/tests/fuzz/payment-service/*"
+        contract: "ai/payment-processing-system/tests/contract/payment-api/*"
+        unit: "ai/payment-processing-system/tests/unit/payment-service/*"
+        integration: "ai/payment-processing-system/tests/integration/payment-service/*"
+    downstream: ["security-audit", "performance-testing"]
+
+  - id: "security-audit"
+    status: "Blocked"
+    materialization: 0.3
+    description: "Conduct security audit and penetration testing"
+    detailed_description: |
+      Perform comprehensive security analysis including static analysis, dynamic testing,
+      and penetration testing to ensure PCI DSS compliance and identify vulnerabilities.
+    subtasks:
+      - description: "Run static security analysis"
+        completed: false
+      - description: "Perform dynamic application security testing"
+        completed: false
+      - description: "Conduct penetration testing"
+        completed: false
+      - description: "Generate compliance report"
+        completed: false
+    outputs: ["Security report", "Vulnerability findings", "Compliance certificate"]
+    acceptance_criteria:
+      - "No critical or high vulnerabilities"
+      - "PCI DSS compliance validated"
+      - "All OWASP Top 10 addressed"
+    definition_of_done: "Security audit passed with compliance certification"
+    required_knowledge: ["Security testing", "PCI DSS", "OWASP"]
+    # Note: Some artifact types may not apply to all nodes
+    artifacts:
+      specs:
+        models: "ai/payment-processing-system/specs/threat-model.tla"
+      tests:
+        fuzz: "ai/payment-processing-system/tests/fuzz/security/*"
+        e2e: "ai/payment-processing-system/tests/e2e/security-scenarios/*"
+    downstream: ["production-deployment"]
+
+# This example demonstrates:
+# 1. How artifacts accumulate through workflow stages
+# 2. Different types of specs (API, formal models, schemas)
+# 3. Comprehensive test categories (property, deterministic, fuzz, etc.)
+# 4. Proper namespacing under plan_name
+# 5. How not all nodes need all artifact types

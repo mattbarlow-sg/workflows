@@ -1,6 +1,6 @@
 version: "0.4"
 plan_id: "1754166705-user-authentication-service"
-project_name: "User Authentication Service"
+plan_name: "user-authentication-service"
 
 # --- Global context the agent will reuse in every node -------------
 context:

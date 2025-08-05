@@ -26,7 +26,7 @@ func NewBPMNRenderCommand() *BPMNRenderCommand {
 	}
 	
 	// Define flags
-	cmd.FlagSet().StringVar(&cmd.format, "format", "dot", "Output format: dot, mermaid, text")
+	cmd.FlagSet().StringVar(&cmd.format, "format", "markdown", "Output format: markdown, dot, mermaid, text")
 	cmd.FlagSet().StringVar(&cmd.output, "output", "", "Output file path (optional)")
 	
 	return cmd
@@ -56,7 +56,7 @@ func (c *BPMNRenderCommand) Execute(args []string) error {
 	}
 	
 	// Validate format
-	validFormats := []string{"dot", "mermaid", "text"}
+	validFormats := []string{"markdown", "dot", "mermaid", "text"}
 	valid := false
 	for _, f := range validFormats {
 		if c.format == f {
@@ -76,6 +76,8 @@ func (c *BPMNRenderCommand) Execute(args []string) error {
 	var err error
 	
 	switch c.format {
+	case "markdown":
+		output, err = renderer.RenderMarkdownFile(filePath)
 	case "dot":
 		output, err = renderer.RenderDotFile(filePath)
 	case "mermaid":

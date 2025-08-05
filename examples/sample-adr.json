@@ -184,5 +184,6 @@
       "type": "article"
     }
   ],
-  "notes": "Consider reviewing this decision in 6 months based on team feedback and project progress. May need to add Server-Side Rendering (SSR) with Next.js if SEO becomes a requirement."
+  "notes": "Consider reviewing this decision in 6 months based on team feedback and project progress. May need to add Server-Side Rendering (SSR) with Next.js if SEO becomes a requirement.",
+  "workSessionId": "1754302282-frontend-framework-selection"
 }

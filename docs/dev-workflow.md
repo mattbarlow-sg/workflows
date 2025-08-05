@@ -1,9 +1,10 @@
-# MPC + Spec Driven Design Integration
+# ADR + MPC + Spec Driven Design Integration
 
 ## Overview
 
-This document describes how Model Predictive Control (MPC) planning integrates with Spec
-Driven Design methodology. MPC provides the high-level task decomposition and work
+This document describes how Architecture Decision Records (ADRs), Model Predictive Control 
+(MPC) planning, and Spec Driven Design methodology work together. ADRs capture major 
+architectural decisions, MPC provides the high-level task decomposition and work 
 prioritization, while Spec Driven Design ensures each task is properly specified, tested,
 and implemented.
 
@@ -11,7 +12,8 @@ and implemented.
 
 ```mermaid
 graph TB
-    A[Create/Update MPC Plan] --> B[AI Selects Available Nodes]
+    ADR[Phase 0: Create ADR for Major Decisions] --> A[Phase 1: Create/Update MPC Plan]
+    A --> B[AI Selects Available Nodes]
     B --> C{Multiple Nodes Available?}
     C -->|Yes| D[AI Recommends Parallelization Strategy]
     C -->|No| E[Work Single Node]
@@ -23,34 +25,94 @@ graph TB
     I --> J{More Nodes?}
     J -->|Yes| B
     J -->|No| K[Complete]
+    
+    ADR -.->|Optional for minor changes| A
 ```
 
 ## Phase-by-Phase Guide
 
-### Phase 1: Initial MPC Planning
+### Phase 0: Architecture Decision Record (ADR)
+
+Before diving into MPC planning, significant architectural decisions should be documented using an ADR. This ensures:
+
+- **Clear rationale** for major technical choices
+- **Stakeholder alignment** before implementation begins
+- **Future reference** for understanding why decisions were made
+- **Risk assessment** of architectural impacts
+
+#### When to Create an ADR
+
+Create an ADR when:
+- Choosing between multiple technology options (databases, frameworks, libraries)
+- Making significant architectural changes
+- Establishing new patterns or conventions
+- Decisions that affect multiple components or teams
+- Changes with long-term maintenance implications
+
+#### ADR Creation Process
+
+1. **Use the AI-assisted workflow** for guided ADR creation in Claude Code:
+   ```bash
+   /ai-adr-create
+   ```
+
+#### Example ADR-Driven Planning
+
+```
+Developer: "We need to add real-time features to our application"
+
+AI: "This is a significant architectural decision. Let's create an ADR first to evaluate options.
+     
+     Key decisions to document:
+     1. WebSocket vs Server-Sent Events vs Long Polling
+     2. Scaling strategy for real-time connections
+     3. Message broker selection if needed
+     
+     Shall we start with the ADR creation?"
+
+[Creates ADR-0024-real-time-architecture.json]
+```
+
+### Phase 1: MPC (Model Predictive Control) Planning
 
 The MPC plan serves as the **work breakdown structure** with these characteristics:
 
-- **Low initial materialization** (0.3-0.5) for most nodes
+- **Low initial materialization** (0.3-0.7) for most nodes
 - **High-level descriptions** that will be refined during spec design
 - **Clear dependencies** to enable parallel work
 - **Flexible structure** that can evolve as understanding deepens
 
-Example initial node:
+Example node:
 ```yaml
-- id: "auth-system"
-  status: "Blocked"
-  materialization: 0.4
-  description: "Implement authentication system"
-  detailed_description: |
-    Create a secure authentication system supporting:
-    - Username/password login
-    - JWT tokens
-    - Session management
-    Need to determine: MFA approach, token storage, refresh strategy
-  outputs: ["src/auth/*", "tests/auth/*"]
-  agent_action: "Design and implement authentication"
-  downstream: ["user-api", "admin-panel"]
+  - id: "add-oauth-support"
+    status: "Blocked"
+    materialization: 0.5
+    description: "Integrate OAuth2.0 providers"
+    detailed_description: |
+      Extend the authentication system to support third-party OAuth providers, initially focusing on Google and GitHub. This includes implementing OAuth flows, managing external user identities, and providing seamless account linking between OAuth and local accounts.
+    subtasks:
+      - description: "Configure and implement Google OAuth support"
+        completed: false
+      - description: "Configure and implement GitHub OAuth support"
+        completed: false
+      - description: "Implement OAuth callback handlers"
+        completed: false
+      - description: "Create logic to link OAuth accounts to local users"
+        completed: false
+      - description: "Implement secure OAuth token storage"
+        completed: false
+    outputs: ["src/strategies/oauth.ts", "src/routes/oauth.ts"]
+    acceptance_criteria:
+      - "OAuth flow completes successfully"
+      - "Users can link multiple OAuth accounts"
+    definition_of_done: "OAuth login working for Google and GitHub"
+    required_knowledge: ["OAuth2.0", "Passport OAuth strategies"]
+    # NOTE: Artifacts will be generated in subsequent phases
+    # artifacts:
+    #   bpmn: "docs/bpmn/oauth-flow.json"
+    #   spec: "docs/specs/oauth-integration.yaml"
+    #   tests: "tests/oauth/*"
+    downstream: ["write-integration-tests"]
 ```
 
 ### Phase 2: Intelligent Node Selection
@@ -80,57 +142,168 @@ For each selected node:
 #### Stage 0-1: Refinement Through BPMN
 ```yaml
 # MPC node update after BPMN modeling
-- id: "auth-system"
-  status: "Ready"
+- id: "add-oauth-support"
+  status: "Ready"  # Changed from Blocked after dependencies resolved
   materialization: 0.7  # Increased after clarification
-  description: "Implement JWT-based authentication"
+  description: "Integrate OAuth2.0 providers"
   detailed_description: |
-    REFINED: Create JWT authentication with:
-    - POST /auth/login - Password validation with rate limiting
-    - POST /auth/refresh - Token refresh with rotation
-    - POST /auth/logout - Token revocation
-    - MFA via TOTP (separate future node)
+    REFINED: Extend the authentication system to support third-party OAuth providers, initially focusing on Google and GitHub. This includes implementing OAuth flows, managing external user identities, and providing seamless account linking between OAuth and local accounts.
     
-    See: docs/bpmn/auth-flow.json
-    See: docs/specs/auth-endpoints.yaml
+    Key clarifications from BPMN:
+    - OAuth callback flow requires dedicated endpoints
+    - Token storage needs encryption at rest
+    - Account linking requires user confirmation step
+  subtasks:
+    - description: "Configure and implement Google OAuth support"
+      completed: false
+    - description: "Configure and implement GitHub OAuth support"
+      completed: false
+    - description: "Implement OAuth callback handlers"
+      completed: false
+    - description: "Create logic to link OAuth accounts to local users"
+      completed: false
+    - description: "Implement secure OAuth token storage"
+      completed: false
+  outputs: ["src/strategies/oauth.ts", "src/routes/oauth.ts"]
+  acceptance_criteria:
+    - "OAuth flow completes successfully"
+    - "Users can link multiple OAuth accounts"
+  definition_of_done: "OAuth login working for Google and GitHub"
+  required_knowledge: ["OAuth2.0", "Passport OAuth strategies"]
+  artifacts:
+    bpmn: "docs/bpmn/oauth-flow.json"
+    # spec: "docs/specs/oauth-integration.yaml"  # Next phase
+    # tests: "tests/oauth/*"  # Next phase
+  downstream: ["write-integration-tests"]
 ```
 
 #### Discovery Leads to Plan Updates
 During BPMN modeling, you might discover:
-- Node is too large → Split into multiple nodes
-- Missing dependency → Add new upstream node
-- Scope creep → Create follow-up nodes for v2 features
+- Node is too large →  Split into multiple nodes
+- Missing dependency →  Add new upstream node
+- Scope creep →  Create follow-up nodes for v2 features
 
 Example split:
 ```yaml
 # Original node becomes two:
 - id: "auth-basic"
+  status: "Ready"
+  materialization: 0.6
   description: "Basic JWT authentication"
+  detailed_description: |
+    Implement core JWT-based authentication system with login, logout, and token refresh capabilities.
+  subtasks:
+    - description: "Implement JWT token generation and validation"
+      completed: false
+    - description: "Create login endpoint with password validation"
+      completed: false
+    - description: "Implement token refresh mechanism"
+      completed: false
+  acceptance_criteria:
+    - "Users can login with valid credentials"
+    - "JWT tokens are properly validated"
+    - "Token refresh works correctly"
+  definition_of_done: "Basic authentication flow working end-to-end"
   downstream: ["auth-mfa"]
   
 - id: "auth-mfa"
-  description: "Multi-factor authentication"
   status: "Blocked"  # Waiting on auth-basic
+  materialization: 0.3
+  description: "Multi-factor authentication"
+  detailed_description: |
+    Add TOTP-based multi-factor authentication to the existing auth system.
+  subtasks:
+    - description: "Implement TOTP secret generation"
+      completed: false
+    - description: "Add MFA enrollment endpoints"
+      completed: false
+    - description: "Integrate MFA into login flow"
+      completed: false
+  acceptance_criteria:
+    - "Users can enable/disable MFA"
+    - "MFA codes are properly validated"
+    - "Recovery codes work correctly"
+  definition_of_done: "MFA fully integrated with auth system"
+  downstream: []
 ```
 
 #### Stage 2-3: Formal Specs & Tests
 Node artifacts accumulate:
 ```yaml
-- id: "auth-basic"
+- id: "add-oauth-support"
+  status: "Ready"
   materialization: 0.9  # Almost ready for implementation
+  description: "Integrate OAuth2.0 providers"
+  detailed_description: |
+    REFINED: Extend the authentication system to support third-party OAuth providers, initially focusing on Google and GitHub. This includes implementing OAuth flows, managing external user identities, and providing seamless account linking between OAuth and local accounts.
+    
+    Key clarifications from BPMN:
+    - OAuth callback flow requires dedicated endpoints
+    - Token storage needs encryption at rest
+    - Account linking requires user confirmation step
+  subtasks:
+    - description: "Configure and implement Google OAuth support"
+      completed: false
+    - description: "Configure and implement GitHub OAuth support"
+      completed: false
+    - description: "Implement OAuth callback handlers"
+      completed: false
+    - description: "Create logic to link OAuth accounts to local users"
+      completed: false
+    - description: "Implement secure OAuth token storage"
+      completed: false
+  outputs: ["src/strategies/oauth.ts", "src/routes/oauth.ts"]
+  acceptance_criteria:
+    - "OAuth flow completes successfully"
+    - "Users can link multiple OAuth accounts"
+  definition_of_done: "OAuth login working for Google and GitHub"
+  required_knowledge: ["OAuth2.0", "Passport OAuth strategies"]
   artifacts:
-    bpmn: "docs/bpmn/auth-flow.json"
-    spec: "docs/specs/auth-endpoints.yaml"
-    tests: "tests/generated/auth/*.test.ts"
-    properties: "tests/properties/auth.properties.ts"
+    bpmn: "docs/bpmn/oauth-flow.json"
+    spec: "docs/specs/oauth-integration.yaml"
+    tests: "tests/oauth/*"
+    properties: "tests/properties/oauth.properties.ts"
+  downstream: ["write-integration-tests"]
 ```
 
 #### Stage 4: Implementation
 Only after all specs and tests exist:
 ```yaml
-- id: "auth-basic"
+- id: "add-oauth-support"
   status: "Completed"
   materialization: 1.0
+  description: "Integrate OAuth2.0 providers"
+  detailed_description: |
+    REFINED: Extend the authentication system to support third-party OAuth providers, initially focusing on Google and GitHub. This includes implementing OAuth flows, managing external user identities, and providing seamless account linking between OAuth and local accounts.
+    
+    Key clarifications from BPMN:
+    - OAuth callback flow requires dedicated endpoints
+    - Token storage needs encryption at rest
+    - Account linking requires user confirmation step
+  subtasks:
+    - description: "Configure and implement Google OAuth support"
+      completed: true
+    - description: "Configure and implement GitHub OAuth support"
+      completed: true
+    - description: "Implement OAuth callback handlers"
+      completed: true
+    - description: "Create logic to link OAuth accounts to local users"
+      completed: true
+    - description: "Implement secure OAuth token storage"
+      completed: true
+  outputs: ["src/strategies/oauth.ts", "src/routes/oauth.ts"]
+  acceptance_criteria:
+    - "OAuth flow completes successfully"
+    - "Users can link multiple OAuth accounts"
+  definition_of_done: "OAuth login working for Google and GitHub"
+  required_knowledge: ["OAuth2.0", "Passport OAuth strategies"]
+  artifacts:
+    bpmn: "docs/bpmn/oauth-flow.json"
+    spec: "docs/specs/oauth-integration.yaml"
+    tests: "tests/oauth/*"
+    properties: "tests/properties/oauth.properties.ts"
+  downstream: ["write-integration-tests"]
+  # Additional fields after completion:
   implementation_complete: "2024-03-15"
   pr_link: "https://github.com/org/repo/pull/123"
 ```

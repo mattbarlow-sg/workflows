@@ -13,13 +13,14 @@ type Process struct {
 
 // ProcessInfo contains the main process information
 type ProcessInfo struct {
-	ID           string       `json:"id" validate:"required"`
-	Name         string       `json:"name" validate:"required"`
-	Description  string       `json:"description,omitempty"`
-	IsExecutable bool         `json:"isExecutable"`
-	Elements     Elements     `json:"elements" validate:"required"`
-	DataObjects  []DataObject `json:"dataObjects,omitempty"`
-	Properties   []Property   `json:"properties,omitempty"`
+	ID            string       `json:"id" validate:"required"`
+	Name          string       `json:"name" validate:"required"`
+	Description   string       `json:"description,omitempty"`
+	IsExecutable  bool         `json:"isExecutable"`
+	Elements      Elements     `json:"elements" validate:"required"`
+	DataObjects   []DataObject `json:"dataObjects,omitempty"`
+	Properties    []Property   `json:"properties,omitempty"`
+	WorkSessionID string       `json:"workSessionId,omitempty"`
 }
 
 // Elements contains all BPMN elements in the process

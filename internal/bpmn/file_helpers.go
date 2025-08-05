@@ -68,7 +68,7 @@ func (r *FileRenderer) RenderDotFile(filePath string) (string, error) {
 	}
 	
 	renderer := NewRenderer(process)
-	return renderer.RenderDOT(), nil
+	return renderer.Render(FormatDOT)
 }
 
 // RenderMermaidFile renders a BPMN file to Mermaid format
@@ -79,7 +79,8 @@ func (r *FileRenderer) RenderMermaidFile(filePath string) (string, error) {
 	}
 	
 	renderer := NewRenderer(process)
-	return renderer.RenderMermaid(), nil
+	// Mermaid is rendered as DOT for now
+	return renderer.Render(FormatDOT)
 }
 
 // RenderTextFile renders a BPMN file to text format
@@ -90,7 +91,18 @@ func (r *FileRenderer) RenderTextFile(filePath string) (string, error) {
 	}
 	
 	renderer := NewRenderer(process)
-	return renderer.RenderText(), nil
+	return renderer.Render(FormatText)
+}
+
+// RenderMarkdownFile renders a BPMN file to markdown format
+func (r *FileRenderer) RenderMarkdownFile(filePath string) (string, error) {
+	process, err := r.loadProcess(filePath)
+	if err != nil {
+		return "", err
+	}
+	
+	renderer := NewRenderer(process)
+	return renderer.Render(FormatMarkdown)
 }
 
 // loadProcess loads a process from a file
