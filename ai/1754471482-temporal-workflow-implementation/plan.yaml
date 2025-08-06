@@ -1,0 +1,486 @@
+version: "1.0"
+plan_id: "1754471482-temporal-workflow-implementation"
+plan_name: "temporal-workflow-implementation"
+
+context:
+  business_goal: "Implement a robust Temporal workflow orchestration system with Golang that supports long-running workflows, human-in-the-loop tasks, and comprehensive validation, ensuring all workflows are thoroughly tested before deployment"
+  non_functional_requirements:
+    - "All workflows must be validated and tested BEFORE Temporal implementation"
+    - "Support for workflows spanning days to weeks with fault tolerance"
+    - "Human task management with escalation capabilities"
+    - "Full CLI accessibility for workflow control"
+    - "Three UI views: workflows dashboard, single workflow graph, human task queue"
+    - "Deterministic workflow execution with static analysis"
+    - "Comprehensive integration and unit testing framework"
+
+architecture:
+  overview: "Multi-layered architecture with validation-first approach, leveraging existing CLI framework and BPMN types, integrated with Temporal SDK for durable workflow execution"
+  adrs:
+    - "docs/adr/ADR-0001-temporal-workflow.md"
+  constraints:
+    - "Must integrate with existing Golang codebase structure"
+    - "Cannot modify existing CLI command structure"
+    - "Must maintain backward compatibility with BPMN workflows"
+    - "Temporal server infrastructure required"
+    - "All workflows must pass determinism checks"
+
+tooling:
+  primary_language: "Go"
+  secondary_languages:
+    - "YAML"
+    - "JSON"
+  frameworks:
+    - "Temporal Go SDK (go.temporal.io/sdk)"
+    - "Temporal Testing Framework (go.temporal.io/sdk/testsuite)"
+    - "Workflowcheck Static Analyzer"
+    - "Existing CLI framework (internal/cli)"
+    - "BPMN type system (internal/bpmn)"
+  coding_standards:
+    lint: "golangci-lint with strict rules"
+    formatting: "gofmt and goimports"
+    testing: "Minimum 80% code coverage, integration tests required"
+
+entry_node: "validation-framework"
+
+nodes:
+  - id: "validation-framework"
+    status: "Ready"
+    materialization: 0.1
+    description: "Create comprehensive validation framework for Temporal workflows"
+    detailed_description: "Build a validation framework that performs static analysis, determinism checks, and pre-deployment validation of all Temporal workflows before they can be registered or deployed"
+    subtasks:
+      - description: "Create internal/temporal/validator.go with ValidatorInterface"
+        completed: false
+      - description: "Implement determinism checker using workflowcheck"
+        completed: false
+      - description: "Build activity signature validator"
+        completed: false
+      - description: "Create workflow graph validator for cycles and connectivity"
+        completed: false
+      - description: "Implement timeout and retry policy validators"
+        completed: false
+      - description: "Add human task validation rules"
+        completed: false
+      - description: "Create validation result types and error reporting"
+        completed: false
+      - description: "Write comprehensive unit tests for validators"
+        completed: false
+    outputs:
+      - "internal/temporal/validator.go"
+      - "internal/temporal/validator_test.go"
+      - "internal/temporal/validation_rules.go"
+    acceptance_criteria:
+      - "All validation functions have >90% test coverage"
+      - "Determinism checker correctly identifies non-deterministic code"
+      - "Clear error messages for validation failures"
+      - "Can validate both individual workflows and entire workflow libraries"
+    definition_of_done: "Validation framework can analyze any Temporal workflow and provide comprehensive validation report with actionable feedback"
+    required_knowledge:
+      - "Temporal determinism requirements"
+      - "Go AST analysis"
+      - "Workflow graph theory"
+    downstream:
+      - "testing-framework"
+      - "bpmn-adapter"
+
+  - id: "testing-framework"
+    status: "Ready"
+    materialization: 0.1
+    description: "Implement comprehensive testing framework for Temporal workflows"
+    detailed_description: "Create testing infrastructure using Temporal's test suite that enables unit, integration, and end-to-end testing of workflows with time skipping and mocked activities"
+    subtasks:
+      - description: "Set up Temporal test environment configuration"
+        completed: false
+      - description: "Create test workflow factory and builders"
+        completed: false
+      - description: "Implement activity mocking framework"
+        completed: false
+      - description: "Build signal and query test helpers"
+        completed: false
+      - description: "Create human task simulation utilities"
+        completed: false
+      - description: "Implement time-skipping test scenarios"
+        completed: false
+      - description: "Add test coverage reporting"
+        completed: false
+      - description: "Create integration test suite"
+        completed: false
+    outputs:
+      - "internal/temporal/testing/test_env.go"
+      - "internal/temporal/testing/mocks.go"
+      - "internal/temporal/testing/helpers.go"
+      - "internal/temporal/testing/integration_test.go"
+    acceptance_criteria:
+      - "Can test workflows without running Temporal server"
+      - "Time skipping works for long-running workflow tests"
+      - "All workflow patterns have test examples"
+      - "Human task scenarios can be simulated"
+    definition_of_done: "Testing framework enables comprehensive testing of all workflow scenarios with clear test patterns and helpers"
+    required_knowledge:
+      - "Temporal test suite API"
+      - "Go testing best practices"
+      - "Mock generation techniques"
+    downstream:
+      - "temporal-client"
+
+  - id: "bpmn-adapter"
+    status: "Ready"
+    materialization: 0.1
+    description: "Create BPMN to Temporal workflow adapter"
+    detailed_description: "Build adapter layer that converts existing BPMN workflow definitions to Temporal workflow code, mapping BPMN elements to Temporal patterns"
+    subtasks:
+      - description: "Create BPMN element to Temporal pattern mapping"
+        completed: false
+      - description: "Implement BPMN process to workflow converter"
+        completed: false
+      - description: "Build activity generator from BPMN tasks"
+        completed: false
+      - description: "Convert BPMN gateways to workflow logic"
+        completed: false
+      - description: "Map BPMN events to signals and timers"
+        completed: false
+      - description: "Handle BPMN data objects and properties"
+        completed: false
+      - description: "Create migration utility CLI command"
+        completed: false
+      - description: "Write adapter tests with sample BPMN files"
+        completed: false
+    outputs:
+      - "internal/temporal/bpmn_adapter.go"
+      - "internal/temporal/bpmn_converter.go"
+      - "internal/temporal/bpmn_adapter_test.go"
+      - "cmd/workflows/commands/bpmn_migrate.go"
+    acceptance_criteria:
+      - "Can convert all BPMN element types to Temporal patterns"
+      - "Generated workflows pass validation framework"
+      - "Preserves BPMN semantics in Temporal implementation"
+      - "Migration command works for existing BPMN files"
+    definition_of_done: "BPMN adapter successfully converts existing BPMN workflows to validated Temporal workflows"
+    required_knowledge:
+      - "BPMN 2.0 specification"
+      - "Temporal workflow patterns"
+      - "Code generation techniques"
+    downstream:
+      - "workflow-generator"
+
+  - id: "temporal-client"
+    status: "Ready"
+    materialization: 0.1
+    description: "Implement Temporal client and worker infrastructure"
+    detailed_description: "Create Temporal client setup, worker configuration, and workflow registration system with proper connection management and error handling"
+    subtasks:
+      - description: "Create Temporal client configuration and setup"
+        completed: false
+      - description: "Implement worker pool management"
+        completed: false
+      - description: "Build workflow and activity registration system"
+        completed: false
+      - description: "Add connection retry and error handling"
+        completed: false
+      - description: "Implement namespace and task queue management"
+        completed: false
+      - description: "Create client metrics and monitoring"
+        completed: false
+      - description: "Add graceful shutdown handling"
+        completed: false
+      - description: "Write client integration tests"
+        completed: false
+    outputs:
+      - "internal/temporal/client.go"
+      - "internal/temporal/worker.go"
+      - "internal/temporal/registry.go"
+      - "internal/temporal/config.go"
+    acceptance_criteria:
+      - "Client connects reliably to Temporal server"
+      - "Workers process workflows and activities correctly"
+      - "Graceful shutdown preserves workflow state"
+      - "Metrics are properly exported"
+    definition_of_done: "Temporal client and worker infrastructure is production-ready with proper error handling and monitoring"
+    required_knowledge:
+      - "Temporal client configuration"
+      - "Worker pool optimization"
+      - "Go concurrency patterns"
+    downstream:
+      - "workflow-library"
+
+  - id: "workflow-generator"
+    status: "Ready"
+    materialization: 0.1
+    description: "Build workflow generator for creating new Temporal workflows"
+    detailed_description: "Create code generation system that produces validated Temporal workflow code from templates and specifications, ensuring all generated code is deterministic and follows best practices"
+    subtasks:
+      - description: "Design workflow template system"
+        completed: false
+      - description: "Create base workflow templates"
+        completed: false
+      - description: "Implement activity template generator"
+        completed: false
+      - description: "Build signal and query handler generators"
+        completed: false
+      - description: "Add human task pattern templates"
+        completed: false
+      - description: "Create workflow composition utilities"
+        completed: false
+      - description: "Implement validation of generated code"
+        completed: false
+      - description: "Write generator tests"
+        completed: false
+    outputs:
+      - "internal/temporal/generator.go"
+      - "internal/temporal/templates/"
+      - "internal/temporal/generator_test.go"
+    acceptance_criteria:
+      - "Generated workflows pass all validation checks"
+      - "Templates cover common workflow patterns"
+      - "Generated code follows Go best practices"
+      - "Human task patterns are correctly implemented"
+    definition_of_done: "Generator produces production-ready Temporal workflow code that passes all validations"
+    required_knowledge:
+      - "Go code generation"
+      - "Template engines"
+      - "Temporal best practices"
+    downstream:
+      - "workflow-library"
+
+  - id: "workflow-library"
+    status: "Blocked"
+    materialization: 0.1
+    description: "Create library of reusable Temporal workflows"
+    detailed_description: "Build comprehensive workflow library with common patterns including approval workflows, scheduled tasks, human-in-the-loop processes, and long-running educational workflows"
+    subtasks:
+      - description: "Create base workflow interfaces"
+        completed: false
+      - description: "Implement approval workflow pattern"
+        completed: false
+      - description: "Build scheduled task workflow"
+        completed: false
+      - description: "Create human task workflow with escalation"
+        completed: false
+      - description: "Implement long-running educational workflow"
+        completed: false
+      - description: "Add workflow composition patterns"
+        completed: false
+      - description: "Create workflow versioning strategy"
+        completed: false
+      - description: "Write workflow library tests"
+        completed: false
+    outputs:
+      - "internal/temporal/workflows/base.go"
+      - "internal/temporal/workflows/approval.go"
+      - "internal/temporal/workflows/scheduled.go"
+      - "internal/temporal/workflows/human_task.go"
+      - "internal/temporal/workflows/educational.go"
+    acceptance_criteria:
+      - "All workflows are fully tested"
+      - "Workflows handle edge cases and errors"
+      - "Clear documentation for each workflow"
+      - "Workflows are composable and reusable"
+    definition_of_done: "Workflow library provides production-ready, tested workflows for common use cases"
+    required_knowledge:
+      - "Common workflow patterns"
+      - "Temporal advanced features"
+      - "Domain-specific requirements"
+    downstream:
+      - "human-task-system"
+
+  - id: "human-task-system"
+    status: "Blocked"
+    materialization: 0.1
+    description: "Implement human-in-the-loop task management system"
+    detailed_description: "Create comprehensive system for managing human tasks including assignment, queuing, escalation, and completion with proper UI integration"
+    subtasks:
+      - description: "Design human task data model"
+        completed: false
+      - description: "Implement task assignment logic"
+        completed: false
+      - description: "Create task queue management"
+        completed: false
+      - description: "Build escalation system with timers"
+        completed: false
+      - description: "Implement task completion signals"
+        completed: false
+      - description: "Add task query handlers"
+        completed: false
+      - description: "Create task notification system"
+        completed: false
+      - description: "Write human task system tests"
+        completed: false
+    outputs:
+      - "internal/temporal/human_tasks/task_manager.go"
+      - "internal/temporal/human_tasks/queue.go"
+      - "internal/temporal/human_tasks/escalation.go"
+      - "internal/temporal/human_tasks/notifications.go"
+    acceptance_criteria:
+      - "Tasks can be assigned and reassigned"
+      - "Escalation happens automatically on timeout"
+      - "Queue provides fair task distribution"
+      - "Notifications are sent reliably"
+    definition_of_done: "Human task system handles all aspects of human-in-the-loop workflows with proper escalation"
+    required_knowledge:
+      - "Task queue algorithms"
+      - "Notification systems"
+      - "Temporal signal patterns"
+    downstream:
+      - "cli-integration"
+
+  - id: "cli-integration"
+    status: "Blocked"
+    materialization: 0.1
+    description: "Integrate Temporal workflows with existing CLI framework"
+    detailed_description: "Add Temporal workflow commands to existing CLI system, providing full workflow control including starting, monitoring, and managing workflows from command line"
+    subtasks:
+      - description: "Create temporal command group"
+        completed: false
+      - description: "Implement workflow list command"
+        completed: false
+      - description: "Add workflow start command with inputs"
+        completed: false
+      - description: "Create workflow status and describe commands"
+        completed: false
+      - description: "Implement workflow signal command"
+        completed: false
+      - description: "Add workflow query command"
+        completed: false
+      - description: "Create workflow generate command"
+        completed: false
+      - description: "Implement workflow validate command"
+        completed: false
+    outputs:
+      - "cmd/workflows/commands/temporal.go"
+      - "cmd/workflows/commands/temporal_list.go"
+      - "cmd/workflows/commands/temporal_start.go"
+      - "cmd/workflows/commands/temporal_status.go"
+      - "cmd/workflows/commands/temporal_signal.go"
+    acceptance_criteria:
+      - "All workflow operations available via CLI"
+      - "Commands follow existing CLI patterns"
+      - "Clear help text and examples"
+      - "Proper error handling and reporting"
+    definition_of_done: "CLI provides complete control over Temporal workflows with intuitive commands"
+    required_knowledge:
+      - "Existing CLI framework"
+      - "Temporal client operations"
+      - "Command-line UX patterns"
+    downstream:
+      - "ui-implementation"
+
+  - id: "ui-implementation"
+    status: "Blocked"
+    materialization: 0.1
+    description: "Implement three UI views for workflow visualization"
+    detailed_description: "Create web-based UI with three views: full workflows dashboard showing all workflows and statuses, network graph view for single workflow visualization, and queue view for human tasks"
+    subtasks:
+      - description: "Design UI architecture and API endpoints"
+        completed: false
+      - description: "Create workflows dashboard view"
+        completed: false
+      - description: "Implement workflow graph visualization"
+        completed: false
+      - description: "Build human task queue view"
+        completed: false
+      - description: "Add real-time updates via WebSocket"
+        completed: false
+      - description: "Implement filtering and search"
+        completed: false
+      - description: "Create workflow detail modals"
+        completed: false
+      - description: "Write UI integration tests"
+        completed: false
+    outputs:
+      - "ui/src/views/Dashboard.tsx"
+      - "ui/src/views/WorkflowGraph.tsx"
+      - "ui/src/views/TaskQueue.tsx"
+      - "internal/api/handlers.go"
+      - "internal/api/websocket.go"
+    acceptance_criteria:
+      - "All three views are functional"
+      - "Real-time updates work reliably"
+      - "UI is responsive and performant"
+      - "Clear visualization of workflow states"
+    definition_of_done: "UI provides comprehensive visualization and management of workflows and human tasks"
+    required_knowledge:
+      - "Frontend framework (React/Vue)"
+      - "Graph visualization libraries"
+      - "WebSocket implementation"
+    downstream:
+      - "integration-testing"
+
+  - id: "integration-testing"
+    status: "Blocked"
+    materialization: 0.1
+    description: "Perform comprehensive integration testing of entire system"
+    detailed_description: "Execute full integration tests covering all components including validation, testing framework, workflow library, human tasks, CLI, and UI with production-like scenarios"
+    subtasks:
+      - description: "Set up integration test environment"
+        completed: false
+      - description: "Create end-to-end test scenarios"
+        completed: false
+      - description: "Test long-running workflow scenarios"
+        completed: false
+      - description: "Validate human task escalation flows"
+        completed: false
+      - description: "Test CLI command integration"
+        completed: false
+      - description: "Verify UI real-time updates"
+        completed: false
+      - description: "Perform load and stress testing"
+        completed: false
+      - description: "Document test results and findings"
+        completed: false
+    outputs:
+      - "test/integration/e2e_test.go"
+      - "test/integration/scenarios/"
+      - "test/integration/load_test.go"
+      - "docs/test_report.md"
+    acceptance_criteria:
+      - "All integration tests pass"
+      - "System handles load within requirements"
+      - "No memory leaks or resource issues"
+      - "All edge cases covered"
+    definition_of_done: "System passes all integration tests and is ready for production deployment"
+    required_knowledge:
+      - "Integration testing strategies"
+      - "Load testing tools"
+      - "System monitoring"
+    downstream:
+      - "documentation"
+
+  - id: "documentation"
+    status: "Blocked"
+    materialization: 0.1
+    description: "Create comprehensive documentation for the Temporal workflow system"
+    detailed_description: "Write complete documentation including architecture guides, API references, workflow patterns, deployment instructions, and operational runbooks"
+    subtasks:
+      - description: "Write architecture documentation"
+        completed: false
+      - description: "Create API reference documentation"
+        completed: false
+      - description: "Document workflow patterns and examples"
+        completed: false
+      - description: "Write deployment and configuration guide"
+        completed: false
+      - description: "Create operational runbook"
+        completed: false
+      - description: "Add troubleshooting guide"
+        completed: false
+      - description: "Write developer onboarding guide"
+        completed: false
+      - description: "Create workflow migration guide"
+        completed: false
+    outputs:
+      - "docs/temporal/architecture.md"
+      - "docs/temporal/api_reference.md"
+      - "docs/temporal/workflow_patterns.md"
+      - "docs/temporal/deployment.md"
+      - "docs/temporal/operations.md"
+    acceptance_criteria:
+      - "Documentation covers all components"
+      - "Clear examples for all patterns"
+      - "Deployment steps are reproducible"
+      - "Troubleshooting covers common issues"
+    definition_of_done: "Documentation enables new developers to understand and operate the system independently"
+    required_knowledge:
+      - "Technical writing"
+      - "System architecture"
+      - "Operational best practices"
+    downstream: []

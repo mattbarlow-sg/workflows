@@ -56,7 +56,7 @@ In Claude Code:
    /ai-nodes-implement
    ```
 
-### Phase 3: Continuous Plan Evolution
+### Phase 2: Continuous Plan Evolution
 After completing nodes the ai agent will:
 
 0. **Test implementation against schemas**

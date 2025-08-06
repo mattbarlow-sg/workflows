@@ -430,3 +430,119 @@ The integration works by using MPC for **work decomposition and prioritization**
 4. **Context Keeper**: Maintains relationships between specs and implementations
 
 This combination provides both the flexibility of agile planning and the rigor of formal specification.
+
+## The Ralph Loop
+
+Credit to [@GeoffreyHuntley](https://x.com/GeoffreyHuntley) which is where I heard about
+this idea. Hopefully I am not misunderstanding / misrepresenting it.
+
+[Ralph Wiggum As Software Engineer](https://ghuntley.com/ralph/)
+
+```bash
+while :; do cat PROMPT.md | npx --yes @sourcegraph/amp ; done`
+```
+
+The technique is named after Ralph Wiggum (the simple-minded character from The Simpsons),
+reflecting its deliberately simple, repetitive nature that can produce surprisingly
+effective results despite being "deterministically bad in an undeterministic world."
+
+## Key Characteristics
+
+1. **One Thing Per Loop**: To get good outcomes with Ralph, you need to ask Ralph to do
+   one thing per loop. Only one thing. The AI is instructed to focus on implementing just
+   one specific task in each iteration.
+
+2. **Autonomous Decision Making**: You also need to trust Ralph to decide what's the most
+   important thing to implement. This is full hands-off vibe coding that will test the
+   bounds of what you consider "responsible engineering".
+
+3. **Fresh Context Each Loop**: Each loop starts with a fresh context window, requiring
+   careful management of what information is passed to the AI each time (specifications,
+   plans, etc.).
+
+4. **Testing and Validation**: After each implementation, the code is tested, and the loop
+   continues based on the results. After implementing functionality or resolving problems,
+   run the tests for that unit of code that was improved.
+
+## Integration with Spec-Driven Development
+
+The Ralph loop can be powerfully integrated into our spec-driven workflow, particularly
+during Stage 4 (Implementation) of each MPC node. Here's how they complement each other:
+
+### Structured Planning, Autonomous Execution
+
+Our methodology provides the **structure** (ADR → MPC → BPMN → Specs → Tests), while
+Ralph provides the **autonomous execution** within each node:
+
+```bash
+# For each MPC node at Stage 4 (after specs and tests are written)
+while [[ $(npm test -- --node="auth-endpoints") != "passing" ]]; do
+  echo "Node: auth-endpoints" > CURRENT_CONTEXT.md
+  cat docs/specs/auth-endpoints.yaml >> CURRENT_CONTEXT.md
+  cat tests/auth-endpoints.test.ts >> CURRENT_CONTEXT.md
+  cat CURRENT_CONTEXT.md | claude-code --implement-to-pass-tests
+done
+```
+
+### Key Integration Points
+
+1. **Pre-Ralph Requirements** (Our Stages 0-3):
+   - ADR defines architectural decisions
+   - MPC plan decomposes work into nodes
+   - BPMN creates visual process flow
+   - Formal specs define properties and invariants
+   - Tests are generated BEFORE implementation
+
+2. **Ralph Execution** (Our Stage 4):
+   - Each MPC node becomes a focused Ralph loop
+   - AI implements code to pass pre-written tests
+   - One specific task per loop iteration
+   - Autonomous decision-making within spec constraints
+   - Self-correction through test feedback
+
+3. **Post-Ralph Validation** (Our Stage 5-6):
+   - Integration testing across nodes
+   - Runtime verification of properties
+   - System-level invariant checking
+
+### Benefits of Integration
+
+This hybrid approach combines:
+- **Rigorous upfront design** (prevents architectural drift)
+- **Autonomous implementation** (speeds up coding)
+- **Traceable decisions** (ADRs document why)
+- **Emergent refinement** (Ralph's iterative improvement)
+- **Mathematical correctness** (formal properties enforced)
+- **Practical iteration** (Ralph's tolerance for imperfection)
+
+### Example Workflow
+
+```yaml
+# MPC Node Status Before Ralph
+- id: "auth-endpoints"
+  materialization: 0.7  # Specs and tests complete
+  artifacts:
+    bpmn: "docs/bpmn/auth-flow.json"      ✓
+    spec: "docs/specs/auth.yaml"          ✓
+    tests: "tests/auth/*"                 ✓
+    implementation: null                   ← Ralph loop target
+
+# Ralph Loop Execution
+Loop 1: Implement basic JWT generation → 3/15 tests pass
+Loop 2: Add validation logic → 8/15 tests pass
+Loop 3: Fix token expiry handling → 12/15 tests pass
+Loop 4: Add refresh token logic → 15/15 tests pass ✓
+
+# MPC Node Status After Ralph
+- id: "auth-endpoints"
+  materialization: 0.9  # Implementation complete
+  artifacts:
+    implementation: "src/auth/*"           ✓
+```
+
+### When NOT to Use Ralph
+
+Ralph loops should be avoided for:
+- Stages 0-3 (planning, design, specification) - these require human judgment
+- Cross-node integration - requires coordination beyond single-task focus
+- Architectural decisions - these need deliberate, traceable choices
