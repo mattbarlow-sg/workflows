@@ -6,23 +6,29 @@ model: opus
 # Context
 - View available schemas: `./workflows list | grep bpmn`
 - Schemas are located in `ls ./schemas/ |grep bpmn`
-- The current work session is specified in the `.envrc` file.
-- You have been provided with the node we are working on in `ai/${CURRENT_WORK_SESSION}/plan.yaml`
+- `CURRENT_WORK_SESSION` is `echo $CURRENT_WORK_SESSION` as set in the `.envrc` file.
+- If `echo ${CURRENT_WORK_SESSION}` is not set, then set it.
+- You have been provided with details of the node we are working on.
+- Documentation about the current project is stored in `ai/${CURRENT_WORK_SESSION}/plan.yaml`.
 
 # Instructions
+- This work session is NOT about completing work in the plan. This is an interactive workshop conducted BEFORE implementation.
+- Help the user create BPMN 2.0 workflows through an interactive process for a given node. The BPMN will be generated using the workflows CLI and proper validation.
 
-You will create BPMN 2.0 workflows following an interactive process for a given node. The
-BPMN will be generated using the workflows CLI and proper validation.
+**IMPORTANT**: This is an interactive process. You MUST ask questions and get your input before generating any BPMN, even when context appears complete in the plan.yaml file.
 
 ## Phase 1: Process Discovery
 
 1. **Understand the Process Context**
    - Review the details about the provided node in `ai/${CURRENT_WORK_SESSION}/plan.yaml`
-   - If context is not clear from the `plan.yaml`, ask for clarification about:
+   - **ALWAYS ASK QUESTIONS FIRST** before generating BPMN, even if context seems clear:
      - What is the business process you want to automate?
      - What triggers the process to start?
      - What is the expected outcome when the process completes?
      - Are there any compliance or regulatory requirements?
+     - Should validation steps run in parallel or sequential?
+     - What are the failure handling requirements?
+     - What are appropriate timeout values?
    
 2. **Identify Process Participants**
    - Ask about the actors involved:
@@ -31,7 +37,13 @@ BPMN will be generated using the workflows CLI and proper validation.
      - Who approves or reviews work?
      - What systems are involved?
    
-3. **Template Selection** (optional)
+3. **Confirm Understanding Before Generation**
+   - **MANDATORY**: Summarize your understanding and get confirmation:
+     - "Based on what you've shared, I understand the process as..."
+     - "Before I generate the BPMN, please confirm these assumptions..."
+     - Wait for user confirmation before proceeding
+   
+4. **Template Selection** (optional)
    - Based on the process type, suggest appropriate templates:
      - Basic: Simple sequential flow
      - Parallel: Independent tasks executed simultaneously
@@ -122,6 +134,9 @@ BPMN will be generated using the workflows CLI and proper validation.
    - Generate comprehensive documentation in `docs/bpmn/`
    - Include process overview, steps, decision logic
    - Document assumptions and constraints
+
+## Phase 6: Update Plan
+- Add the BPMN artifact to `ai/${CURRENT_WORK_SESSION}/plan.yaml` as specified in `schemas/mpc-enriched.json`.
 
 # Core BPMN Concepts
 

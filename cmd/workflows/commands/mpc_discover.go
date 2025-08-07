@@ -127,64 +127,78 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 	// Show what needs to be done right now
 	hasWork := false
 	
+	fmt.Printf("MPC Workflow: %s\n", mpcData.PlanName)
+	fmt.Printf("Plan ID: %s\n", mpcData.PlanID)
+	fmt.Println()
+	
 	// Show artifact generation first
 	if len(needsBPMN) > 0 {
 		hasWork = true
-		fmt.Println("Generate BPMN for:")
+		fmt.Println("🔧 ARTIFACT GENERATION NEEDED:")
+		fmt.Println(strings.Repeat("=", 60))
+		fmt.Println("\n  📐 Nodes needing BPMN design:")
 		for _, node := range needsBPMN {
-			fmt.Printf("  • %s: Ready for BPMN definition\n", node.ID)
+			fmt.Printf("    • %s - %s\n", node.ID, node.Description)
+			fmt.Printf("      → Run: ./workflows ai bpmn-create --node %s\n", node.ID)
 		}
 		fmt.Println()
 	}
 	
 	if len(needsSpecs) > 0 {
 		hasWork = true
-		fmt.Println("Generate specs for:")
+		if len(needsBPMN) == 0 {
+			fmt.Println("🔧 ARTIFACT GENERATION NEEDED:")
+			fmt.Println(strings.Repeat("=", 60))
+		}
+		fmt.Println("  📝 Nodes needing Specs/Tests/Properties:")
 		for _, node := range needsSpecs {
 			missing := c.getMissingArtifacts(node)
-			fmt.Printf("  • %s: Ready for Spec Generation (missing: %s)\n", 
-				node.ID, strings.Join(missing, ", "))
+			fmt.Printf("    • %s - %s\n", node.ID, node.Description)
+			fmt.Printf("      Missing: %s\n", strings.Join(missing, ", "))
+			fmt.Printf("      → Run: ./workflows ai spec-generate --node %s\n", node.ID)
 		}
 		fmt.Println()
 	}
 	
-	// Show in-progress work
+	// Show ready work with full details
+	if len(workableNow) > 0 {
+		hasWork = true
+		fmt.Println("🚀 READY TO WORK ON NOW:")
+		fmt.Println(strings.Repeat("=", 60))
+		for _, node := range workableNow {
+			c.printFullNodeDetails(node)
+		}
+	}
+	
+	// Show in-progress work with full details
 	if len(inProgressNodes) > 0 {
 		hasWork = true
-		fmt.Println("⏳ Continue working on:")
+		fmt.Println("⏳ IN PROGRESS:")
+		fmt.Println(strings.Repeat("=", 60))
 		for _, node := range inProgressNodes {
-			fmt.Printf("  • %s - %s\n", node.ID, node.Description)
+			c.printFullNodeDetails(node)
 		}
-		fmt.Println()
 	}
 	
-	// Show ready work only if no artifacts need generation
-	if len(needsBPMN) == 0 && len(needsSpecs) == 0 && len(workableNow) > 0 {
-		hasWork = true
-		if len(workableNow) == 1 {
-			fmt.Println("🚀 Ready to implement:")
-		} else {
-			fmt.Println("🚀 Ready to implement (can work in parallel):")
+	completedCount := 0
+	for _, node := range mpcData.Nodes {
+		if node.Status == mpc.StatusCompleted {
+			completedCount++
 		}
-		for _, node := range workableNow {
-			fmt.Printf("  • %s - %s\n", node.ID, node.Description)
-		}
-		fmt.Println()
+	}
+	fmt.Printf("  Completed: %d\n", completedCount)
+	fmt.Printf("  Total: %d\n", len(mpcData.Nodes))
+	
+	if len(mpcData.Nodes) > 0 {
+		completionRate := float64(completedCount) / float64(len(mpcData.Nodes)) * 100
+		fmt.Printf("  Overall completion: %.1f%%\n", completionRate)
 	}
 	
 	if !hasWork {
-		// Count completed nodes
-		completedCount := 0
-		for _, node := range mpcData.Nodes {
-			if node.Status == mpc.StatusCompleted {
-				completedCount++
-			}
-		}
-		
 		if completedCount == len(mpcData.Nodes) {
-			fmt.Println("✅ All tasks completed!")
+			fmt.Println("\n✅ All tasks completed!")
 		} else {
-			fmt.Println("⚠️  No tasks are currently ready to work on.")
+			fmt.Println("\n⚠️  No tasks are currently ready to work on.")
 			fmt.Println("    Check blocked dependencies with: ./workflows mpc discover <file>")
 		}
 	}
@@ -347,6 +361,107 @@ func (c *MPCDiscoverCommand) printNodeSummary(node *mpc.Node) {
 	if len(node.Downstream) > 0 {
 		fmt.Printf("     Unlocks: %s\n", strings.Join(node.Downstream, ", "))
 	}
+}
+
+func (c *MPCDiscoverCommand) printFullNodeDetails(node *mpc.Node) {
+	fmt.Printf("  %s %s\n", c.getStatusIcon(node.Status), node.ID)
+	fmt.Printf("     Status: %s\n", node.Status)
+	fmt.Printf("     Materialization: %.1f\n", node.Materialization)
+	fmt.Printf("     Description: %s\n", node.Description)
+	
+	if node.DetailedDescription != "" {
+		fmt.Printf("     Detailed Description:\n")
+		lines := strings.Split(strings.TrimSpace(node.DetailedDescription), "\n")
+		for _, line := range lines {
+			fmt.Printf("       %s\n", line)
+		}
+	}
+	
+	if len(node.Subtasks) > 0 {
+		fmt.Printf("     Subtasks:\n")
+		for _, subtask := range node.Subtasks {
+			if subtask.Completed {
+				fmt.Printf("       ✓ %s\n", subtask.Description)
+			} else {
+				fmt.Printf("       - %s\n", subtask.Description)
+			}
+		}
+	}
+	
+	if len(node.Outputs) > 0 {
+		fmt.Printf("     Outputs: %s\n", strings.Join(node.Outputs, ", "))
+	}
+	
+	if len(node.AcceptanceCriteria) > 0 {
+		fmt.Printf("     Acceptance Criteria:\n")
+		for _, criteria := range node.AcceptanceCriteria {
+			fmt.Printf("       - %s\n", criteria)
+		}
+	}
+	
+	if node.DefinitionOfDone != "" {
+		fmt.Printf("     Definition of Done: %s\n", node.DefinitionOfDone)
+	}
+	
+	if len(node.RequiredKnowledge) > 0 {
+		fmt.Printf("     Required Knowledge: %s\n", strings.Join(node.RequiredKnowledge, ", "))
+	}
+	
+	if node.Artifacts != nil {
+		fmt.Printf("     Artifacts:\n")
+		if node.Artifacts.BPMN != "" {
+			fmt.Printf("       BPMN: %s\n", node.Artifacts.BPMN)
+		}
+		if node.Artifacts.Spec != "" {
+			fmt.Printf("       Spec: %s\n", node.Artifacts.Spec)
+		}
+		if node.Artifacts.Tests != "" {
+			fmt.Printf("       Tests: %s\n", node.Artifacts.Tests)
+		}
+		if node.Artifacts.Properties != "" {
+			fmt.Printf("       Properties: %s\n", node.Artifacts.Properties)
+		}
+		
+		// Check structured artifacts
+		if node.Artifacts.SpecsStruct != nil {
+			if node.Artifacts.SpecsStruct.API != "" {
+				fmt.Printf("       API Spec: %s\n", node.Artifacts.SpecsStruct.API)
+			}
+			if node.Artifacts.SpecsStruct.Models != "" {
+				fmt.Printf("       Models Spec: %s\n", node.Artifacts.SpecsStruct.Models)
+			}
+			if node.Artifacts.SpecsStruct.Schemas != "" {
+				fmt.Printf("       Schemas Spec: %s\n", node.Artifacts.SpecsStruct.Schemas)
+			}
+		}
+		
+		if node.Artifacts.TestsStruct != nil {
+			if node.Artifacts.TestsStruct.Unit != "" {
+				fmt.Printf("       Unit Tests: %s\n", node.Artifacts.TestsStruct.Unit)
+			}
+			if node.Artifacts.TestsStruct.Integration != "" {
+				fmt.Printf("       Integration Tests: %s\n", node.Artifacts.TestsStruct.Integration)
+			}
+			if node.Artifacts.TestsStruct.E2E != "" {
+				fmt.Printf("       E2E Tests: %s\n", node.Artifacts.TestsStruct.E2E)
+			}
+		}
+		
+		if node.Artifacts.PropertiesStruct != nil {
+			if node.Artifacts.PropertiesStruct.Invariants != "" {
+				fmt.Printf("       Invariants: %s\n", node.Artifacts.PropertiesStruct.Invariants)
+			}
+			if node.Artifacts.PropertiesStruct.StateProperties != "" {
+				fmt.Printf("       State Properties: %s\n", node.Artifacts.PropertiesStruct.StateProperties)
+			}
+		}
+	}
+	
+	if len(node.Downstream) > 0 {
+		fmt.Printf("     Downstream: %s\n", strings.Join(node.Downstream, ", "))
+	}
+	
+	fmt.Println()
 }
 
 func (c *MPCDiscoverCommand) showExecutionStages(mpcData *mpc.MPC) {
