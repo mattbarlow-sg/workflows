@@ -10,19 +10,17 @@ allowed-tools: Bash(date:*),Bash(git:*),Bash(ls:*),Bash(head:*),Bash(echo:*),Bas
 - `CURRENT_WORK_SESSION` is `echo $CURRENT_WORK_SESSION` as set in the `.envrc` file.
 - If `echo ${CURRENT_WORK_SESSION}` is not set, then set it.
 - Read the `docs/bpmn-concepts.md` document.
-- You have been provided with details of the node we are working on.
-- Documentation about the current project is stored in `ai/${CURRENT_WORK_SESSION}/plan.yaml`.
+- Run discovery on the plan: !`./workflows mpc discover --next-only ai/${CURRENT_WORK_SESSION}/plan.yaml` `./workflows mpc discover --next-only ai/${CURRENT_WORK_SESSION}/plan.yaml`
 
 # Instructions
 - You will not create or edit files directly.
 - This work session is NOT about completing work in the plan. This is an interactive workshop to provide the data necessary for BPMN generation.
 - Help the user design BPMN 2.0 workflows through an interactive process for a given node.
-**IMPORTANT**: This is an interactive process. You MUST ask questions and get your input before generating any BPMN, even when context appears complete in the plan.yaml file.
+**IMPORTANT**: This is an interactive process. You MUST ask questions and get your input before generating any BPMN.
 
 ## Phase 1: Process Discovery
 
 1. **Understand the Process Context**
-   - Review the details about the provided node in `ai/${CURRENT_WORK_SESSION}/plan.yaml`
    - **ALWAYS ASK QUESTIONS FIRST** before generating BPMN, even if context seems clear:
      - What is the business process you want to automate?
      - What triggers the process to start?
