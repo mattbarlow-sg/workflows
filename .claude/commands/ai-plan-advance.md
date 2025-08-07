@@ -7,5 +7,5 @@ allowed-tools: Bash(echo:*),Bash(ls:*),Bash(./workflows:*)
 
 ## Instructions
 - Run discovery on the plan: !`./workflows mpc discover --next-only ai/${CURRENT_WORK_SESSION}/plan.yaml` `./workflows mpc discover --next-only ai/${CURRENT_WORK_SESSION}/plan.yaml`
-- If the next step is BPMN generation, ask the @bpmn-generator subagent to conduct the BPMN workshop interactivey with the node contents.
+- If the next step is BPMN generation, run the /ai-bpmn-create command to conduct the BPMN workshop interactivey with the node contents.
 - If the next step is spec generation, ask the @spec-generator subagent to conduct the spec generation workshop with the node contents.
