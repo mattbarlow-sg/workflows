@@ -45,10 +45,12 @@ entry_node: "validation-framework"
 nodes:
   - id: "validation-framework"
     status: "Ready"
-    materialization: 0.1
+    materialization: 0.15
     description: "Create comprehensive validation framework for Temporal workflows"
     detailed_description: "Build a validation framework that performs static analysis, determinism checks, and pre-deployment validation of all Temporal workflows before they can be registered or deployed"
     subtasks:
+      - description: "Design BPMN process for validation framework"
+        completed: true
       - description: "Create internal/temporal/validator.go with ValidatorInterface"
         completed: false
       - description: "Implement determinism checker using workflowcheck"
@@ -69,6 +71,12 @@ nodes:
       - "internal/temporal/validator.go"
       - "internal/temporal/validator_test.go"
       - "internal/temporal/validation_rules.go"
+    artifacts:
+      - type: "bpmn"
+        path: "definitions/bpmn/temporal-validation-framework.json"
+        description: "BPMN 2.0 process definition for Temporal validation framework"
+        validation_status: "validated"
+        complexity_score: 21
     acceptance_criteria:
       - "All validation functions have >90% test coverage"
       - "Determinism checker correctly identifies non-deterministic code"

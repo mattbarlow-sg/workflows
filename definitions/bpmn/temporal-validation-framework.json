@@ -1,0 +1,263 @@
+{
+  "$schema": "../../schemas/bpmn-process.json",
+  "process": {
+    "id": "temporal-validation-framework",
+    "name": "Temporal Workflow Validation Framework",
+    "processType": "private",
+    "isExecutable": true,
+    "elements": {
+      "events": [
+        {
+          "id": "start-validation",
+          "name": "Start Validation",
+          "type": "startEvent",
+          "documentation": "Developer initiates validation via justfile command (e.g., just validate-workflows)"
+        },
+        {
+          "id": "end-success",
+          "name": "Validation Success",
+          "type": "endEvent",
+          "documentation": "Validation completed successfully with all checks passing"
+        },
+        {
+          "id": "end-error",
+          "name": "Validation Failed",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "error",
+            "errorRef": "validation-error"
+          },
+          "documentation": "Validation failed with one or more errors"
+        }
+      ],
+      "activities": [
+        {
+          "id": "determinism-check",
+          "name": "Determinism Check",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "go.temporal.io/sdk/contrib/workflowcheck",
+          "documentation": "Run workflowcheck to validate workflow determinism. Detects non-deterministic code patterns that could cause workflow replay failures.",
+          "ioSpecification": {
+            "dataOutputs": [
+              {
+                "id": "determinism-result",
+                "name": "Determinism Check Result"
+              }
+            ]
+          }
+        },
+        {
+          "id": "activity-signature-validation",
+          "name": "Activity Signature Validation",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "runtime-signature-validator",
+          "documentation": "Validate activity signatures at runtime. Register and test activity signatures for type mismatches.",
+          "ioSpecification": {
+            "dataOutputs": [
+              {
+                "id": "signature-result",
+                "name": "Signature Validation Result"
+              }
+            ]
+          }
+        },
+        {
+          "id": "timeout-retry-validation",
+          "name": "Timeout & Retry Policy Validation",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "config-policy-validator",
+          "documentation": "Validate timeout configurations and retry policies. Test configurations at runtime for validity.",
+          "ioSpecification": {
+            "dataOutputs": [
+              {
+                "id": "policy-result",
+                "name": "Policy Validation Result"
+              }
+            ]
+          }
+        },
+        {
+          "id": "report-success",
+          "name": "Report Success",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "stdout-reporter",
+          "documentation": "Output success message to stdout: '✅ All Temporal workflow validations passed'"
+        },
+        {
+          "id": "report-errors",
+          "name": "Report Errors",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "error-reporter",
+          "documentation": "Output detailed error report to stdout. Lists all validation failures with actionable feedback.",
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "error-input",
+                "name": "Validation Errors"
+              }
+            ]
+          }
+        }
+      ],
+      "gateways": [
+        {
+          "id": "parallel-split",
+          "name": "Start Parallel Validations",
+          "type": "parallelGateway",
+          "gatewayDirection": "diverging",
+          "documentation": "Opens three parallel validation paths for concurrent execution"
+        },
+        {
+          "id": "parallel-join",
+          "name": "Join Validation Results",
+          "type": "parallelGateway",
+          "gatewayDirection": "converging",
+          "documentation": "Waits for all three validation tasks to complete. Implements fast-fail behavior."
+        },
+        {
+          "id": "validation-decision",
+          "name": "Check Validation Results",
+          "type": "exclusiveGateway",
+          "gatewayDirection": "diverging",
+          "documentation": "Check if all validations passed. Route to success or error path based on results."
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow-start-to-split",
+          "sourceRef": "start-validation",
+          "targetRef": "parallel-split"
+        },
+        {
+          "id": "flow-split-to-determinism",
+          "sourceRef": "parallel-split",
+          "targetRef": "determinism-check"
+        },
+        {
+          "id": "flow-split-to-signature",
+          "sourceRef": "parallel-split",
+          "targetRef": "activity-signature-validation"
+        },
+        {
+          "id": "flow-split-to-policy",
+          "sourceRef": "parallel-split",
+          "targetRef": "timeout-retry-validation"
+        },
+        {
+          "id": "flow-determinism-to-join",
+          "sourceRef": "determinism-check",
+          "targetRef": "parallel-join"
+        },
+        {
+          "id": "flow-signature-to-join",
+          "sourceRef": "activity-signature-validation",
+          "targetRef": "parallel-join"
+        },
+        {
+          "id": "flow-policy-to-join",
+          "sourceRef": "timeout-retry-validation",
+          "targetRef": "parallel-join"
+        },
+        {
+          "id": "flow-join-to-decision",
+          "sourceRef": "parallel-join",
+          "targetRef": "validation-decision"
+        },
+        {
+          "id": "flow-decision-to-success",
+          "name": "All validations passed",
+          "sourceRef": "validation-decision",
+          "targetRef": "report-success",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "determinismResult.passed && signatureResult.passed && policyResult.passed"
+          }
+        },
+        {
+          "id": "flow-decision-to-error",
+          "name": "Validation failures detected",
+          "sourceRef": "validation-decision",
+          "targetRef": "report-errors",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "!determinismResult.passed || !signatureResult.passed || !policyResult.passed"
+          }
+        },
+        {
+          "id": "flow-success-to-end",
+          "sourceRef": "report-success",
+          "targetRef": "end-success"
+        },
+        {
+          "id": "flow-error-to-end",
+          "sourceRef": "report-errors",
+          "targetRef": "end-error"
+        }
+      ]
+    },
+    "agents": {
+      "definitions": [
+        {
+          "id": "system-validator",
+          "name": "System Validator",
+          "type": "system",
+          "capabilities": [
+            "workflow-analysis",
+            "type-checking",
+            "config-validation",
+            "error-reporting"
+          ],
+          "description": "Automated system agent for Temporal workflow validation"
+        }
+      ],
+      "defaultAssignmentStrategy": "static",
+      "performanceTracking": true
+    },
+    "monitoring": {
+      "enabled": true,
+      "metrics": [
+        "execution-time",
+        "error-rate",
+        "throughput"
+      ]
+    },
+    "documentation": "BPMN 2.0 workflow for validating Temporal workflows. Performs determinism checks, activity signature validation, and timeout/retry policy validation in parallel. Results are reported to stdout for integration with justfile commands."
+  },
+  "definitions": {
+    "errors": [
+      {
+        "id": "validation-error",
+        "name": "Validation Error",
+        "errorCode": "VALIDATION_FAILED",
+        "description": "One or more validation checks failed"
+      }
+    ],
+    "itemDefinitions": [
+      {
+        "id": "validation-result",
+        "structureRef": "ValidationResult",
+        "description": "Result of a validation check including pass/fail status and error details"
+      }
+    ]
+  }
+}
