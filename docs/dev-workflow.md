@@ -77,7 +77,7 @@ AI: "This is a significant architectural decision. Let's create an ADR first to 
 
 The MPC plan serves as the **work breakdown structure** with these characteristics:
 
-- **Low initial materialization** (0.3-0.7) for most nodes
+- **Varying materialization** based on execution confidence (1.0 for immediate next step, decreasing for future steps)
 - **High-level descriptions** that will be refined during spec design
 - **Clear dependencies** to enable parallel work
 - **Flexible structure** that can evolve as understanding deepens
@@ -86,7 +86,7 @@ Example node:
 ```yaml
   - id: "add-oauth-support"
     status: "Blocked"
-    materialization: 0.5
+    materialization: 0.5  # Moderate confidence - depends on earlier authentication work
     description: "Integrate OAuth2.0 providers"
     detailed_description: |
       Extend the authentication system to support third-party OAuth providers, initially focusing on Google and GitHub. This includes implementing OAuth flows, managing external user identities, and providing seamless account linking between OAuth and local accounts.
@@ -144,7 +144,7 @@ For each selected node:
 # MPC node update after BPMN modeling
 - id: "add-oauth-support"
   status: "Ready"  # Changed from Blocked after dependencies resolved
-  materialization: 0.7  # Increased after clarification
+  materialization: 0.7  # Higher confidence after dependencies resolved
   description: "Integrate OAuth2.0 providers"
   detailed_description: |
     REFINED: Extend the authentication system to support third-party OAuth providers, initially focusing on Google and GitHub. This includes implementing OAuth flows, managing external user identities, and providing seamless account linking between OAuth and local accounts.
@@ -188,7 +188,7 @@ Example split:
 # Original node becomes two:
 - id: "auth-basic"
   status: "Ready"
-  materialization: 0.6
+  materialization: 0.9  # High confidence - this is our next step
   description: "Basic JWT authentication"
   detailed_description: |
     Implement core JWT-based authentication system with login, logout, and token refresh capabilities.
@@ -208,7 +208,7 @@ Example split:
   
 - id: "auth-mfa"
   status: "Blocked"  # Waiting on auth-basic
-  materialization: 0.3
+  materialization: 0.3  # Low confidence - depends on auth-basic implementation
   description: "Multi-factor authentication"
   detailed_description: |
     Add TOTP-based multi-factor authentication to the existing auth system.
@@ -232,7 +232,7 @@ Node artifacts accumulate:
 ```yaml
 - id: "add-oauth-support"
   status: "Ready"
-  materialization: 0.9  # Almost ready for implementation
+  materialization: 0.9  # High confidence we'll execute this as planned
   description: "Integrate OAuth2.0 providers"
   detailed_description: |
     REFINED: Extend the authentication system to support third-party OAuth providers, initially focusing on Google and GitHub. This includes implementing OAuth flows, managing external user identities, and providing seamless account linking between OAuth and local accounts.
@@ -271,7 +271,7 @@ Only after all specs and tests exist:
 ```yaml
 - id: "add-oauth-support"
   status: "Completed"
-  materialization: 1.0
+  materialization: 1.0  # Executed successfully, full confidence achieved
   description: "Integrate OAuth2.0 providers"
   detailed_description: |
     REFINED: Extend the authentication system to support third-party OAuth providers, initially focusing on Google and GitHub. This includes implementing OAuth flows, managing external user identities, and providing seamless account linking between OAuth and local accounts.
@@ -520,7 +520,7 @@ This hybrid approach combines:
 ```yaml
 # MPC Node Status Before Ralph
 - id: "auth-endpoints"
-  materialization: 0.7  # Specs and tests complete
+  materialization: 1.0  # Ready to execute with full confidence
   artifacts:
     bpmn: "docs/bpmn/auth-flow.json"      ✓
     spec: "docs/specs/auth.yaml"          ✓
@@ -535,7 +535,7 @@ Loop 4: Add refresh token logic → 15/15 tests pass ✓
 
 # MPC Node Status After Ralph
 - id: "auth-endpoints"
-  materialization: 0.9  # Implementation complete
+  materialization: 1.0  # Successfully executed
   artifacts:
     implementation: "src/auth/*"           ✓
 ```

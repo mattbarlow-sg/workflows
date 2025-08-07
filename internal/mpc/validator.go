@@ -51,6 +51,16 @@ func (v *Validator) ValidateFile(filePath string) (*ValidationResult, error) {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
+	// Auto-detect enriched format and adjust schema path
+	actualSchemaPath := v.schemaPath
+	if v.isEnrichedFormat(&mpc) {
+		// Use enriched schema if enriched format is detected
+		actualSchemaPath = strings.Replace(v.schemaPath, "mpc.json", "mpc-enriched.json", 1)
+		if v.verbose {
+			fmt.Println("Detected enriched MPC format, using mpc-enriched.json schema")
+		}
+	}
+
 	// Convert to JSON for schema validation
 	jsonData, err := json.Marshal(mpc)
 	if err != nil {
@@ -64,7 +74,7 @@ func (v *Validator) ValidateFile(filePath string) (*ValidationResult, error) {
 		Warnings: []ValidationWarning{},
 	}
 
-	schemaResult, err := v.validateSchema(jsonData)
+	schemaResult, err := v.validateSchemaWithPath(jsonData, actualSchemaPath)
 	if err != nil {
 		return nil, err
 	}
@@ -92,10 +102,40 @@ func (v *Validator) ValidateFile(filePath string) (*ValidationResult, error) {
 }
 
 func (v *Validator) validateSchema(jsonData []byte) (*gojsonschema.Result, error) {
-	schemaLoader := gojsonschema.NewReferenceLoader("file://" + v.schemaPath)
+	return v.validateSchemaWithPath(jsonData, v.schemaPath)
+}
+
+func (v *Validator) validateSchemaWithPath(jsonData []byte, schemaPath string) (*gojsonschema.Result, error) {
+	schemaLoader := gojsonschema.NewReferenceLoader("file://" + schemaPath)
 	documentLoader := gojsonschema.NewBytesLoader(jsonData)
 	
 	return gojsonschema.Validate(schemaLoader, documentLoader)
+}
+
+// isEnrichedFormat detects if the MPC uses the enriched artifact format
+func (v *Validator) isEnrichedFormat(mpc *MPC) bool {
+	// Check if any node has enriched artifacts (nested properties or schemas)
+	for _, node := range mpc.Nodes {
+		if node.Artifacts != nil {
+			// Check for enriched properties format
+			if node.Artifacts.PropertiesStruct != nil {
+				return true
+			}
+			// Check for enriched schemas format
+			if node.Artifacts.SchemasStruct != nil {
+				return true
+			}
+			// Check for enriched specs format
+			if node.Artifacts.SpecsStruct != nil {
+				return true
+			}
+			// Check for enriched tests format
+			if node.Artifacts.TestsStruct != nil {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (v *Validator) validateSemantics(mpc *MPC) ([]ValidationError, []ValidationWarning) {
@@ -290,7 +330,7 @@ func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) err
 }
 
 func isValidStatus(status string) bool {
-	validStatuses := []string{StatusReady, StatusInProgress, StatusBlocked, StatusCompleted}
+	validStatuses := []string{StatusReady, StatusInProgress, StatusBlocked, StatusCompleted, StatusSpecified}
 	for _, valid := range validStatuses {
 		if status == valid {
 			return true

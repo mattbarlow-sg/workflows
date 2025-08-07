@@ -153,21 +153,86 @@ INVARIANT PaymentBeforeShipping ==
 ====
 ```
 
-## Stage 3: Test Generation & Implementation Planning
+## Stage 3: Schema-Driven Specification & Validation Contracts
 
 ### Objective
-Generate comprehensive test suite before implementation.
+Create formal schemas and validation contracts that implementations must satisfy.
 
-### Testing Types Generated
-1. **Property-Based Tests**: From formal spec
-2. **Deterministic Simulation Tests**: For workflows
-3. **Fuzz Tests**: For boundaries and parsers
-4. **Contract Tests**: For API boundaries
+### Schema Types Created
+1. **Data Schemas**: Zod/JSON schemas with validation rules
+2. **Transformation Contracts**: Input→Output pipelines
+3. **State Machines**: Type-safe state transitions
+4. **Invariant Refinements**: Business rules as schema refinements
 
-### Example Generated Tests
+### Example Schema Specifications
 ```typescript
-// 1. Property-based tests (from Stage 2 spec)
-describe('Order Properties', () => {
+// 1. Data validation schemas with refinements
+import { z } from 'zod';
+
+// Branded types for type safety
+export const OrderIdSchema = z.string().uuid().brand('OrderId');
+export const MoneySchema = z.number()
+  .positive()
+  .multipleOf(0.01)
+  .brand('Money');
+
+// Order schema with invariants as refinements
+export const OrderSchema = z.object({
+  id: OrderIdSchema,
+  items: z.array(OrderItemSchema).nonempty(),
+  total: MoneySchema
+}).refine(
+  // Invariant: total must match sum of items
+  order => {
+    const calculated = order.items.reduce(
+      (sum, item) => sum + (item.price * item.quantity), 0
+    );
+    return Math.abs(order.total - calculated) < 0.01;
+  },
+  { message: "Order total doesn't match items sum" }
+);
+
+// 2. Transformation contracts
+export const ProcessOrderTransformation = {
+  name: 'processOrder',
+  from: z.object({
+    cart: CartSchema,
+    customer: CustomerSchema,
+    paymentMethod: PaymentMethodSchema
+  }),
+  to: OrderSchema,
+  invariants: [
+    'output.customerId === input.customer.id',
+    'output.status === "pending"'
+  ]
+};
+
+// 3. State machine types (compile-time safety)
+type OrderState = 
+  | { status: 'draft'; paymentId?: never }
+  | { status: 'pending'; paymentId?: never }
+  | { status: 'paid'; paymentId: string }
+  | { status: 'shipped'; paymentId: string; trackingNumber: string };
+
+// 4. Validation pipeline specifications
+export const OrderValidationPipeline = {
+  validateInput: OrderInputSchema,
+  validateBusinessRules: {
+    inventoryAvailable: (order) => checkInventory(order.items),
+    customerActive: (customer) => customer.status === 'active',
+    paymentMethodValid: (method) => method.verified === true
+  },
+  validateOutput: OrderOutputSchema.refine(
+    data => data.status === 'pending',
+    "New orders must start in pending status"
+  )
+};
+```
+
+### Example Test Generation (After Implementation)
+```typescript
+// Tests are generated AFTER implementation to validate against schemas
+describe('Order Processing Implementation', () => {
   test('total always matches sum of items', () => {
     fc.assert(
       fc.property(OrderFulfillmentSpec.generators.validOrder, (order) => {
@@ -249,15 +314,15 @@ describe('API Contracts', () => {
 });
 ```
 
-## Stage 4: Implementation
+## Stage 4: Implementation with Schema Validation
 
 ### Objective
-Implement system to pass all pre-written tests.
+Implement system that satisfies the schema specifications from Stage 3.
 
-### Testing During Implementation
-- **Test-Driven Development**: Tests already exist from Stage 3
-- **Runtime Invariant Checking**: Embed invariants in code
-- **Continuous Property Discovery**: Add new properties as discovered
+### Implementation Approach
+- **Schema-Driven Development**: Implementations must satisfy schemas
+- **Runtime Validation**: All inputs/outputs validated against schemas
+- **Type Safety**: Leverage TypeScript types derived from schemas
 
 ### Example Implementation
 ```typescript
@@ -307,7 +372,58 @@ test('new property: orders preserve customer preferences', () => {
 });
 ```
 
-## Stage 5: Integration & System Testing
+## Stage 5: Test Generation & Validation
+
+### Objective
+Generate tests that validate the implementation against schema specifications.
+
+### Testing Types Generated
+1. **Schema Validation Tests**: Verify data conforms to schemas
+2. **Transformation Tests**: Validate input→output contracts
+3. **Property-Based Tests**: From formal invariants
+4. **Contract Tests**: API boundary validation
+
+### Example Generated Tests
+```typescript
+// Tests validate that implementation satisfies schemas
+describe('Order Service Schema Compliance', () => {
+  test('processOrder respects transformation contract', async () => {
+    const input = {
+      cart: validCart,
+      customer: validCustomer,
+      paymentMethod: validPaymentMethod
+    };
+    
+    // Validate input against schema
+    const validatedInput = ProcessOrderTransformation.from.parse(input);
+    
+    // Call implementation
+    const result = await orderService.processOrder(validatedInput);
+    
+    // Validate output against schema
+    const validatedOutput = ProcessOrderTransformation.to.parse(result);
+    
+    // Verify invariants
+    expect(validatedOutput.customerId).toBe(input.customer.id);
+    expect(validatedOutput.status).toBe('pending');
+  });
+  
+  test('order totals satisfy invariant', () => {
+    fc.assert(
+      fc.property(orderGenerator, (order) => {
+        // Implementation must produce valid schema
+        const processed = orderService.calculateTotal(order);
+        const validated = OrderSchema.safeParse(processed);
+        
+        // Schema refinement will catch invariant violations
+        return validated.success;
+      })
+    );
+  });
+});
+```
+
+## Stage 6: Integration & System Testing
 
 ### Objective
 Verify system-level properties and emergent behaviors.
@@ -344,7 +460,7 @@ describe('Failure Mode Testing', () => {
 });
 ```
 
-## Stage 6: Runtime Verification & Monitoring
+## Stage 7: Runtime Verification & Monitoring
 
 ### Objective
 Continuous validation in production.

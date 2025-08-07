@@ -2,20 +2,28 @@
 
 ## MPC (Model Predictive Control) Philosophy
 
-In robotics, Model Predictive Control (MPC) plans a full trajectory, executes a single control input, then replans from the new state—a rolling-horizon strategy that keeps the robot agile in uncertain environments. This approach brings the same principle to software planning: every node carries a 0-to-1 materialization score expressing how "locked-in" it is.
+In robotics, Model Predictive Control (MPC) plans a full trajectory, executes a single control input, then replans from the new state—a rolling-horizon strategy that keeps the robot agile in uncertain environments. This approach brings the same principle to software planning: every node carries a 0-to-1 materialization score expressing our confidence in executing that step.
 
-### Materialization Score Progression
+### Materialization Score: Confidence in Execution
 
-The materialization score quantifies how concrete and committed a plan node is, increasing as artifacts are added:
+The materialization score (0.0 to 1.0) represents **how confident we are that this step will be executed as currently planned**:
+- **1.0**: Complete confidence - we know we can execute this step exactly as planned
+- **0.5**: Moderate confidence - uncertainties exist that may affect execution  
+- **0.0**: Highly speculative - this step will likely change based on earlier learnings
 
-- **0.1**: Initial planning - node identified but highly flexible
-- **0.2-0.3**: BPMN diagrams added - workflow structure defined
-- **0.4-0.5**: Specifications written - requirements locked in (API specs, models, schemas)
-- **0.6-0.7**: Tests created - behavior contracts established (property, fuzz, contract tests)
-- **0.8-0.9**: Implementation complete - code written and tested
-- **1.0**: Fully materialized - deployed and validated in production
+Think of crossing a river in fog:
+- The stone right in front of you: materialization 1.0 (you can see it clearly)
+- A stone you think you see 3 steps ahead: materialization 0.5 (might be there, might not)
+- Your planned path 10 stones out: materialization 0.1 (purely speculative)
 
-As you add artifacts (BPMN, specs, tests, code), the materialization score increases, reflecting decreased flexibility but increased confidence. The entry node typically has the highest score (ready to execute), while downstream nodes decay toward lower scores, signaling openness to change.
+**Important**: Materialization is NOT about:
+- How much code is written
+- How complete the implementation is
+- How many artifacts exist
+
+It's purely about planning confidence and uncertainty. A node with complete specifications might still have low materialization if we're uncertain whether we'll execute it as planned (perhaps earlier steps will reveal better approaches).
+
+The immediate next node typically has the highest score (ready to execute), while downstream nodes have lower scores, reflecting our uncertainty about distant future steps.
 
 This quantifies the insight from "Why Greatness Cannot Be Planned": rigid end-to-end blueprints invite failure, whereas flexible, step-wise commitments let emergent opportunities guide the path to success. The system stays agile by keeping distant future nodes at low materialization, allowing pivots based on lessons learned during execution.
 
@@ -58,7 +66,13 @@ artifacts:
     models: "ai/payment-processing-system/specs/payment-state.tla"  # TLA+/Alloy
     schemas: "ai/payment-processing-system/specs/payment-schemas.json"  # JSON Schema
   
-  # Stage 3: Generated Tests
+  # Stage 3: Schema Specifications
+  schemas:
+    validation: "ai/payment-processing-system/schemas/payment-validation.ts"
+    transformations: "ai/payment-processing-system/schemas/payment-transforms.ts"
+    state_machines: "ai/payment-processing-system/schemas/payment-states.ts"
+  
+  # Stage 5: Generated Tests (after implementation)
   tests:
     property: "ai/payment-processing-system/tests/property/payment-flow/*"
     deterministic: "ai/payment-processing-system/tests/simulation/payment-flow/*"

@@ -160,7 +160,7 @@
         "status": {
           "type": "string",
           "description": "Current status of the node",
-          "enum": ["Ready", "In Progress", "Blocked", "Completed"]
+          "enum": ["Ready", "In Progress", "Blocked", "Completed", "Specified"]
         },
         "materialization": {
           "type": "number",
@@ -222,7 +222,7 @@
             "bpmn": {
               "type": "string",
               "description": "Path to BPMN process diagram",
-              "pattern": "^ai/[^/]+/bpmn/.*\\.json$"
+              "pattern": "^(docs/bpmn/.*\\.json|ai/[^/]+/bpmn/.*\\.json)$"
             },
             "properties": {
               "type": "object",
@@ -231,17 +231,53 @@
                 "invariants": {
                   "type": "string",
                   "description": "Path to invariants definition",
-                  "pattern": "^ai/[^/]+/properties/.*\\.json$"
+                  "pattern": "^(docs/properties/.*\\.(yaml|json)|ai/[^/]+/properties/.*\\.(yaml|json))$"
+                },
+                "states": {
+                  "type": "string",
+                  "description": "Path to state machine properties",
+                  "pattern": "^(docs/properties/.*\\.(yaml|json)|ai/[^/]+/properties/.*\\.(yaml|json))$"
+                },
+                "rules": {
+                  "type": "string",
+                  "description": "Path to business rules",
+                  "pattern": "^(docs/properties/.*\\.(yaml|json)|ai/[^/]+/properties/.*\\.(yaml|json))$"
+                },
+                "test_specs": {
+                  "type": "string",
+                  "description": "Path to test specifications",
+                  "pattern": "^(docs/properties/.*\\.(yaml|json)|ai/[^/]+/properties/.*\\.(yaml|json))$"
                 },
                 "state_properties": {
                   "type": "string",
-                  "description": "Path to state machine properties",
+                  "description": "Path to state machine properties (legacy)",
                   "pattern": "^ai/[^/]+/properties/.*\\.json$"
                 },
                 "generators": {
                   "type": "string",
                   "description": "Path to test data generators",
                   "pattern": "^ai/[^/]+/properties/.*\\.(json|ts)$"
+                }
+              }
+            },
+            "schemas": {
+              "type": "object",
+              "description": "Schema specifications",
+              "properties": {
+                "validation": {
+                  "type": "string",
+                  "description": "Path to validation schemas",
+                  "pattern": "^(src/schemas/.*\\.ts|ai/[^/]+/schemas/.*\\.ts)$"
+                },
+                "transformations": {
+                  "type": "string",
+                  "description": "Path to transformation specifications",
+                  "pattern": "^(src/schemas/.*\\.ts|ai/[^/]+/schemas/.*\\.ts)$"
+                },
+                "contracts": {
+                  "type": "string",
+                  "description": "Path to contract specifications",
+                  "pattern": "^(src/schemas/.*\\.ts|ai/[^/]+/schemas/.*\\.ts)$"
                 }
               }
             },
@@ -265,6 +301,11 @@
                   "pattern": "^ai/[^/]+/specs/.*\\.json$"
                 }
               }
+            },
+            "spec": {
+              "type": "string",
+              "description": "Combined specification document",
+              "pattern": "^(docs/specs/.*\\.(yaml|json)|ai/[^/]+/specs/.*\\.(yaml|json))$"
             },
             "tests": {
               "type": "object",

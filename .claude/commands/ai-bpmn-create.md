@@ -10,4 +10,3 @@ allowed-tools: Bash(date:*),Bash(git:*),Bash(ls:*),Bash(head:*),Bash(echo:*),Bas
 
 # Instructions
 Invoke the @bpmn-generator subagent with the provided and generated context.
-

@@ -23,14 +23,12 @@ model: opus
 ## Plan
 - Create the plan according to the MPC specification `schemas/mpc.json`
 - Do not add artifacts to any nodes. These will be generated in the future.
-- Set materialization scores for initial planning:
-  - All nodes start at 0.1 (initial planning stage - identified but flexible)
-  - Materialization will increase as artifacts are added:
-    - BPMN diagrams: 0.2-0.3
-    - Specifications: 0.4-0.5
-    - Tests: 0.6-0.7
-    - Implementation: 0.8-0.9
-    - Production: 1.0
+- Set materialization scores based on execution confidence:
+  - First node (immediate next step): 0.8-1.0 (high confidence we'll execute this)
+  - Second node: 0.5-0.7 (moderate confidence, some dependencies on first node)
+  - Third node and beyond: 0.2-0.4 (lower confidence, many unknowns)
+  - Distant nodes: 0.1-0.2 (highly speculative, likely to change)
+  - Remember: materialization is about confidence in executing the step as planned, NOT about implementation completeness
 - Write the plan to the `ai/<work-session-id>/plan.yaml`.
 - Validate the plan with `./workflows mpc validate ai/<work-session-id>/plan.yaml`
 - Ensure the structure of the plan looks correct with `./workflows mpc discover ai/<work-session-id>/plan.yaml`

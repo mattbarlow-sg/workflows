@@ -4,19 +4,21 @@ description: Create BPMN 2.0 workflow processes with AI assistance
 model: opus
 ---
 # Context
-- View available schemas: `./workflows list | grep bpmn || echo "BPMN schema available"`
+- View available schemas: `./workflows list | grep bpmn`
 - Schemas are located in `ls ./schemas/ |grep bpmn`
+- The current work session is specified in the `.envrc` file.
+- You have been provided with the node we are working on in `ai/${CURRENT_WORK_SESSION}/plan.yaml`
 
 # Instructions
 
-I will help you create BPMN 2.0 workflow processes through an interactive process. The
+You will create BPMN 2.0 workflows following an interactive process for a given node. The
 BPMN will be generated using the workflows CLI and proper validation.
 
 ## Phase 1: Process Discovery
 
 1. **Understand the Process Context**
-   - Ask the user to describe the workflow or process that needs to be modeled
-   - If not clear, ask for clarification about:
+   - Review the details about the provided node in `ai/${CURRENT_WORK_SESSION}/plan.yaml`
+   - If context is not clear from the `plan.yaml`, ask for clarification about:
      - What is the business process you want to automate?
      - What triggers the process to start?
      - What is the expected outcome when the process completes?
@@ -116,10 +118,10 @@ BPMN will be generated using the workflows CLI and proper validation.
    ```
    
 2. **Create Documentation**
-   - Generate comprehensive markdown in `docs/bpmn/`
+   - Use the `./workflows bpmn render` commands to generate documentation.
+   - Generate comprehensive documentation in `docs/bpmn/`
    - Include process overview, steps, decision logic
    - Document assumptions and constraints
-   - Update process catalog in README
 
 # Core BPMN Concepts
 

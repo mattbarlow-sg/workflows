@@ -2,6 +2,7 @@
 Always stop and ask the user before implementing a workaround.
 
 Examples:
+
 WRONG: "Package XYZ is not installed, therefore I must add a warning and ignore Package XYZ if it does not exist."
 RIGHT: "Package XYZ is not installed, therefore I must ask the user if they want to install it."
 
@@ -10,19 +11,25 @@ RIGHT: "We changed our types and can no longer ingest the persisted data, theref
 
 ## MPC (Model Predictive Control) Philosophy
 
-In robotics, Model Predictive Control (MPC) plans a full trajectory, executes a single control input, then replans from the new state—a rolling-horizon strategy that keeps the robot agile in uncertain environments. This approach brings the same principle to software planning: every node carries a 0-to-1 materialization score expressing how "locked-in" it is.
+In robotics, Model Predictive Control (MPC) plans a full trajectory, executes a single control input, then replans from the new state a rolling-horizon strategy that keeps the robot agile in uncertain environments. This approach brings the same principle to software planning: every node carries a 0-to-1 materialization score expressing our confidence in executing that step.
 
-### Materialization Score Progression
+### Materialization Score: Confidence in Execution
 
-The materialization score quantifies how concrete and committed a plan node is:
+The materialization score quantifies **how confident we are that a particular step in the plan will be executed as currently envisioned**:
 
-- **0.1**: Initial planning - node identified but highly flexible
-- **0.2-0.3**: BPMN diagrams added - workflow structure defined
-- **0.4-0.5**: Specifications written - requirements locked in
-- **0.6-0.7**: Tests created - behavior contracts established  
-- **0.8-0.9**: Implementation complete - code written and tested
-- **1.0**: Fully materialized - deployed and validated in production
+- **1.0**: Complete confidence - we know we can execute this step exactly as planned (like seeing the next stepping stone clearly through the fog)
+- **0.5**: Moderate confidence - we think we can execute this step, but there are known uncertainties (engine might not start, path might be blocked)
+- **0.1**: Low confidence - this step is highly speculative and will likely change based on what we learn from earlier steps (distant stones we can't yet see clearly)
 
-As you add artifacts (BPMN, specs, tests, code), the materialization score increases, reflecting decreased flexibility but increased confidence. The entry node typically has the highest score (ready to execute), while downstream nodes decay toward lower scores, signaling openness to change.
+The materialization score is NOT about implementation completeness or how much code is written. It's about **planning confidence and uncertainty**.
+
+### Example: Software Development Plan
+
+1. **Set up project structure** (materialization: 1.0) - We're certain we can do this next
+2. **Create user authentication** (materialization: 0.7) - Fairly confident, but depends on framework choice from step 1
+3. **Add payment processing** (materialization: 0.4) - Less certain, depends on authentication design and business requirements we'll discover
+4. **Scale to 10K users** (materialization: 0.2) - Highly speculative, will depend on architecture choices and learnings from previous steps
+
+The immediate next node typically has the highest score (ready to execute), while downstream nodes have lower scores, reflecting our uncertainty about distant future steps.
 
 This quantifies the insight from "Why Greatness Cannot Be Planned": rigid end-to-end blueprints invite failure, whereas flexible, step-wise commitments let emergent opportunities guide the path to success. The system stays agile by keeping distant future nodes at low materialization, allowing pivots based on lessons learned during execution.

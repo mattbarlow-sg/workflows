@@ -66,14 +66,24 @@ type Artifacts struct {
 	
 	// New format - structured (enhanced)
 	PropertiesStruct *ArtifactProperties `json:"properties_struct,omitempty" yaml:"properties_struct,omitempty"`
-	SpecsStruct      *ArtifactSpecs      `json:"specs,omitempty" yaml:"specs,omitempty"`
+	SchemasStruct    *ArtifactSchemas    `json:"schemas_struct,omitempty" yaml:"schemas_struct,omitempty"`
+	SpecsStruct      *ArtifactSpecs      `json:"specs_struct,omitempty" yaml:"specs_struct,omitempty"`
 	TestsStruct      *ArtifactTests      `json:"tests_struct,omitempty" yaml:"tests_struct,omitempty"`
 }
 
 type ArtifactProperties struct {
 	Invariants      string `json:"invariants,omitempty" yaml:"invariants,omitempty"`
-	StateProperties string `json:"state_properties,omitempty" yaml:"state_properties,omitempty"`
+	States          string `json:"states,omitempty" yaml:"states,omitempty"`
+	Rules           string `json:"rules,omitempty" yaml:"rules,omitempty"`
+	TestSpecs       string `json:"test_specs,omitempty" yaml:"test_specs,omitempty"`
+	StateProperties string `json:"state_properties,omitempty" yaml:"state_properties,omitempty"` // Legacy
 	Generators      string `json:"generators,omitempty" yaml:"generators,omitempty"`
+}
+
+type ArtifactSchemas struct {
+	Validation      string `json:"validation,omitempty" yaml:"validation,omitempty"`
+	Transformations string `json:"transformations,omitempty" yaml:"transformations,omitempty"`
+	Contracts       string `json:"contracts,omitempty" yaml:"contracts,omitempty"`
 }
 
 type ArtifactSpecs struct {
@@ -97,6 +107,7 @@ const (
 	StatusInProgress = "In Progress"
 	StatusBlocked    = "Blocked"
 	StatusCompleted  = "Completed"
+	StatusSpecified  = "Specified"
 )
 
 func (m *MPC) GetNodeByID(id string) *Node {

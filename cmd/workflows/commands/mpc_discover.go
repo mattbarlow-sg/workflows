@@ -14,6 +14,7 @@ type MPCDiscoverCommand struct {
 	*cli.BaseCommand
 	showStatus bool
 	showProgress bool
+	nextOnly bool
 }
 
 func NewMPCDiscoverCommand() *MPCDiscoverCommand {
@@ -24,6 +25,7 @@ func NewMPCDiscoverCommand() *MPCDiscoverCommand {
 	// Define flags
 	cmd.FlagSet().BoolVar(&cmd.showStatus, "status", false, "Show node status")
 	cmd.FlagSet().BoolVar(&cmd.showProgress, "progress", false, "Show progress indicators")
+	cmd.FlagSet().BoolVar(&cmd.nextOnly, "next-only", false, "Show only what's immediately actionable")
 	
 	return cmd
 }
@@ -62,14 +64,130 @@ func (c *MPCDiscoverCommand) Execute(args []string) error {
 	}
 
 	// Display the discovery analysis
-	fmt.Printf("MPC Workflow: %s\n", mpcData.PlanName)
-	fmt.Printf("Plan ID: %s\n", mpcData.PlanID)
-	fmt.Println()
-	
-	// Analyze and display workflow state
-	c.analyzeWorkflow(mpcData)
+	if c.nextOnly {
+		c.analyzeWorkflowNextOnly(mpcData)
+	} else {
+		fmt.Printf("MPC Workflow: %s\n", mpcData.PlanName)
+		fmt.Printf("Plan ID: %s\n", mpcData.PlanID)
+		fmt.Println()
+		
+		// Analyze and display workflow state
+		c.analyzeWorkflow(mpcData)
+	}
 
 	return nil
+}
+
+func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
+	// Categorize nodes by their status and dependencies
+	workableNow := []*mpc.Node{}
+	inProgressNodes := []*mpc.Node{}
+	needsBPMN := []*mpc.Node{}
+	needsSpecs := []*mpc.Node{}
+	
+	for i := range mpcData.Nodes {
+		node := &mpcData.Nodes[i]
+		
+		switch node.Status {
+		case mpc.StatusInProgress:
+			inProgressNodes = append(inProgressNodes, node)
+		case mpc.StatusReady:
+			// For the entry node, it's always workable if Ready
+			if node.ID == mpcData.EntryNode {
+				workableNow = append(workableNow, node)
+				// Check if node needs artifacts
+				c.checkNodeArtifacts(node, &needsBPMN, &needsSpecs)
+			} else {
+				// Check if all dependencies are completed
+				canWork := true
+				
+				// Find nodes that have this node as downstream
+				for j := range mpcData.Nodes {
+					upstream := &mpcData.Nodes[j]
+					for _, downstream := range upstream.Downstream {
+						if downstream == node.ID && upstream.Status != mpc.StatusCompleted {
+							canWork = false
+							break
+						}
+					}
+					if !canWork {
+						break
+					}
+				}
+				
+				if canWork {
+					workableNow = append(workableNow, node)
+					// Check if node needs artifacts
+					c.checkNodeArtifacts(node, &needsBPMN, &needsSpecs)
+				}
+			}
+		}
+	}
+	
+	// Show what needs to be done right now
+	hasWork := false
+	
+	// Show artifact generation first
+	if len(needsBPMN) > 0 {
+		hasWork = true
+		fmt.Println("Generate BPMN for:")
+		for _, node := range needsBPMN {
+			fmt.Printf("  • %s: Ready for BPMN definition\n", node.ID)
+		}
+		fmt.Println()
+	}
+	
+	if len(needsSpecs) > 0 {
+		hasWork = true
+		fmt.Println("Generate specs for:")
+		for _, node := range needsSpecs {
+			missing := c.getMissingArtifacts(node)
+			fmt.Printf("  • %s: Ready for Spec Generation (missing: %s)\n", 
+				node.ID, strings.Join(missing, ", "))
+		}
+		fmt.Println()
+	}
+	
+	// Show in-progress work
+	if len(inProgressNodes) > 0 {
+		hasWork = true
+		fmt.Println("⏳ Continue working on:")
+		for _, node := range inProgressNodes {
+			fmt.Printf("  • %s - %s\n", node.ID, node.Description)
+		}
+		fmt.Println()
+	}
+	
+	// Show ready work only if no artifacts need generation
+	if len(needsBPMN) == 0 && len(needsSpecs) == 0 && len(workableNow) > 0 {
+		hasWork = true
+		if len(workableNow) == 1 {
+			fmt.Println("🚀 Ready to implement:")
+		} else {
+			fmt.Println("🚀 Ready to implement (can work in parallel):")
+		}
+		for _, node := range workableNow {
+			fmt.Printf("  • %s - %s\n", node.ID, node.Description)
+		}
+		fmt.Println()
+	}
+	
+	if !hasWork {
+		// Count completed nodes
+		completedCount := 0
+		for _, node := range mpcData.Nodes {
+			if node.Status == mpc.StatusCompleted {
+				completedCount++
+			}
+		}
+		
+		if completedCount == len(mpcData.Nodes) {
+			fmt.Println("✅ All tasks completed!")
+		} else {
+			fmt.Println("⚠️  No tasks are currently ready to work on.")
+			fmt.Println("    Check blocked dependencies with: ./workflows mpc discover <file>")
+		}
+	}
 }
 
 func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
@@ -78,6 +196,10 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 	blockedNodes := []*mpc.Node{}
 	inProgressNodes := []*mpc.Node{}
 	completedNodes := []*mpc.Node{}
+	
+	// New categories for artifact tracking
+	needsBPMN := []*mpc.Node{}
+	needsSpecs := []*mpc.Node{}
 	
 	// Track which nodes have incomplete dependencies
 	nodeBlockers := make(map[string][]string)
@@ -96,6 +218,8 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 			// For the entry node, it's always workable if Ready
 			if node.ID == mpcData.EntryNode {
 				workableNow = append(workableNow, node)
+				// Check if node needs artifacts
+				c.checkNodeArtifacts(node, &needsBPMN, &needsSpecs)
 			} else {
 				// Check if all dependencies are completed
 				canWork := true
@@ -114,12 +238,39 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 				
 				if canWork {
 					workableNow = append(workableNow, node)
+					// Check if node needs artifacts
+					c.checkNodeArtifacts(node, &needsBPMN, &needsSpecs)
 				} else {
 					blockedNodes = append(blockedNodes, node)
 					nodeBlockers[node.ID] = blockers
 				}
 			}
 		}
+	}
+	
+	// Display artifact needs first
+	if len(needsBPMN) > 0 || len(needsSpecs) > 0 {
+		fmt.Println("🔧 ARTIFACT GENERATION NEEDED:")
+		fmt.Println(strings.Repeat("=", 60))
+		
+		if len(needsBPMN) > 0 {
+			fmt.Println("\n  📐 Nodes needing BPMN design:")
+			for _, node := range needsBPMN {
+				fmt.Printf("    • %s - %s\n", node.ID, node.Description)
+				fmt.Printf("      → Run: ./workflows ai bpmn-create --node %s\n", node.ID)
+			}
+		}
+		
+		if len(needsSpecs) > 0 {
+			fmt.Println("\n  📝 Nodes needing Specs/Tests/Properties:")
+			for _, node := range needsSpecs {
+				fmt.Printf("    • %s - %s\n", node.ID, node.Description)
+				missing := c.getMissingArtifacts(node)
+				fmt.Printf("      Missing: %s\n", strings.Join(missing, ", "))
+				fmt.Printf("      → Run: ./workflows ai spec-generate --node %s\n", node.ID)
+			}
+		}
+		fmt.Println()
 	}
 	
 	// Display workable nodes
@@ -317,10 +468,83 @@ func (c *MPCDiscoverCommand) getStatusIcon(status string) string {
 	}
 }
 
+func (c *MPCDiscoverCommand) checkNodeArtifacts(node *mpc.Node, needsBPMN, needsSpecs *[]*mpc.Node) {
+	if node.Artifacts == nil {
+		*needsBPMN = append(*needsBPMN, node)
+		return
+	}
+	
+	// Check for BPMN first
+	if node.Artifacts.BPMN == "" {
+		*needsBPMN = append(*needsBPMN, node)
+		return
+	}
+	
+	// Check for specs, tests, and properties
+	hasSpec := node.Artifacts.Spec != "" || 
+		(node.Artifacts.SpecsStruct != nil && 
+			(node.Artifacts.SpecsStruct.API != "" || 
+			 node.Artifacts.SpecsStruct.Models != "" || 
+			 node.Artifacts.SpecsStruct.Schemas != ""))
+	
+	hasTests := node.Artifacts.Tests != "" || 
+		(node.Artifacts.TestsStruct != nil && 
+			(node.Artifacts.TestsStruct.Unit != "" || 
+			 node.Artifacts.TestsStruct.Integration != "" || 
+			 node.Artifacts.TestsStruct.E2E != ""))
+	
+	hasProperties := node.Artifacts.Properties != "" || 
+		(node.Artifacts.PropertiesStruct != nil && 
+			(node.Artifacts.PropertiesStruct.Invariants != "" || 
+			 node.Artifacts.PropertiesStruct.StateProperties != ""))
+	
+	if !hasSpec || !hasTests || !hasProperties {
+		*needsSpecs = append(*needsSpecs, node)
+	}
+}
+
+func (c *MPCDiscoverCommand) getMissingArtifacts(node *mpc.Node) []string {
+	missing := []string{}
+	
+	if node.Artifacts == nil {
+		return []string{"specs", "tests", "properties"}
+	}
+	
+	hasSpec := node.Artifacts.Spec != "" || 
+		(node.Artifacts.SpecsStruct != nil && 
+			(node.Artifacts.SpecsStruct.API != "" || 
+			 node.Artifacts.SpecsStruct.Models != "" || 
+			 node.Artifacts.SpecsStruct.Schemas != ""))
+	
+	hasTests := node.Artifacts.Tests != "" || 
+		(node.Artifacts.TestsStruct != nil && 
+			(node.Artifacts.TestsStruct.Unit != "" || 
+			 node.Artifacts.TestsStruct.Integration != "" || 
+			 node.Artifacts.TestsStruct.E2E != ""))
+	
+	hasProperties := node.Artifacts.Properties != "" || 
+		(node.Artifacts.PropertiesStruct != nil && 
+			(node.Artifacts.PropertiesStruct.Invariants != "" || 
+			 node.Artifacts.PropertiesStruct.StateProperties != ""))
+	
+	if !hasSpec {
+		missing = append(missing, "specs")
+	}
+	if !hasTests {
+		missing = append(missing, "tests")
+	}
+	if !hasProperties {
+		missing = append(missing, "properties")
+	}
+	
+	return missing
+}
+
 func (c *MPCDiscoverCommand) Help() string {
 	return `Discover what tasks can be worked on next
 
 This command analyzes the MPC workflow to show:
+- Which tasks need artifact generation (BPMN, specs, tests)
 - Which tasks are ready to work on now (can be done in parallel)
 - Which tasks are in progress
 - Which tasks are blocked and what they're waiting for
@@ -330,13 +554,25 @@ Usage:
   workflows mpc discover [options] <file>
 
 Options:
+  --next-only  Show only what's immediately actionable (concise output)
+  --progress   Show detailed progress information (verbose mode only)
   --status     Show node status (deprecated, always shown)
-  --progress   Show detailed progress information
 
 Arguments:
   file         Path to the MPC workflow file (.yaml, .yml, or .json)
 
-Display Sections:
+Output Modes:
+  Default (verbose): Shows all workflow information including blocked tasks,
+                     execution stages, and summary statistics
+  
+  --next-only:       Shows only immediate next actions:
+                     - BPMN designs to generate
+                     - Specs/tests to create
+                     - In-progress tasks to continue
+                     - Ready tasks to implement
+
+Display Sections (verbose mode):
+  🔧 ARTIFACT GENERATION: Tasks needing BPMN or spec generation
   🚀 READY TO WORK: Tasks with all dependencies completed
   ⏳ IN PROGRESS: Tasks currently being worked on
   🔒 BLOCKED: Tasks waiting on dependencies
@@ -347,7 +583,10 @@ Status Icons:
   ○ Ready, ◐ In Progress, ■ Blocked, ● Completed
 
 Examples:
-  # Basic discovery
+  # Show only next actions (concise)
+  workflows mpc discover workflow.yaml --next-only
+
+  # Full discovery view (verbose)
   workflows mpc discover workflow.yaml
 
   # Show with detailed progress
