@@ -72,11 +72,7 @@ nodes:
       - "internal/temporal/validator_test.go"
       - "internal/temporal/validation_rules.go"
     artifacts:
-      - type: "bpmn"
-        path: "definitions/bpmn/temporal-validation-framework.json"
-        description: "BPMN 2.0 process definition for Temporal validation framework"
-        validation_status: "validated"
-        complexity_score: 21
+      bpmn: "definitions/bpmn/temporal-validation-framework.json"
     acceptance_criteria:
       - "All validation functions have >90% test coverage"
       - "Determinism checker correctly identifies non-deterministic code"

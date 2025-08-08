@@ -18,7 +18,7 @@ Implementing Temporal workflow orchestration framework with Golang based on ADR-
 
 ### 2025-08-06 - Session Initialization
 - Created work session directory structure
-- Set CURRENT_WORK_SESSION environment variable
+- Set `CURRENT_IMPLEMENTATION_ID` environment variable
 - Updated .envrc configuration
 - Created initial planning documents
 

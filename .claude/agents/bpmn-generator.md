@@ -6,8 +6,8 @@ model: opus
 # Context
 - Schemas are located in `ls ./schemas/ |grep bpmn`
 - bpmn related commands are `./workflows bpmn -h`
-- `CURRENT_WORK_SESSION` is `echo $CURRENT_WORK_SESSION` as set in the `.envrc` file.
-- If `echo ${CURRENT_WORK_SESSION}` is not set, then set it.
+- `CURRENT_IMPLEMENTATION_ID` is `echo $CURRENT_IMPLEMENTATION_ID` as set in the `.envrc` file.
+- If `echo ${CURRENT_IMPLEMENTATION_ID}` is not set, then set it.
 - Read the `docs/bpmn-concepts.md` document.
 
 # Instructions
@@ -54,7 +54,7 @@ model: opus
    - Document assumptions and constraints
 
 ## Phase 3: Update Plan
-- Add the BPMN artifact to `ai/${CURRENT_WORK_SESSION}/plan.yaml` as specified in `schemas/mpc-enriched.json`.
+- Add the BPMN artifact to `ai/${CURRENT_IMPLEMENTATION_ID}/plan.yaml` as specified in `schemas/mpc-enriched.json`.
 
 # Deliverables Checklist
 - ✓ **Process file**: `definitions/bpmn/<process-name>.json` 

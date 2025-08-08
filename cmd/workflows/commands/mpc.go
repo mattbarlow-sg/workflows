@@ -17,6 +17,8 @@ func NewMPCCommand() *MPCCommand {
 	cmd.Register(NewMPCValidateCommand())
 	cmd.Register(NewMPCRenderCommand())
 	cmd.Register(NewMPCDiscoverCommand())
+	cmd.Register(NewMPCSummaryCommand())
+	cmd.Register(NewMPCNodeCommand())
 
 	return cmd
 }
@@ -34,6 +36,8 @@ Available subcommands:
   validate    Validate an MPC workflow file
   render      Render an MPC workflow in different formats
   discover    Discover what tasks can be worked on next
+  summary     Display a summary of an MPC plan
+  node        Display details about a specific node
 
 Examples:
   # Validate an MPC workflow

@@ -7,10 +7,10 @@ allowed-tools: Bash(date:*),Bash(git:*),Bash(ls:*),Bash(head:*),Bash(echo:*),Bas
 - View available schemas: `./workflows list | grep bpmn`
 - Schemas are located in `ls ./schemas/ |grep bpmn`
 - bpmn related commands are `./workflows bpmn -h`
-- `CURRENT_WORK_SESSION` is `echo $CURRENT_WORK_SESSION` as set in the `.envrc` file.
-- If `echo ${CURRENT_WORK_SESSION}` is not set, then set it.
+- `CURRENT_IMPLEMENTATION_ID` is `echo $CURRENT_IMPLEMENTATION_ID` as set in the `.envrc` file.
+- If `echo ${CURRENT_IMPLEMENTATION_ID}` is not set, then set it.
 - Read the `docs/bpmn-concepts.md` document.
-- Run discovery on the plan: !`./workflows mpc discover --next-only ai/${CURRENT_WORK_SESSION}/plan.yaml` `./workflows mpc discover --next-only ai/${CURRENT_WORK_SESSION}/plan.yaml`
+- Run discovery on the plan: !`./workflows mpc discover --next-only ai/${CURRENT_IMPLEMENTATION_ID}/plan.yaml` `./workflows mpc discover --next-only ai/${CURRENT_IMPLEMENTATION_ID}/plan.yaml`
 
 # Instructions
 - You will not create or edit files directly.

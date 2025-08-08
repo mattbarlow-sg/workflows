@@ -5,10 +5,10 @@ model: opus
 ---
 
 # Context
-- `CURRENT_WORK_SESSION` is !`echo $CURRENT_WORK_SESSION` as set in the `.envrc` file.
-- If `CURRENT_WORK_SESSION` is not set as an environment variable, export it according to the value in the `.envrc`.
+- `CURRENT_IMPLEMENTATION_ID` is !`echo $CURRENT_IMPLEMENTATION_ID` as set in the `.envrc` file.
+- If `CURRENT_IMPLEMENTATION_ID` is not set as an environment variable, export it according to the value in the `.envrc`.
 - Past work sessions are !`ls ./ai`.
-- Work Session Directory is `ai/<CURRENT_WORK_SESSION>`.
+- Work Session Directory is `ai/<CURRENT_IMPLEMENTATION_ID>`.
 
 
 # Instructions

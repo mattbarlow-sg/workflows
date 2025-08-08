@@ -9,8 +9,8 @@ allowed-tools: Bash(date:*)
 
 # Instructions
 ## Setup
-- Run `export CURRENT_WORK_SESSION=<work-session-id>`.
-- Update the `CURRENT_WORK_SESSION` value in `.envrc`. Replace it if it is already set.
+- Run `export CURRENT_IMPLEMENTATION_ID=<work-session-id>`.
+- Update the `CURRENT_IMPLEMENTATION_ID` value in `.envrc`. Replace it if it is already set.
 - Based on the provided context, create a directory called `ai/<work-session-id>`.
 - In this directory, create four files: `plan.md`, `log.md`, `architecture.md`, and `summary.md`.
 ## Plan
