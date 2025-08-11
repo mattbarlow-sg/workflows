@@ -44,12 +44,16 @@ entry_node: "validation-framework"
 
 nodes:
   - id: "validation-framework"
-    status: "Ready"
-    materialization: 0.15
+    status: "Specified"
+    materialization: 1.0
     description: "Create comprehensive validation framework for Temporal workflows"
     detailed_description: "Build a validation framework that performs static analysis, determinism checks, and pre-deployment validation of all Temporal workflows before they can be registered or deployed"
     subtasks:
       - description: "Design BPMN process for validation framework"
+        completed: true
+      - description: "Generate formal property specifications"
+        completed: true
+      - description: "Create Go schema definitions and contracts"
         completed: true
       - description: "Create internal/temporal/validator.go with ValidatorInterface"
         completed: false
@@ -73,6 +77,15 @@ nodes:
       - "internal/temporal/validation_rules.go"
     artifacts:
       bpmn: "definitions/bpmn/temporal-validation-framework.json"
+      specifications:
+        - "docs/properties/validation-framework-invariants.yaml"
+        - "docs/properties/validation-framework-states.yaml"
+        - "docs/properties/validation-framework-rules.yaml"
+        - "docs/properties/validation-framework-test-specs.yaml"
+        - "src/schemas/validation-framework.schema.go"
+        - "src/schemas/validation-framework.transformations.go"
+        - "src/schemas/validation-framework.contracts.go"
+        - "docs/specs/validation-framework.yaml"
     acceptance_criteria:
       - "All validation functions have >90% test coverage"
       - "Determinism checker correctly identifies non-deterministic code"
