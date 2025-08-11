@@ -72,3 +72,4 @@ refactor/
 
 # Allow Claude to view its own dirs
 !.claude/**/*
+/.claude/settings.local.json
