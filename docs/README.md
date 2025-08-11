@@ -5,7 +5,7 @@ MPC plans a full trajectory, executes a single control input, then replans from 
 - **0.5**: Moderate confidence - known uncertainties exist  
 - **0.1**: Low confidence - highly speculative, will likely change
 
-The score quantifies **planning confidence**, not implementation completeness.
+The materialization score quantifies **planning confidence**, not implementation completeness.
 
 ## Core Workflow
 ```mermaid

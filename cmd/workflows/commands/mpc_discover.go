@@ -89,9 +89,9 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 		node := &mpcData.Nodes[i]
 
 		switch node.Status {
-		case mpc.StatusInProgress:
+		case "In Progress":
 			inProgressNodes = append(inProgressNodes, node)
-		case mpc.StatusReady:
+		case "Ready":
 			// For the entry node, it's always workable if Ready
 			if node.ID == mpcData.EntryNode {
 				workableNow = append(workableNow, node)
@@ -105,7 +105,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 				for j := range mpcData.Nodes {
 					upstream := &mpcData.Nodes[j]
 					for _, downstream := range upstream.Downstream {
-						if downstream == node.ID && upstream.Status != mpc.StatusCompleted {
+						if downstream == node.ID && upstream.Status != "Completed" {
 							canWork = false
 							break
 						}
@@ -182,7 +182,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 
 	completedCount := 0
 	for _, node := range mpcData.Nodes {
-		if node.Status == mpc.StatusCompleted {
+		if node.Status == "Completed" {
 			completedCount++
 		}
 	}
@@ -222,13 +222,13 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 		node := &mpcData.Nodes[i]
 
 		switch node.Status {
-		case mpc.StatusCompleted:
+		case "Completed":
 			completedNodes = append(completedNodes, node)
-		case mpc.StatusInProgress:
+		case "In Progress":
 			inProgressNodes = append(inProgressNodes, node)
-		case mpc.StatusBlocked:
+		case "Blocked":
 			blockedNodes = append(blockedNodes, node)
-		case mpc.StatusReady:
+		case "Ready":
 			// For the entry node, it's always workable if Ready
 			if node.ID == mpcData.EntryNode {
 				workableNow = append(workableNow, node)
@@ -243,7 +243,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 				for j := range mpcData.Nodes {
 					upstream := &mpcData.Nodes[j]
 					for _, downstream := range upstream.Downstream {
-						if downstream == node.ID && upstream.Status != mpc.StatusCompleted {
+						if downstream == node.ID && upstream.Status != "Completed" {
 							canWork = false
 							blockers = append(blockers, upstream.ID)
 						}
@@ -350,10 +350,18 @@ func (c *MPCDiscoverCommand) printNodeSummary(node *mpc.Node) {
 	fmt.Printf("     Description: %s\n", node.Description)
 
 	if c.showProgress {
-		progress := node.GetCompletionPercentage()
+		completedCount := 0
+		for _, subtask := range node.Subtasks {
+			if subtask.Completed {
+				completedCount++
+			}
+		}
+		progress := float64(0)
+		if len(node.Subtasks) > 0 {
+			progress = float64(completedCount) / float64(len(node.Subtasks)) * 100
+		}
 		fmt.Printf("     Progress: %.0f%% complete", progress)
 		fmt.Printf(" | Materialization: %.1f\n", node.Materialization)
-		completedCount := node.GetCompletedSubtaskCount()
 		totalCount := len(node.Subtasks)
 		fmt.Printf("     Subtasks: %d/%d completed\n", completedCount, totalCount)
 	}
@@ -409,51 +417,20 @@ func (c *MPCDiscoverCommand) printFullNodeDetails(node *mpc.Node) {
 
 	if node.Artifacts != nil {
 		fmt.Printf("     Artifacts:\n")
-		if node.Artifacts.BPMN != "" {
-			fmt.Printf("       BPMN: %s\n", node.Artifacts.BPMN)
+		if node.Artifacts.BPMN != nil && *node.Artifacts.BPMN != "" {
+			fmt.Printf("       BPMN: %s\n", *node.Artifacts.BPMN)
 		}
-		if node.Artifacts.Spec != "" {
-			fmt.Printf("       Spec: %s\n", node.Artifacts.Spec)
+		if node.Artifacts.FormalSpec != nil && *node.Artifacts.FormalSpec != "" {
+			fmt.Printf("       Formal Spec: %s\n", *node.Artifacts.FormalSpec)
 		}
-		if node.Artifacts.Tests != "" {
-			fmt.Printf("       Tests: %s\n", node.Artifacts.Tests)
+		if node.Artifacts.Schemas != nil && *node.Artifacts.Schemas != "" {
+			fmt.Printf("       Schemas: %s\n", *node.Artifacts.Schemas)
 		}
-		if node.Artifacts.Properties != "" {
-			fmt.Printf("       Properties: %s\n", node.Artifacts.Properties)
+		if node.Artifacts.ModelChecking != nil && *node.Artifacts.ModelChecking != "" {
+			fmt.Printf("       Model Checking: %s\n", *node.Artifacts.ModelChecking)
 		}
-
-		// Check structured artifacts
-		if node.Artifacts.SpecsStruct != nil {
-			if node.Artifacts.SpecsStruct.API != "" {
-				fmt.Printf("       API Spec: %s\n", node.Artifacts.SpecsStruct.API)
-			}
-			if node.Artifacts.SpecsStruct.Models != "" {
-				fmt.Printf("       Models Spec: %s\n", node.Artifacts.SpecsStruct.Models)
-			}
-			if node.Artifacts.SpecsStruct.Schemas != "" {
-				fmt.Printf("       Schemas Spec: %s\n", node.Artifacts.SpecsStruct.Schemas)
-			}
-		}
-
-		if node.Artifacts.TestsStruct != nil {
-			if node.Artifacts.TestsStruct.Unit != "" {
-				fmt.Printf("       Unit Tests: %s\n", node.Artifacts.TestsStruct.Unit)
-			}
-			if node.Artifacts.TestsStruct.Integration != "" {
-				fmt.Printf("       Integration Tests: %s\n", node.Artifacts.TestsStruct.Integration)
-			}
-			if node.Artifacts.TestsStruct.E2E != "" {
-				fmt.Printf("       E2E Tests: %s\n", node.Artifacts.TestsStruct.E2E)
-			}
-		}
-
-		if node.Artifacts.PropertiesStruct != nil {
-			if node.Artifacts.PropertiesStruct.Invariants != "" {
-				fmt.Printf("       Invariants: %s\n", node.Artifacts.PropertiesStruct.Invariants)
-			}
-			if node.Artifacts.PropertiesStruct.StateProperties != "" {
-				fmt.Printf("       State Properties: %s\n", node.Artifacts.PropertiesStruct.StateProperties)
-			}
+		if node.Artifacts.TestGenerators != nil && *node.Artifacts.TestGenerators != "" {
+			fmt.Printf("       Test Generators: %s\n", *node.Artifacts.TestGenerators)
 		}
 	}
 
@@ -569,13 +546,13 @@ func (c *MPCDiscoverCommand) buildExecutionStages(mpcData *mpc.MPC) [][]string {
 
 func (c *MPCDiscoverCommand) getStatusIcon(status string) string {
 	switch status {
-	case mpc.StatusReady:
+	case "Ready":
 		return "○"
-	case mpc.StatusInProgress:
+	case "In Progress":
 		return "◐"
-	case mpc.StatusBlocked:
+	case "Blocked":
 		return "■"
-	case mpc.StatusCompleted:
+	case "Completed":
 		return "●"
 	default:
 		return "?"
@@ -589,30 +566,17 @@ func (c *MPCDiscoverCommand) checkNodeArtifacts(node *mpc.Node, needsBPMN, needs
 	}
 
 	// Check for BPMN first
-	if node.Artifacts.BPMN == "" {
+	if node.Artifacts.BPMN == nil || *node.Artifacts.BPMN == "" {
 		*needsBPMN = append(*needsBPMN, node)
 		return
 	}
 
-	// Check for specs, tests, and properties
-	hasSpec := node.Artifacts.Spec != "" ||
-		(node.Artifacts.SpecsStruct != nil &&
-			(node.Artifacts.SpecsStruct.API != "" ||
-				node.Artifacts.SpecsStruct.Models != "" ||
-				node.Artifacts.SpecsStruct.Schemas != ""))
+	// Check for formal spec and schemas
+	hasSpec := node.Artifacts.FormalSpec != nil && *node.Artifacts.FormalSpec != ""
+	hasSchemas := node.Artifacts.Schemas != nil && *node.Artifacts.Schemas != ""
+	hasTestGenerators := node.Artifacts.TestGenerators != nil && *node.Artifacts.TestGenerators != ""
 
-	hasTests := node.Artifacts.Tests != "" ||
-		(node.Artifacts.TestsStruct != nil &&
-			(node.Artifacts.TestsStruct.Unit != "" ||
-				node.Artifacts.TestsStruct.Integration != "" ||
-				node.Artifacts.TestsStruct.E2E != ""))
-
-	hasProperties := node.Artifacts.Properties != "" ||
-		(node.Artifacts.PropertiesStruct != nil &&
-			(node.Artifacts.PropertiesStruct.Invariants != "" ||
-				node.Artifacts.PropertiesStruct.StateProperties != ""))
-
-	if !hasSpec || !hasTests || !hasProperties {
+	if !hasSpec || !hasSchemas || !hasTestGenerators {
 		*needsSpecs = append(*needsSpecs, node)
 	}
 }
@@ -621,34 +585,21 @@ func (c *MPCDiscoverCommand) getMissingArtifacts(node *mpc.Node) []string {
 	missing := []string{}
 
 	if node.Artifacts == nil {
-		return []string{"specs", "tests", "properties"}
+		return []string{"formal_spec", "schemas", "test_generators"}
 	}
 
-	hasSpec := node.Artifacts.Spec != "" ||
-		(node.Artifacts.SpecsStruct != nil &&
-			(node.Artifacts.SpecsStruct.API != "" ||
-				node.Artifacts.SpecsStruct.Models != "" ||
-				node.Artifacts.SpecsStruct.Schemas != ""))
-
-	hasTests := node.Artifacts.Tests != "" ||
-		(node.Artifacts.TestsStruct != nil &&
-			(node.Artifacts.TestsStruct.Unit != "" ||
-				node.Artifacts.TestsStruct.Integration != "" ||
-				node.Artifacts.TestsStruct.E2E != ""))
-
-	hasProperties := node.Artifacts.Properties != "" ||
-		(node.Artifacts.PropertiesStruct != nil &&
-			(node.Artifacts.PropertiesStruct.Invariants != "" ||
-				node.Artifacts.PropertiesStruct.StateProperties != ""))
+	hasSpec := node.Artifacts.FormalSpec != nil && *node.Artifacts.FormalSpec != ""
+	hasSchemas := node.Artifacts.Schemas != nil && *node.Artifacts.Schemas != ""
+	hasTestGenerators := node.Artifacts.TestGenerators != nil && *node.Artifacts.TestGenerators != ""
 
 	if !hasSpec {
-		missing = append(missing, "specs")
+		missing = append(missing, "formal_spec")
 	}
-	if !hasTests {
-		missing = append(missing, "tests")
+	if !hasSchemas {
+		missing = append(missing, "schemas")
 	}
-	if !hasProperties {
-		missing = append(missing, "properties")
+	if !hasTestGenerators {
+		missing = append(missing, "test_generators")
 	}
 
 	return missing

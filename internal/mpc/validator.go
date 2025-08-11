@@ -117,26 +117,8 @@ func (v *Validator) validateSchemaWithPath(jsonData []byte, schemaPath string) (
 // isEnrichedFormat detects if the MPC uses the enriched artifact format
 func (v *Validator) isEnrichedFormat(mpc *MPC) bool {
 	// Check if any node has enriched artifacts (nested properties or schemas)
-	for _, node := range mpc.Nodes {
-		if node.Artifacts != nil {
-			// Check for enriched properties format
-			if node.Artifacts.PropertiesStruct != nil {
-				return true
-			}
-			// Check for enriched schemas format
-			if node.Artifacts.SchemasStruct != nil {
-				return true
-			}
-			// Check for enriched specs format
-			if node.Artifacts.SpecsStruct != nil {
-				return true
-			}
-			// Check for enriched tests format
-			if node.Artifacts.TestsStruct != nil {
-				return true
-			}
-		}
-	}
+	// The new schema doesn't have enriched format
+	// All artifacts are simple string pointers now
 	return false
 }
 
@@ -229,17 +211,22 @@ func (v *Validator) validateSemantics(mpc *MPC) ([]ValidationError, []Validation
 		}
 
 		// Validate subtask completion consistency with status
-		completedCount := node.GetCompletedSubtaskCount()
+		completedCount := 0
+		for _, subtask := range node.Subtasks {
+			if subtask.Completed {
+				completedCount++
+			}
+		}
 		totalSubtasks := len(node.Subtasks)
 
-		if node.Status == StatusCompleted && completedCount < totalSubtasks {
+		if node.Status == "Completed" && completedCount < totalSubtasks {
 			warnings = append(warnings, ValidationWarning{
 				Path:    fmt.Sprintf("%s.status", nodePath),
 				Message: fmt.Sprintf("node marked as 'Completed' but only %d/%d subtasks are completed", completedCount, totalSubtasks),
 			})
 		}
 
-		if node.Status == StatusReady && completedCount > 0 {
+		if node.Status == "Ready" && completedCount > 0 {
 			warnings = append(warnings, ValidationWarning{
 				Path:    fmt.Sprintf("%s.status", nodePath),
 				Message: fmt.Sprintf("node marked as 'Ready' but %d subtasks are already completed", completedCount),
@@ -278,60 +265,41 @@ func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) err
 	hasArtifact := false
 
 	// BPMN
-	if artifacts.BPMN != "" {
+	if artifacts.BPMN != nil && *artifacts.BPMN != "" {
 		hasArtifact = true
-		if !strings.HasSuffix(artifacts.BPMN, ".json") && !strings.HasSuffix(artifacts.BPMN, ".bpmn") {
+		if !strings.HasSuffix(*artifacts.BPMN, ".json") && !strings.HasSuffix(*artifacts.BPMN, ".bpmn") {
 			return fmt.Errorf("BPMN file should have .json or .bpmn extension")
 		}
 	}
 
-	// Old format validation
-	if artifacts.Spec != "" {
+	// Formal Spec
+	if artifacts.FormalSpec != nil && *artifacts.FormalSpec != "" {
 		hasArtifact = true
-		if !strings.HasSuffix(artifacts.Spec, ".yaml") && !strings.HasSuffix(artifacts.Spec, ".yml") && !strings.HasSuffix(artifacts.Spec, ".json") {
-			return fmt.Errorf("spec file should have .yaml, .yml, or .json extension")
-		}
-	}
-	if artifacts.Tests != "" {
-		hasArtifact = true
-	}
-	if artifacts.Properties != "" {
-		hasArtifact = true
-		if !strings.HasSuffix(artifacts.Properties, ".json") {
-			return fmt.Errorf("properties file should have .json extension")
+		if !strings.HasSuffix(*artifacts.FormalSpec, ".yaml") && !strings.HasSuffix(*artifacts.FormalSpec, ".yml") && !strings.HasSuffix(*artifacts.FormalSpec, ".json") {
+			return fmt.Errorf("formal spec file should have .yaml, .yml, or .json extension")
 		}
 	}
 
-	// New format validation
-	if artifacts.PropertiesStruct != nil {
+	// Schemas
+	if artifacts.Schemas != nil && *artifacts.Schemas != "" {
 		hasArtifact = true
-		if artifacts.PropertiesStruct.Invariants != "" && !strings.HasSuffix(artifacts.PropertiesStruct.Invariants, ".json") {
-			return fmt.Errorf("invariants file should have .json extension")
-		}
-		if artifacts.PropertiesStruct.StateProperties != "" && !strings.HasSuffix(artifacts.PropertiesStruct.StateProperties, ".json") {
-			return fmt.Errorf("state properties file should have .json extension")
-		}
-		if artifacts.PropertiesStruct.Generators != "" && !strings.HasSuffix(artifacts.PropertiesStruct.Generators, ".json") && !strings.HasSuffix(artifacts.PropertiesStruct.Generators, ".ts") {
-			return fmt.Errorf("generators file should have .json or .ts extension")
+		if !strings.HasSuffix(*artifacts.Schemas, ".json") && !strings.HasSuffix(*artifacts.Schemas, ".go") {
+			return fmt.Errorf("schemas file should have .json or .go extension")
 		}
 	}
 
-	if artifacts.SpecsStruct != nil {
+	// Model Checking
+	if artifacts.ModelChecking != nil && *artifacts.ModelChecking != "" {
 		hasArtifact = true
-		if artifacts.SpecsStruct.API != "" && !strings.HasSuffix(artifacts.SpecsStruct.API, ".yaml") && !strings.HasSuffix(artifacts.SpecsStruct.API, ".yml") {
-			return fmt.Errorf("API spec file should have .yaml or .yml extension")
-		}
-		if artifacts.SpecsStruct.Models != "" && !strings.HasSuffix(artifacts.SpecsStruct.Models, ".tla") && !strings.HasSuffix(artifacts.SpecsStruct.Models, ".als") {
-			return fmt.Errorf("models file should have .tla or .als extension")
-		}
-		if artifacts.SpecsStruct.Schemas != "" && !strings.HasSuffix(artifacts.SpecsStruct.Schemas, ".json") {
-			return fmt.Errorf("schemas file should have .json extension")
+		// TLA+ or Alloy files
+		if !strings.HasSuffix(*artifacts.ModelChecking, ".tla") && !strings.HasSuffix(*artifacts.ModelChecking, ".als") {
+			return fmt.Errorf("model checking file should have .tla or .als extension")
 		}
 	}
 
-	if artifacts.TestsStruct != nil {
+	// Test Generators
+	if artifacts.TestGenerators != nil && *artifacts.TestGenerators != "" {
 		hasArtifact = true
-		// Test paths can have wildcards, so we don't validate extensions
 	}
 
 	if !hasArtifact {
@@ -342,7 +310,7 @@ func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) err
 }
 
 func isValidStatus(status string) bool {
-	validStatuses := []string{StatusReady, StatusInProgress, StatusBlocked, StatusCompleted, StatusSpecified}
+	validStatuses := []string{"Ready", "In Progress", "Blocked", "Completed", "Specified"}
 	for _, valid := range validStatuses {
 		if status == valid {
 			return true

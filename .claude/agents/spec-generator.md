@@ -52,6 +52,13 @@ I'll adapt to your project's technology stack:
    - Async-first design
    - Examples in `docs/examples/spec-generator-python.md`
 
+## Choose Correct Schema Types
+- HTTP REST endpoints →  Use `docs/examples/schema-rest-api.md` (OpenAPI)
+- Command-line arguments →  Use `docs/examples/schema-cli-tools.md` (Native structs)
+- Workflow orchestration →  Use `docs/examples/schema-workflows.md` (Temporal/Airflow contracts)
+- Message queues/events →  Use `docs/examples/schema-event-driven-message-queue.md` (Avro/Protobuf/CloudEvents)
+- GraphQL endpoints →  Use `docs/examples/schema-graphql.md` (GraphQL SDL)
+
 ### Schema Outputs
    - Core Schemas Output: `src/schemas/<node-id>.schema.[ts|rs|go|py]`
    - Transformation Contracts Output: `src/schemas/<node-id>.transformations.[ts|rs|go|py]`

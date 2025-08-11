@@ -12,15 +12,12 @@ import (
 
 type MPCNodeCommand struct {
 	*cli.BaseCommand
-	showArtifacts bool
 }
 
 func NewMPCNodeCommand() *MPCNodeCommand {
 	cmd := &MPCNodeCommand{
 		BaseCommand: cli.NewBaseCommand("node", "Display details about a specific node in an MPC plan"),
 	}
-
-	cmd.FlagSet().BoolVar(&cmd.showArtifacts, "artifacts", false, "Show artifact details")
 
 	return cmd
 }
@@ -86,9 +83,15 @@ func (c *MPCNodeCommand) printNodeDetails(node *mpc.Node) {
 	}
 
 	if len(node.Subtasks) > 0 {
-		completed := node.GetCompletedSubtaskCount()
+		completed := 0
+		for _, subtask := range node.Subtasks {
+			if subtask.Completed {
+				completed++
+			}
+		}
+		percentage := float64(completed) / float64(len(node.Subtasks)) * 100
 		fmt.Printf("Subtasks: %d/%d completed (%.0f%%)\n",
-			completed, len(node.Subtasks), node.GetCompletionPercentage())
+			completed, len(node.Subtasks), percentage)
 		for i, subtask := range node.Subtasks {
 			status := "[ ]"
 			if subtask.Completed {
@@ -137,7 +140,7 @@ func (c *MPCNodeCommand) printNodeDetails(node *mpc.Node) {
 		fmt.Println()
 	}
 
-	if c.showArtifacts && node.Artifacts != nil {
+	if node.Artifacts != nil {
 		c.printArtifacts(node.Artifacts)
 	}
 }
@@ -146,113 +149,29 @@ func (c *MPCNodeCommand) printArtifacts(artifacts *mpc.Artifacts) {
 	fmt.Println("Artifacts:")
 	fmt.Println(strings.Repeat("-", 40))
 
-	if artifacts.BPMN != "" {
-		fmt.Printf("  BPMN: %s\n", artifacts.BPMN)
+	if artifacts.BPMN != nil && *artifacts.BPMN != "" {
+		fmt.Printf("  BPMN: %s\n", *artifacts.BPMN)
 	}
 
-	if artifacts.Spec != "" {
-		fmt.Printf("  Spec: %s\n", artifacts.Spec)
+	if artifacts.FormalSpec != nil && *artifacts.FormalSpec != "" {
+		fmt.Printf("  Formal Spec: %s\n", *artifacts.FormalSpec)
 	}
 
-	if artifacts.Tests != "" {
-		fmt.Printf("  Tests: %s\n", artifacts.Tests)
+	if artifacts.Schemas != nil && *artifacts.Schemas != "" {
+		fmt.Printf("  Schemas: %s\n", *artifacts.Schemas)
 	}
 
-	if artifacts.Properties != "" {
-		fmt.Printf("  Properties: %s\n", artifacts.Properties)
+	if artifacts.ModelChecking != nil && *artifacts.ModelChecking != "" {
+		fmt.Printf("  Model Checking: %s\n", *artifacts.ModelChecking)
 	}
 
-	if artifacts.PropertiesStruct != nil {
-		fmt.Println("  Properties (Structured):")
-		c.printArtifactProperties(artifacts.PropertiesStruct)
-	}
-
-	if artifacts.SchemasStruct != nil {
-		fmt.Println("  Schemas (Structured):")
-		c.printArtifactSchemas(artifacts.SchemasStruct)
-	}
-
-	if artifacts.SpecsStruct != nil {
-		fmt.Println("  Specs (Structured):")
-		c.printArtifactSpecs(artifacts.SpecsStruct)
-	}
-
-	if artifacts.TestsStruct != nil {
-		fmt.Println("  Tests (Structured):")
-		c.printArtifactTests(artifacts.TestsStruct)
+	if artifacts.TestGenerators != nil && *artifacts.TestGenerators != "" {
+		fmt.Printf("  Test Generators: %s\n", *artifacts.TestGenerators)
 	}
 
 	fmt.Println()
 }
 
-func (c *MPCNodeCommand) printArtifactProperties(props *mpc.ArtifactProperties) {
-	if props.Invariants != "" {
-		fmt.Printf("    Invariants: %s\n", props.Invariants)
-	}
-	if props.States != "" {
-		fmt.Printf("    States: %s\n", props.States)
-	}
-	if props.Rules != "" {
-		fmt.Printf("    Rules: %s\n", props.Rules)
-	}
-	if props.TestSpecs != "" {
-		fmt.Printf("    Test Specs: %s\n", props.TestSpecs)
-	}
-	if props.StateProperties != "" {
-		fmt.Printf("    State Properties: %s\n", props.StateProperties)
-	}
-	if props.Generators != "" {
-		fmt.Printf("    Generators: %s\n", props.Generators)
-	}
-}
-
-func (c *MPCNodeCommand) printArtifactSchemas(schemas *mpc.ArtifactSchemas) {
-	if schemas.Validation != "" {
-		fmt.Printf("    Validation: %s\n", schemas.Validation)
-	}
-	if schemas.Transformations != "" {
-		fmt.Printf("    Transformations: %s\n", schemas.Transformations)
-	}
-	if schemas.Contracts != "" {
-		fmt.Printf("    Contracts: %s\n", schemas.Contracts)
-	}
-}
-
-func (c *MPCNodeCommand) printArtifactSpecs(specs *mpc.ArtifactSpecs) {
-	if specs.API != "" {
-		fmt.Printf("    API: %s\n", specs.API)
-	}
-	if specs.Models != "" {
-		fmt.Printf("    Models: %s\n", specs.Models)
-	}
-	if specs.Schemas != "" {
-		fmt.Printf("    Schemas: %s\n", specs.Schemas)
-	}
-}
-
-func (c *MPCNodeCommand) printArtifactTests(tests *mpc.ArtifactTests) {
-	if tests.Property != "" {
-		fmt.Printf("    Property: %s\n", tests.Property)
-	}
-	if tests.Deterministic != "" {
-		fmt.Printf("    Deterministic: %s\n", tests.Deterministic)
-	}
-	if tests.Fuzz != "" {
-		fmt.Printf("    Fuzz: %s\n", tests.Fuzz)
-	}
-	if tests.Contract != "" {
-		fmt.Printf("    Contract: %s\n", tests.Contract)
-	}
-	if tests.Unit != "" {
-		fmt.Printf("    Unit: %s\n", tests.Unit)
-	}
-	if tests.Integration != "" {
-		fmt.Printf("    Integration: %s\n", tests.Integration)
-	}
-	if tests.E2E != "" {
-		fmt.Printf("    E2E: %s\n", tests.E2E)
-	}
-}
 
 func (c *MPCNodeCommand) printWrapped(text string, indent int) {
 	maxWidth := 78 - indent
@@ -281,22 +200,19 @@ func (c *MPCNodeCommand) Help() string {
 	return `Display details about a specific node in an MPC plan
 
 Shows comprehensive information about a node including its status, subtasks,
-acceptance criteria, downstream dependencies, and optionally artifacts.
+acceptance criteria, downstream dependencies, and artifacts.
 
 Usage:
-  workflows mpc node [options] <file> <node-id>
-
-Options:
-  --artifacts    Show artifact details if present
+  workflows mpc node <file> <node-id>
 
 Arguments:
   file         Path to the MPC plan file (.yaml, .yml, or .json)
   node-id      ID of the node to display
 
 Examples:
-  # Basic node details
+  # Display node details
   workflows mpc node plan.yaml validation-framework
 
-  # Node details with artifacts
-  workflows mpc node plan.yaml validation-framework --artifacts`
+  # Display another node
+  workflows mpc node plan.yaml testing-framework`
 }

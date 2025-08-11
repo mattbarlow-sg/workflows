@@ -152,7 +152,13 @@ func (r *Renderer) renderText() (string, error) {
 		}
 
 		// Subtasks
-		sb.WriteString(fmt.Sprintf("\nSubtasks (%d/%d completed):\n", node.GetCompletedSubtaskCount(), len(node.Subtasks)))
+		completedCount := 0
+		for _, subtask := range node.Subtasks {
+			if subtask.Completed {
+				completedCount++
+			}
+		}
+		sb.WriteString(fmt.Sprintf("\nSubtasks (%d/%d completed):\n", completedCount, len(node.Subtasks)))
 		for j, subtask := range node.Subtasks {
 			status := "[ ]"
 			if subtask.Completed {
@@ -189,71 +195,20 @@ func (r *Renderer) renderText() (string, error) {
 		// Artifacts
 		if node.Artifacts != nil {
 			sb.WriteString("\nArtifacts:\n")
-			if node.Artifacts.BPMN != "" {
-				sb.WriteString(fmt.Sprintf("  • BPMN: %s\n", node.Artifacts.BPMN))
+			if node.Artifacts.BPMN != nil && *node.Artifacts.BPMN != "" {
+				sb.WriteString(fmt.Sprintf("  • BPMN: %s\n", *node.Artifacts.BPMN))
 			}
-
-			// Handle old format
-			if node.Artifacts.Spec != "" {
-				sb.WriteString(fmt.Sprintf("  • Spec: %s\n", node.Artifacts.Spec))
+			if node.Artifacts.FormalSpec != nil && *node.Artifacts.FormalSpec != "" {
+				sb.WriteString(fmt.Sprintf("  • Formal Spec: %s\n", *node.Artifacts.FormalSpec))
 			}
-			if node.Artifacts.Tests != "" {
-				sb.WriteString(fmt.Sprintf("  • Tests: %s\n", node.Artifacts.Tests))
+			if node.Artifacts.Schemas != nil && *node.Artifacts.Schemas != "" {
+				sb.WriteString(fmt.Sprintf("  • Schemas: %s\n", *node.Artifacts.Schemas))
 			}
-			if node.Artifacts.Properties != "" {
-				sb.WriteString(fmt.Sprintf("  • Properties: %s\n", node.Artifacts.Properties))
+			if node.Artifacts.ModelChecking != nil && *node.Artifacts.ModelChecking != "" {
+				sb.WriteString(fmt.Sprintf("  • Model Checking: %s\n", *node.Artifacts.ModelChecking))
 			}
-
-			// Handle new format
-			if node.Artifacts.PropertiesStruct != nil {
-				sb.WriteString("  • Properties:\n")
-				if node.Artifacts.PropertiesStruct.Invariants != "" {
-					sb.WriteString(fmt.Sprintf("    - Invariants: %s\n", node.Artifacts.PropertiesStruct.Invariants))
-				}
-				if node.Artifacts.PropertiesStruct.StateProperties != "" {
-					sb.WriteString(fmt.Sprintf("    - State Properties: %s\n", node.Artifacts.PropertiesStruct.StateProperties))
-				}
-				if node.Artifacts.PropertiesStruct.Generators != "" {
-					sb.WriteString(fmt.Sprintf("    - Generators: %s\n", node.Artifacts.PropertiesStruct.Generators))
-				}
-			}
-
-			if node.Artifacts.SpecsStruct != nil {
-				sb.WriteString("  • Specs:\n")
-				if node.Artifacts.SpecsStruct.API != "" {
-					sb.WriteString(fmt.Sprintf("    - API: %s\n", node.Artifacts.SpecsStruct.API))
-				}
-				if node.Artifacts.SpecsStruct.Models != "" {
-					sb.WriteString(fmt.Sprintf("    - Models: %s\n", node.Artifacts.SpecsStruct.Models))
-				}
-				if node.Artifacts.SpecsStruct.Schemas != "" {
-					sb.WriteString(fmt.Sprintf("    - Schemas: %s\n", node.Artifacts.SpecsStruct.Schemas))
-				}
-			}
-
-			if node.Artifacts.TestsStruct != nil {
-				sb.WriteString("  • Tests:\n")
-				if node.Artifacts.TestsStruct.Property != "" {
-					sb.WriteString(fmt.Sprintf("    - Property: %s\n", node.Artifacts.TestsStruct.Property))
-				}
-				if node.Artifacts.TestsStruct.Deterministic != "" {
-					sb.WriteString(fmt.Sprintf("    - Deterministic: %s\n", node.Artifacts.TestsStruct.Deterministic))
-				}
-				if node.Artifacts.TestsStruct.Fuzz != "" {
-					sb.WriteString(fmt.Sprintf("    - Fuzz: %s\n", node.Artifacts.TestsStruct.Fuzz))
-				}
-				if node.Artifacts.TestsStruct.Contract != "" {
-					sb.WriteString(fmt.Sprintf("    - Contract: %s\n", node.Artifacts.TestsStruct.Contract))
-				}
-				if node.Artifacts.TestsStruct.Unit != "" {
-					sb.WriteString(fmt.Sprintf("    - Unit: %s\n", node.Artifacts.TestsStruct.Unit))
-				}
-				if node.Artifacts.TestsStruct.Integration != "" {
-					sb.WriteString(fmt.Sprintf("    - Integration: %s\n", node.Artifacts.TestsStruct.Integration))
-				}
-				if node.Artifacts.TestsStruct.E2E != "" {
-					sb.WriteString(fmt.Sprintf("    - E2E: %s\n", node.Artifacts.TestsStruct.E2E))
-				}
+			if node.Artifacts.TestGenerators != nil && *node.Artifacts.TestGenerators != "" {
+				sb.WriteString(fmt.Sprintf("  • Test Generators: %s\n", *node.Artifacts.TestGenerators))
 			}
 		}
 
@@ -278,7 +233,11 @@ func (r *Renderer) renderText() (string, error) {
 	for _, node := range r.mpc.Nodes {
 		statusCounts[node.Status]++
 		totalSubtasks += len(node.Subtasks)
-		completedSubtasks += node.GetCompletedSubtaskCount()
+		for _, subtask := range node.Subtasks {
+			if subtask.Completed {
+				completedSubtasks++
+			}
+		}
 	}
 
 	sb.WriteString(fmt.Sprintf("Total Nodes: %d\n", len(r.mpc.Nodes)))
