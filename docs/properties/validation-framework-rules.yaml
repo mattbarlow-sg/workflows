@@ -1,0 +1,204 @@
+# Business Rules for Temporal Validation Framework
+# Node: validation-framework
+# Implementation: 1754471482-temporal-workflow-implementation
+
+business_rules:
+  # Error Severity Rules
+  - id: BR-1
+    name: "Error Blocks Deployment"
+    description: "Any ERROR severity issue prevents workflow deployment"
+    when: "validation_error.severity = ERROR"
+    then: 
+      - "set deployment_allowed = false"
+      - "add error to blocking_errors list"
+      - "include fix instructions in output"
+    priority: CRITICAL
+    
+  - id: BR-2
+    name: "Info Messages Are Contextual"
+    description: "INFO messages provide troubleshooting context only"
+    when: "validation_message.severity = INFO"
+    then:
+      - "append to info_messages list"
+      - "do not affect deployment decision"
+      - "limit total to 100 messages"
+    priority: LOW
+    
+  # Fast-Fail Behavior
+  - id: BR-3
+    name: "Fast-Fail on First Error"
+    description: "Stop validation immediately on first ERROR"
+    when: "error_detected AND severity = ERROR"
+    then:
+      - "cancel all parallel validation checks"
+      - "mark cancelled checks as CANCELLED"
+      - "preserve completed check results"
+      - "proceed to error reporting"
+    priority: HIGH
+    
+  # Cache Management Rules
+  - id: BR-4
+    name: "Cache Invalidation on Source Change"
+    description: "Cache becomes invalid when source code changes"
+    when: "source_hash != cached_entry.source_hash"
+    then:
+      - "mark cache entry as invalid"
+      - "perform full validation"
+      - "update cache with new results"
+    priority: HIGH
+    
+  - id: BR-5
+    name: "Cache Key Composition"
+    description: "Cache key uniquely identifies workflow and version"
+    when: "creating_cache_key"
+    then:
+      - "key = workflow_id + ':' + source_hash"
+      - "store with no expiration"
+      - "include validation timestamp"
+    priority: MEDIUM
+    
+  # Error Message Rules
+  - id: BR-6
+    name: "Descriptive Error Messages"
+    description: "Error messages must describe the problem clearly"
+    when: "formatting_error_message"
+    then:
+      - "include file path and line number"
+      - "describe what rule was violated"
+      - "provide specific fix instructions"
+      - "include relevant code snippet"
+    priority: HIGH
+    
+  # Parallel Execution Rules
+  - id: BR-7
+    name: "Parallel Check Execution"
+    description: "All validation checks run in parallel"
+    when: "starting_validation"
+    then:
+      - "spawn determinism check goroutine"
+      - "spawn signature check goroutine"
+      - "spawn policy check goroutine"
+      - "use WaitGroup or channels for synchronization"
+    priority: MEDIUM
+    
+  - id: BR-8
+    name: "Sequential Error Reporting"
+    description: "Error reporting happens after all checks complete or cancel"
+    when: "checks_finished OR fast_fail_triggered"
+    then:
+      - "wait for all goroutines to finish or cancel"
+      - "aggregate all error results"
+      - "sort errors by severity then location"
+      - "output consolidated report"
+    priority: MEDIUM
+    
+  # Non-Retryable Error Categories
+  - id: BR-9
+    name: "Non-Retryable Error Classification"
+    description: "Certain error types should not be retried"
+    when: "error_type IN [PERMISSION, SYNTAX, MISSING_DEPS, TYPE_MISMATCH, INVALID_CONFIG]"
+    then:
+      - "mark as non_retryable"
+      - "do not attempt retry"
+      - "report immediately"
+      - "include resolution steps"
+    priority: HIGH
+    
+  # Cache Storage Rules
+  - id: BR-10
+    name: "Indefinite Cache Storage"
+    description: "Cache entries stored indefinitely until source changes"
+    when: "storing_cache_entry"
+    then:
+      - "set expiry = null"
+      - "store full validation result"
+      - "include all check statuses"
+      - "preserve info messages"
+    priority: LOW
+    
+  # Cancellation Tracking
+  - id: BR-11
+    name: "Track Cancellation Status"
+    description: "Distinguish between cancelled and completed checks"
+    when: "fast_fail_triggered"
+    then:
+      - "for each check: if running then status = CANCELLED"
+      - "for each check: if finished then status = COMPLETED"
+      - "for each check: if not started then status = SKIPPED"
+      - "include status in final report"
+    priority: MEDIUM
+    
+  # Activity Naming Convention
+  - id: BR-12
+    name: "Enforce PascalCase Activity Names"
+    description: "All activity names must follow PascalCase convention"
+    when: "validating_activity_name"
+    then:
+      - "check regex: ^[A-Z][a-zA-Z0-9]*$"
+      - "if not matching: add ERROR"
+      - "suggest corrected name"
+      - "check for common mistakes (camelCase, snake_case)"
+    priority: HIGH
+    
+  # Timeout Configuration Rules
+  - id: BR-13
+    name: "Human Task Infinite Timeout"
+    description: "Human tasks must wait indefinitely"
+    when: "task_type = HUMAN"
+    then:
+      - "set timeout = 0 (infinite)"
+      - "do not apply default timeout"
+      - "warn if finite timeout detected"
+    priority: CRITICAL
+    
+  - id: BR-14
+    name: "Workflow Maximum Timeout"
+    description: "Non-human workflows limited to 15 minutes"
+    when: "workflow_type != HUMAN"
+    then:
+      - "verify timeout <= 900s"
+      - "if timeout > 900s: add ERROR"
+      - "suggest appropriate timeout value"
+    priority: HIGH
+    
+  # Retry Policy Rules
+  - id: BR-15
+    name: "Minimum Retry Count"
+    description: "Retryable errors must have minimum 3 retries"
+    when: "error_is_retryable"
+    then:
+      - "verify retry_count >= 3"
+      - "if retry_count < 3: add WARNING"
+      - "suggest retry_count = 3"
+    priority: MEDIUM
+    
+  # Determinism Rules
+  - id: BR-16
+    name: "Detect Non-Deterministic Patterns"
+    description: "Flag all non-deterministic code patterns"
+    when: "analyzing_workflow_code"
+    then:
+      - "check for: time.Now(), rand.*, goroutines, channels, select"
+      - "check for: unsorted map iteration"
+      - "check for: external API calls in workflow"
+      - "check for: file I/O in workflow"
+      - "for each violation: add ERROR with location"
+    priority: CRITICAL
+
+  # Info Message Categories
+  - id: BR-17
+    name: "Categorize Info Messages"
+    description: "Info messages follow predefined categories"
+    when: "creating_info_message"
+    then:
+      - "category IN [METRICS, PROGRESS, CACHE, PERFORMANCE, CONFIG]"
+      - "format: '[CATEGORY] message'"
+      - "include relevant measurements"
+      - "limit to 100 total messages"
+    priority: LOW
+
+execution_order:
+  - CRITICAL: [BR-1, BR-13, BR-16]
+  - HIGH: [BR-3, BR-4, BR-6, BR-9, BR-12, BR-14]
+  - MEDIUM: [BR-5, BR-7, BR-8, BR-11, BR-15]
+  - LOW: [BR-2, BR-10, BR-17]

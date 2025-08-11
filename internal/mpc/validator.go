@@ -11,9 +11,10 @@ import (
 )
 
 type ValidationResult struct {
-	Valid    bool
-	Errors   []ValidationError
-	Warnings []ValidationWarning
+	Valid      bool
+	Errors     []ValidationError
+	Warnings   []ValidationWarning
+	GlobalBPMN string // Path to global BPMN if configured
 }
 
 type ValidationError struct {
@@ -69,9 +70,10 @@ func (v *Validator) ValidateFile(filePath string) (*ValidationResult, error) {
 
 	// Perform schema validation
 	result := &ValidationResult{
-		Valid:    true,
-		Errors:   []ValidationError{},
-		Warnings: []ValidationWarning{},
+		Valid:      true,
+		Errors:     []ValidationError{},
+		Warnings:   []ValidationWarning{},
+		GlobalBPMN: mpc.GlobalBPMN,
 	}
 
 	schemaResult, err := v.validateSchemaWithPath(jsonData, actualSchemaPath)
@@ -141,6 +143,16 @@ func (v *Validator) isEnrichedFormat(mpc *MPC) bool {
 func (v *Validator) validateSemantics(mpc *MPC) ([]ValidationError, []ValidationWarning) {
 	errors := []ValidationError{}
 	warnings := []ValidationWarning{}
+
+	// Validate global BPMN if specified
+	if mpc.GlobalBPMN != "" {
+		if !strings.HasSuffix(mpc.GlobalBPMN, ".json") && !strings.HasSuffix(mpc.GlobalBPMN, ".bpmn") {
+			warnings = append(warnings, ValidationWarning{
+				Path:    "global_bpmn",
+				Message: fmt.Sprintf("Global BPMN file should have .json or .bpmn extension, got %s", mpc.GlobalBPMN),
+			})
+		}
+	}
 
 	// Build node ID map
 	nodeMap := make(map[string]*Node)
@@ -396,6 +408,14 @@ func (r *ValidationResult) String() string {
 }
 
 func (r *ValidationResult) PrintDetails() {
+	// Always show global BPMN status
+	fmt.Println("\nGlobal BPMN Status:")
+	if r.GlobalBPMN != "" {
+		fmt.Printf("  Global BPMN Configured: %s\n", r.GlobalBPMN)
+	} else {
+		fmt.Printf("  Global BPMN Configured: skipped\n")
+	}
+
 	if len(r.Errors) > 0 {
 		fmt.Println("\nErrors:")
 		for _, err := range r.Errors {

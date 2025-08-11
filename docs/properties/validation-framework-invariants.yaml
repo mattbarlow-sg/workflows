@@ -1,0 +1,117 @@
+# Invariants for Temporal Validation Framework
+# Node: validation-framework
+# Implementation: 1754471482-temporal-workflow-implementation
+
+invariants:
+  # Timing Constraints
+  - id: INV-1
+    description: "Validation completes within 5 minutes"
+    formal: "∀ validation v : duration(v) < 300s"
+    category: timing
+    
+  # Execution Guarantees
+  - id: INV-2
+    description: "All three checks execute"
+    formal: "∀ validation v : executed(determinism_check) ∧ executed(signature_check) ∧ executed(policy_check)"
+    category: execution
+    
+  - id: INV-3
+    description: "Fast-fail cancels parallel checks on error"
+    formal: "∀ check c : error(c) → (∀ parallel p : cancel(p)) → terminate(validation)"
+    category: execution
+    
+  # Caching Rules
+  - id: INV-4
+    description: "Cache key uniqueness per workflow"
+    formal: "∀ workflow w : cache_key(w) = hash(workflow_id(w) ⊕ source_hash(w))"
+    category: caching
+    
+  - id: INV-5
+    description: "Blocking errors prevent deployment"
+    formal: "∀ error e : severity(e) = ERROR → ¬deployable(workflow)"
+    category: deployment
+    
+  # Temporal Determinism Requirements
+  - id: INV-6
+    description: "No native goroutines in workflows"
+    formal: "∀ workflow w : ¬contains(w, 'go func')"
+    category: determinism
+    
+  - id: INV-7
+    description: "No time.Now() usage, only workflow.Now()"
+    formal: "∀ workflow w : ¬contains(w, 'time.Now()') ∧ allows(w, 'workflow.Now()')"
+    category: determinism
+    
+  - id: INV-8
+    description: "No unsorted map iteration"
+    formal: "∀ map_iteration m : sorted(keys(m)) ∨ deterministic_order(m)"
+    category: determinism
+    
+  - id: INV-9
+    description: "No native channels, only workflow.Channel"
+    formal: "∀ workflow w : ¬contains(w, 'chan ') ∧ allows(w, 'workflow.Channel')"
+    category: determinism
+    
+  - id: INV-10
+    description: "No native select, only workflow.Selector"
+    formal: "∀ workflow w : ¬contains(w, 'select {') ∧ allows(w, 'workflow.Selector')"
+    category: determinism
+    
+  # Activity Constraints
+  - id: INV-11
+    description: "Activities return (result, error) tuple"
+    formal: "∀ activity a : return_type(a) = (T, error)"
+    category: activity
+    
+  - id: INV-12
+    description: "Activity names are PascalCase"
+    formal: "∀ activity a : matches(name(a), '^[A-Z][a-zA-Z0-9]*$')"
+    category: activity
+    
+  - id: INV-13
+    description: "First parameter is context.Context when present"
+    formal: "∀ activity a : params(a)[0] = context.Context ∨ |params(a)| = 0"
+    category: activity
+    
+  - id: INV-14
+    description: "All parameters are serializable"
+    formal: "∀ param p ∈ activity : serializable(type(p))"
+    category: activity
+    
+  # Timeout Policies
+  - id: INV-15
+    description: "Human tasks have infinite timeout"
+    formal: "∀ task t : is_human(t) → timeout(t) = ∞"
+    category: timeout
+    
+  - id: INV-16
+    description: "Non-human workflows timeout ≤ 15 minutes"
+    formal: "∀ workflow w : ¬is_human(w) → timeout(w) ≤ 900s"
+    category: timeout
+    
+  # Retry Policies
+  - id: INV-17
+    description: "Minimum retry count ≥ 3"
+    formal: "∀ retryable_error e : retry_count(e) ≥ 3"
+    category: retry
+    
+  - id: INV-18
+    description: "Permission errors are non-retryable"
+    formal: "∀ error e : type(e) ∈ {PERMISSION, SYNTAX, MISSING_DEPS, TYPE_MISMATCH, INVALID_CONFIG} → ¬retryable(e)"
+    category: retry
+
+verification:
+  static_analysis:
+    - AST parsing for determinism patterns
+    - Type checking for activity signatures
+    - Configuration validation for timeouts/retries
+    
+  runtime_checks:
+    - Timeout enforcement via context cancellation
+    - Cache hit/miss tracking
+    - Error categorization and retry logic
+    
+  property_tests:
+    - Determinism violation detection
+    - Fast-fail behavior verification
+    - Cache invalidation on source change

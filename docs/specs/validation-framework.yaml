@@ -1,0 +1,352 @@
+# Interface Specification for Temporal Validation Framework
+# Node: validation-framework
+# Implementation: 1754471482-temporal-workflow-implementation
+
+openapi: 3.0.3
+info:
+  title: Temporal Workflow Validation Framework API
+  description: |
+    Comprehensive validation framework for Temporal workflows that performs 
+    static analysis, determinism checks, and pre-deployment validation.
+  version: 1.0.0
+  contact:
+    name: Temporal Validation Team
+    
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local validation service
+    
+paths:
+  /validate:
+    post:
+      summary: Validate Temporal Workflows
+      description: |
+        Performs comprehensive validation of Temporal workflows including
+        determinism checks, activity signature validation, and policy validation.
+      operationId: validateWorkflows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationRequest'
+      responses:
+        '200':
+          description: Validation completed (may contain errors)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '408':
+          description: Request timeout (exceeded 5 minutes)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+                
+  /validate/cache:
+    get:
+      summary: Get Cached Validation Result
+      description: Retrieve a cached validation result by workflow ID
+      operationId: getCachedValidation
+      parameters:
+        - name: workflow_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: source_hash
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cached result found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheEntry'
+        '404':
+          description: No cached result found
+          
+    delete:
+      summary: Invalidate Cache
+      description: Invalidate cached validation results
+      operationId: invalidateCache
+      parameters:
+        - name: workflow_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Cache invalidated successfully
+        '404':
+          description: No cache entries found
+
+components:
+  schemas:
+    ValidationRequest:
+      type: object
+      required:
+        - workflow_path
+        - workflow_id
+      properties:
+        workflow_path:
+          type: string
+          description: Absolute path to workflow file or directory
+          pattern: '^/'
+        workflow_id:
+          type: string
+          description: Unique identifier for the workflow
+          minLength: 1
+          maxLength: 255
+        options:
+          $ref: '#/components/schemas/ValidationOptions'
+          
+    ValidationOptions:
+      type: object
+      properties:
+        skip_cache:
+          type: boolean
+          default: false
+          description: Bypass cache lookup
+        max_info_messages:
+          type: integer
+          default: 100
+          minimum: 0
+          maximum: 1000
+          description: Maximum number of info messages to return
+        timeout:
+          type: string
+          format: duration
+          default: "5m"
+          description: Validation timeout (max 5 minutes)
+        parallel_checks:
+          type: boolean
+          default: true
+          description: Enable concurrent validation checks
+          
+    ValidationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether all validations passed
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+        info_messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/InfoMessage'
+        check_status:
+          $ref: '#/components/schemas/CheckStatusMap'
+        duration:
+          type: string
+          format: duration
+          description: Total validation time
+        cache_hit:
+          type: boolean
+          description: Whether result was from cache
+        timestamp:
+          type: string
+          format: date-time
+        source_hash:
+          type: string
+          description: SHA256 hash of validated source
+          
+    CheckStatusMap:
+      type: object
+      properties:
+        determinism_check:
+          $ref: '#/components/schemas/CheckStatus'
+        signature_check:
+          $ref: '#/components/schemas/CheckStatus'
+        policy_check:
+          $ref: '#/components/schemas/CheckStatus'
+          
+    CheckStatus:
+      type: string
+      enum:
+        - PENDING
+        - RUNNING
+        - COMPLETED
+        - CANCELLED
+        - SKIPPED
+        - FAILED
+        
+    ValidationError:
+      type: object
+      required:
+        - severity
+        - category
+        - code
+        - message
+      properties:
+        severity:
+          $ref: '#/components/schemas/ErrorSeverity'
+        category:
+          $ref: '#/components/schemas/ErrorCategory'
+        code:
+          type: string
+          description: Unique error identifier
+        message:
+          type: string
+          description: Error description
+        location:
+          $ref: '#/components/schemas/CodeLocation'
+        fix_instructions:
+          type: string
+          description: Guidance to resolve the error
+        context:
+          type: object
+          additionalProperties: true
+          
+    ErrorSeverity:
+      type: string
+      enum:
+        - ERROR
+        - INFO
+        
+    ErrorCategory:
+      type: string
+      enum:
+        - PERMISSION
+        - SYNTAX
+        - MISSING_DEPS
+        - TYPE_MISMATCH
+        - INVALID_CONFIG
+        - DETERMINISM
+        - NAMING
+        - TIMEOUT
+        - RETRY
+        
+    CodeLocation:
+      type: object
+      properties:
+        file:
+          type: string
+          description: File path relative to workflow root
+        line:
+          type: integer
+          minimum: 1
+          description: Line number (1-indexed)
+        column:
+          type: integer
+          minimum: 0
+          description: Column number (1-indexed)
+        snippet:
+          type: string
+          description: Code snippet around the error
+          
+    InfoMessage:
+      type: object
+      required:
+        - category
+        - message
+      properties:
+        category:
+          $ref: '#/components/schemas/InfoCategory'
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          additionalProperties: true
+          
+    InfoCategory:
+      type: string
+      enum:
+        - METRICS
+        - PROGRESS
+        - CACHE
+        - PERFORMANCE
+        - CONFIG
+        
+    CacheEntry:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Composite cache key
+        workflow_id:
+          type: string
+        source_hash:
+          type: string
+        result:
+          $ref: '#/components/schemas/ValidationResult'
+        created_at:
+          type: string
+          format: date-time
+        accessed_at:
+          type: string
+          format: date-time
+        access_count:
+          type: integer
+          
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+# CLI Interface Specification
+x-cli-interface:
+  command: workflows validate
+  description: Validate Temporal workflows
+  usage: workflows validate [workflow-path] [options]
+  options:
+    - name: --workflow-id
+      type: string
+      required: true
+      description: Unique workflow identifier
+    - name: --skip-cache
+      type: boolean
+      default: false
+      description: Skip cache lookup
+    - name: --max-info
+      type: integer
+      default: 100
+      description: Maximum info messages
+    - name: --timeout
+      type: duration
+      default: 5m
+      description: Validation timeout
+    - name: --no-parallel
+      type: boolean
+      default: false
+      description: Disable parallel checks
+  examples:
+    - description: Validate a single workflow file
+      command: workflows validate /path/to/workflow.go --workflow-id order-processing
+    - description: Validate directory with cache skip
+      command: workflows validate /path/to/workflows/ --workflow-id payment --skip-cache
+  exit_codes:
+    0: Validation successful
+    1: Validation errors found
+    2: Invalid arguments
+    3: Timeout exceeded
+    4: Internal error

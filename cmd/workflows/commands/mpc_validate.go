@@ -69,9 +69,8 @@ func (c *MPCValidateCommand) Execute(args []string) error {
 	// Print results
 	fmt.Println(result.String())
 	
-	if c.verbose || !result.Valid || len(result.Warnings) > 0 {
-		result.PrintDetails()
-	}
+	// Always show details to display global BPMN status
+	result.PrintDetails()
 
 	if !result.Valid {
 		return errors.NewValidationError("MPC workflow validation failed", nil)

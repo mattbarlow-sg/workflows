@@ -14,6 +14,11 @@
     "nodes"
   ],
   "properties": {
+    "global_bpmn": {
+      "type": "string",
+      "description": "Path to global BPMN process diagram for the entire plan (optional)",
+      "pattern": "\\.(json|bpmn)$"
+    },
     "version": {
       "type": "string",
       "description": "Version of the MPC workflow schema",
@@ -32,7 +37,10 @@
     },
     "context": {
       "type": "object",
-      "required": ["business_goal", "non_functional_requirements"],
+      "required": [
+        "business_goal",
+        "non_functional_requirements"
+      ],
       "properties": {
         "business_goal": {
           "type": "string",
@@ -52,7 +60,11 @@
     },
     "architecture": {
       "type": "object",
-      "required": ["overview", "adrs", "constraints"],
+      "required": [
+        "overview",
+        "adrs",
+        "constraints"
+      ],
       "properties": {
         "overview": {
           "type": "string",
@@ -79,7 +91,12 @@
     },
     "tooling": {
       "type": "object",
-      "required": ["primary_language", "secondary_languages", "frameworks", "coding_standards"],
+      "required": [
+        "primary_language",
+        "secondary_languages",
+        "frameworks",
+        "coding_standards"
+      ],
       "properties": {
         "primary_language": {
           "type": "string",
@@ -104,7 +121,11 @@
         },
         "coding_standards": {
           "type": "object",
-          "required": ["lint", "formatting", "testing"],
+          "required": [
+            "lint",
+            "formatting",
+            "testing"
+          ],
           "properties": {
             "lint": {
               "type": "string",
@@ -160,7 +181,13 @@
         "status": {
           "type": "string",
           "description": "Current status of the node",
-          "enum": ["Ready", "In Progress", "Blocked", "Completed", "Specified"]
+          "enum": [
+            "Ready",
+            "In Progress",
+            "Blocked",
+            "Completed",
+            "Specified"
+          ]
         },
         "materialization": {
           "type": "number",
@@ -217,26 +244,29 @@
         },
         "artifacts": {
           "type": "object",
-          "description": "Associated artifacts",
+          "description": "Associated artifacts (null indicates reviewed but not required)",
           "properties": {
             "bpmn": {
-              "type": "string",
-              "description": "Path to BPMN diagram"
+              "type": ["string", "null"],
+              "description": "Path to BPMN process diagram (null if reviewed but not required)"
             },
-            "spec": {
-              "type": "string",
-              "description": "Path to specification"
+            "formal_spec": {
+              "type": ["string", "null"],
+              "description": "Path to formal specification with invariants and properties (null if reviewed but not required)"
             },
-            "tests": {
-              "type": "string",
-              "description": "Path to tests"
+            "schemas": {
+              "type": ["string", "null"],
+              "description": "Path to data schemas and validation contracts (null if reviewed but not required)"
             },
-            "properties": {
-              "type": "string",
-              "description": "Path to properties file"
+            "model_checking": {
+              "type": ["string", "null"],
+              "description": "Path to TLA+/Alloy model checking specifications (null if reviewed but not required)"
+            },
+            "test_generators": {
+              "type": ["string", "null"],
+              "description": "Path to property-based test generators (null if reviewed but not required)"
             }
-          },
-          "minProperties": 1
+          }
         },
         "downstream": {
           "type": "array",
@@ -250,7 +280,10 @@
     },
     "subtask": {
       "type": "object",
-      "required": ["description", "completed"],
+      "required": [
+        "description",
+        "completed"
+      ],
       "properties": {
         "description": {
           "type": "string",

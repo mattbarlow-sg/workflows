@@ -1,0 +1,299 @@
+# Test Specifications for Temporal Validation Framework
+# Node: validation-framework
+# Implementation: 1754471482-temporal-workflow-implementation
+
+test_specifications:
+  # Property-Based Tests
+  property_tests:
+    - id: PT-1
+      name: "Timeout Enforcement"
+      property: "All validations complete within 5 minutes"
+      generators:
+        - "workflow files of varying sizes (1KB to 100MB)"
+        - "workflows with 0 to 1000 activities"
+        - "nested workflow depth 0 to 10"
+      invariants:
+        - "duration < 300s"
+        - "timeout error if exceeds limit"
+      test_cases:
+        - "empty workflow completes < 1s"
+        - "large workflow (1000 activities) completes < 300s"
+        - "timeout at exactly 300s triggers error"
+    
+    - id: PT-2
+      name: "Cache Invalidation"
+      property: "Cache invalidates on any source change"
+      generators:
+        - "random source modifications (whitespace, comments, code)"
+        - "file timestamp changes without content change"
+        - "multiple files in workflow"
+      invariants:
+        - "content change → cache miss"
+        - "no content change → cache hit"
+        - "timestamp change only → cache hit"
+      test_cases:
+        - "add single space invalidates cache"
+        - "change comment invalidates cache"
+        - "touch file without change uses cache"
+    
+    - id: PT-3
+      name: "Fast-Fail Behavior"
+      property: "First error cancels all parallel checks"
+      generators:
+        - "errors at different times (0ms, 100ms, 1000ms)"
+        - "multiple simultaneous errors"
+        - "errors in different checks"
+      invariants:
+        - "first error triggers cancellation"
+        - "cancelled checks marked CANCELLED"
+        - "completed checks marked COMPLETED"
+      test_cases:
+        - "immediate error cancels all"
+        - "delayed error cancels remaining"
+        - "all complete before error"
+    
+    - id: PT-4
+      name: "Determinism Pattern Detection"
+      property: "All non-deterministic patterns detected"
+      generators:
+        - "code with time.Now() in various contexts"
+        - "goroutines with different patterns"
+        - "map iterations sorted/unsorted"
+        - "random number generation"
+      invariants:
+        - "each pattern generates specific error"
+        - "line numbers accurate"
+        - "no false positives"
+      test_cases:
+        - "time.Now() in workflow detected"
+        - "workflow.Now() allowed"
+        - "go func() detected"
+        - "workflow.Go() allowed"
+
+  # Edge Case Tests
+  edge_cases:
+    - id: EC-1
+      name: "Empty Workflow"
+      description: "Validate empty workflow file"
+      setup:
+        - "create empty .go file"
+      expected:
+        - "validation passes"
+        - "INFO: No workflows found"
+        - "completes < 1s"
+    
+    - id: EC-2
+      name: "Massive Workflow"
+      description: "Workflow with 1000+ activities"
+      setup:
+        - "generate workflow with 1000 activities"
+        - "each activity has unique name"
+      expected:
+        - "all activities validated"
+        - "completes < 300s"
+        - "memory usage < 1GB"
+    
+    - id: EC-3
+      name: "Circular Dependencies"
+      description: "Workflows with circular references"
+      setup:
+        - "workflow A calls B, B calls A"
+        - "self-referential workflow"
+      expected:
+        - "circular dependency detected"
+        - "ERROR with cycle path"
+        - "suggests refactoring"
+    
+    - id: EC-4
+      name: "Exact Timeout"
+      description: "Validation at exactly 5 minutes"
+      setup:
+        - "inject delay to reach 299.9s"
+        - "start final check"
+      expected:
+        - "timeout at 300s"
+        - "partial results returned"
+        - "timeout error reported"
+    
+    - id: EC-5
+      name: "Concurrent Requests"
+      description: "Multiple validation requests simultaneously"
+      setup:
+        - "5 concurrent validation requests"
+        - "same workflow file"
+      expected:
+        - "each request isolated"
+        - "cache shared safely"
+        - "no race conditions"
+
+  # Integration Tests
+  integration_tests:
+    - id: IT-1
+      name: "CLI Integration"
+      description: "Validation via justfile command"
+      steps:
+        - "run: just validate-workflows"
+        - "capture stdout/stderr"
+        - "check exit code"
+      expected:
+        - "formatted output to stdout"
+        - "exit code 0 on success"
+        - "exit code 1 on validation error"
+    
+    - id: IT-2
+      name: "Cache Persistence"
+      description: "Cache survives process restart"
+      steps:
+        - "validate workflow (cache miss)"
+        - "restart validation service"
+        - "validate same workflow (cache hit)"
+      expected:
+        - "second validation uses cache"
+        - "INFO: Cache hit for workflow X"
+        - "same results returned"
+    
+    - id: IT-3
+      name: "Error Reporting Format"
+      description: "Error output formatting"
+      steps:
+        - "introduce multiple errors"
+        - "run validation"
+        - "parse error output"
+      expected:
+        - "errors sorted by severity"
+        - "file:line:column format"
+        - "actionable fix instructions"
+    
+    - id: IT-4
+      name: "Parallel Check Execution"
+      description: "Verify parallel execution"
+      steps:
+        - "add timing to each check"
+        - "run validation"
+        - "measure total time"
+      expected:
+        - "total time < sum of individual times"
+        - "all checks start simultaneously"
+        - "results aggregated correctly"
+
+  # Unit Tests
+  unit_tests:
+    - id: UT-1
+      name: "PascalCase Validation"
+      function: "validateActivityName"
+      test_cases:
+        - input: "ProcessOrder"
+          expected: "valid"
+        - input: "processOrder"
+          expected: "ERROR: must start with capital"
+        - input: "Process_Order"
+          expected: "ERROR: no underscores allowed"
+        - input: "ProcessOrder123"
+          expected: "valid"
+    
+    - id: UT-2
+      name: "Error Categorization"
+      function: "categorizeError"
+      test_cases:
+        - input: "permission denied"
+          expected: "PERMISSION"
+        - input: "syntax error"
+          expected: "SYNTAX"
+        - input: "package not found"
+          expected: "MISSING_DEPS"
+        - input: "type mismatch"
+          expected: "TYPE_MISMATCH"
+    
+    - id: UT-3
+      name: "Cache Key Generation"
+      function: "generateCacheKey"
+      test_cases:
+        - input: {workflow_id: "order", hash: "abc123"}
+          expected: "order:abc123"
+        - input: {workflow_id: "payment", hash: "def456"}
+          expected: "payment:def456"
+    
+    - id: UT-4
+      name: "Timeout Policy Validation"
+      function: "validateTimeout"
+      test_cases:
+        - input: {type: "HUMAN", timeout: 0}
+          expected: "valid"
+        - input: {type: "HUMAN", timeout: 3600}
+          expected: "ERROR: human tasks must have infinite timeout"
+        - input: {type: "SYSTEM", timeout: 900}
+          expected: "valid"
+        - input: {type: "SYSTEM", timeout: 901}
+          expected: "ERROR: exceeds 15 minute limit"
+
+  # Performance Tests
+  performance_tests:
+    - id: PERF-1
+      name: "Validation Throughput"
+      description: "Measure validation rate"
+      setup:
+        - "100 workflow files"
+        - "varying complexity"
+      metrics:
+        - "validations per second"
+        - "average validation time"
+        - "p50, p95, p99 latencies"
+      targets:
+        - "10 validations/second minimum"
+        - "p99 < 30 seconds"
+    
+    - id: PERF-2
+      name: "Memory Usage"
+      description: "Memory consumption during validation"
+      setup:
+        - "large workflow files"
+        - "concurrent validations"
+      metrics:
+        - "peak memory usage"
+        - "memory per validation"
+        - "garbage collection frequency"
+      targets:
+        - "< 100MB per validation"
+        - "< 1GB total for 10 concurrent"
+    
+    - id: PERF-3
+      name: "Cache Performance"
+      description: "Cache hit/miss performance"
+      setup:
+        - "1000 cached entries"
+        - "random access pattern"
+      metrics:
+        - "cache hit latency"
+        - "cache miss latency"
+        - "cache update time"
+      targets:
+        - "cache hit < 1ms"
+        - "cache miss < 100ms"
+
+  # Regression Tests
+  regression_tests:
+    - id: REG-1
+      name: "Known Determinism Violations"
+      description: "Test against known problematic patterns"
+      patterns:
+        - "time.Now() in workflow"
+        - "math/rand without seed"
+        - "reading from channels in select"
+        - "map iteration without sorting"
+        - "goroutines in workflow"
+      expected: "Each pattern detected and reported"
+    
+    - id: REG-2
+      name: "Previously Fixed Bugs"
+      description: "Ensure fixed bugs don't regress"
+      cases:
+        - "cache key collision (fixed in v1.2)"
+        - "timeout not enforced (fixed in v1.3)"
+        - "parallel cancellation race (fixed in v1.4)"
+      expected: "All previously fixed issues remain resolved"
+
+coverage_requirements:
+  minimum: 90%
+  critical_paths: 100%
+  error_handling: 95%
+  edge_cases: 85%

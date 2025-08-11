@@ -1,5 +1,5 @@
 package commands
-
+,
 import (
 	"flag"
 	"fmt"
@@ -67,6 +67,13 @@ func (c *MPCSummaryCommand) printSummary(m *mpc.MPC) {
 	fmt.Printf("Version: %s\n", m.Version)
 	fmt.Printf("Entry Node: %s\n", m.EntryNode)
 	fmt.Printf("Total Nodes: %d\n", len(m.Nodes))
+	
+	// Global BPMN Status
+	if m.GlobalBPMN != "" {
+		fmt.Printf("Global BPMN Configured: %s\n", m.GlobalBPMN)
+	} else {
+		fmt.Printf("Global BPMN Configured: skipped\n")
+	}
 	fmt.Println()
 	
 	// Context

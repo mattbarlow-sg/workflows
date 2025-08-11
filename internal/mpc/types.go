@@ -4,6 +4,7 @@ type MPC struct {
 	Version      string       `json:"version" yaml:"version"`
 	PlanID       string       `json:"plan_id" yaml:"plan_id"`
 	PlanName     string       `json:"plan_name" yaml:"plan_name"`
+	GlobalBPMN   string       `json:"global_bpmn,omitempty" yaml:"global_bpmn,omitempty"`
 	Context      Context      `json:"context" yaml:"context"`
 	Architecture Architecture `json:"architecture" yaml:"architecture"`
 	Tooling      Tooling      `json:"tooling" yaml:"tooling"`

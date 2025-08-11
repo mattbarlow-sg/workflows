@@ -1,0 +1,184 @@
+# State Machine Specification for Temporal Validation Framework
+# Node: validation-framework
+# Implementation: 1754471482-temporal-workflow-implementation
+
+state_machine:
+  name: ValidationStateMachine
+  initial_state: IDLE
+  
+  states:
+    - id: IDLE
+      description: "Waiting for validation request"
+      entry_actions: []
+      exit_actions: 
+        - "initialize_validation_context"
+      invariants:
+        - "no active validation"
+        - "cache available for lookup"
+    
+    - id: VALIDATING
+      description: "Executing parallel validation checks"
+      entry_actions:
+        - "spawn_determinism_check"
+        - "spawn_signature_check"
+        - "spawn_policy_check"
+      exit_actions:
+        - "collect_check_results"
+      invariants:
+        - "all three checks running or completed"
+        - "timeout_timer < 300s"
+        - "cancellation_context active"
+    
+    - id: COLLECTING_ERRORS
+      description: "Gathering error details from failed checks"
+      entry_actions:
+        - "cancel_pending_checks"
+        - "aggregate_errors"
+      exit_actions:
+        - "format_error_report"
+      invariants:
+        - "at least one ERROR severity issue"
+        - "cancelled checks marked as CANCELLED"
+        - "completed checks marked as COMPLETED"
+    
+    - id: REPORTING
+      description: "Generating success report"
+      entry_actions:
+        - "format_success_message"
+        - "collect_info_messages"
+      exit_actions:
+        - "update_cache"
+      invariants:
+        - "all checks passed"
+        - "info_message_count ≤ 100"
+    
+    - id: COMPLETED
+      description: "Validation finished"
+      entry_actions:
+        - "emit_result"
+        - "cleanup_resources"
+      exit_actions: []
+      invariants:
+        - "result available"
+        - "all resources released"
+    
+    - id: CACHED
+      description: "Returning cached validation result"
+      entry_actions:
+        - "verify_cache_validity"
+        - "load_cached_result"
+      exit_actions: []
+      invariants:
+        - "source_hash matches cache_key"
+        - "workflow_id matches request"
+
+  transitions:
+    - id: start_validation
+      from: IDLE
+      to: VALIDATING
+      trigger: validation_request
+      conditions:
+        - "workflow_path exists"
+        - "workflow_path is readable"
+      actions:
+        - "compute_source_hash"
+        - "check_cache"
+    
+    - id: use_cache
+      from: IDLE
+      to: CACHED
+      trigger: cache_hit
+      conditions:
+        - "cache_entry exists"
+        - "source_hash unchanged"
+      actions:
+        - "load_cached_result"
+    
+    - id: handle_error
+      from: VALIDATING
+      to: COLLECTING_ERRORS
+      trigger: error_detected
+      conditions:
+        - "severity(error) = ERROR"
+      actions:
+        - "trigger_fast_fail"
+        - "cancel_parallel_checks"
+    
+    - id: all_passed
+      from: VALIDATING
+      to: REPORTING
+      trigger: all_checks_complete
+      conditions:
+        - "determinism_check.passed"
+        - "signature_check.passed"
+        - "policy_check.passed"
+      actions:
+        - "aggregate_info_messages"
+    
+    - id: report_errors
+      from: COLLECTING_ERRORS
+      to: COMPLETED
+      trigger: errors_collected
+      conditions: []
+      actions:
+        - "output_error_report"
+        - "set_exit_code(1)"
+    
+    - id: report_success
+      from: REPORTING
+      to: COMPLETED
+      trigger: report_generated
+      conditions: []
+      actions:
+        - "output_success_message"
+        - "cache_result"
+        - "set_exit_code(0)"
+    
+    - id: return_cached
+      from: CACHED
+      to: COMPLETED
+      trigger: cache_validated
+      conditions: []
+      actions:
+        - "output_cached_result"
+        - "set_exit_code_from_cache"
+    
+    - id: reset
+      from: COMPLETED
+      to: IDLE
+      trigger: automatic
+      conditions: []
+      actions:
+        - "clear_validation_context"
+
+  error_handling:
+    - state: VALIDATING
+      error_type: timeout
+      action: "transition to COLLECTING_ERRORS with timeout error"
+    
+    - state: VALIDATING
+      error_type: panic
+      action: "transition to COLLECTING_ERRORS with panic details"
+    
+    - state: CACHED
+      error_type: cache_corruption
+      action: "invalidate cache, transition to VALIDATING"
+
+  concurrency:
+    parallel_regions:
+      - id: validation_checks
+        state: VALIDATING
+        activities:
+          - determinism_check
+          - signature_check
+          - policy_check
+        synchronization: "barrier with fast-fail"
+        cancellation: "broadcast on first error"
+
+  timing:
+    global_timeout: 300s
+    state_timeouts:
+      VALIDATING: 280s
+      COLLECTING_ERRORS: 10s
+      REPORTING: 5s
+      CACHED: 1s
