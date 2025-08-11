@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 // Renderer renders ADR data
@@ -22,7 +22,7 @@ func (r *Renderer) Render(adr *ADR) (string, error) {
 
 // RenderFile reads an ADR file and renders it to markdown
 func (r *Renderer) RenderFile(filePath string) (string, error) {
-	data, err := ioutil.ReadFile(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return "", fmt.Errorf("reading file: %w", err)
 	}

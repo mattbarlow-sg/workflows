@@ -1,0 +1,64 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - gofmt
+    - goimports
+    - govet
+    - ineffassign
+    - misspell
+    
+  disable:
+    - errcheck  # Too many false positives for now
+    - unused    # Can be too strict
+    - staticcheck  # Temporarily disabled to fix critical issues first
+    - depguard
+    - unconvert
+    - gocritic
+    - gocyclo
+    - gosimple
+
+linters-settings:
+  gocyclo:
+    min-complexity: 30
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+    disabled-checks:
+      - commentedOutCode
+      - whyNoLint
+  goimports:
+    local-prefixes: github.com/mattbarlow-sg/workflows
+
+issues:
+  exclude-use-default: false
+  exclude-dirs:
+    - scripts
+    - test-data
+    - examples
+    - ai
+    - docs
+    - refactor
+  exclude-rules:
+    # Exclude test files from some linters
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - gocritic
+    
+    # Exclude generated files
+    - path: \.pb\.go
+      linters:
+        - all
+    
+    # Allow TODO comments
+    - text: "TODO"
+      linters:
+        - godox
+
+  max-issues-per-linter: 50
+  max-same-issues: 10

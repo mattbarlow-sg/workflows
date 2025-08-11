@@ -3,7 +3,7 @@ package bpmn
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 // buildFlowConnections populates incoming/outgoing arrays from sequence flows
@@ -99,7 +99,7 @@ type FileValidator struct{}
 // ValidateFile validates a BPMN file
 func (v *FileValidator) ValidateFile(filePath string) (*ValidationResult, error) {
 	// Read the file
-	data, err := ioutil.ReadFile(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("reading file: %w", err)
 	}
@@ -129,7 +129,7 @@ type FileAnalyzer struct{}
 // AnalyzeFile analyzes a BPMN file
 func (a *FileAnalyzer) AnalyzeFile(filePath string) (*AnalysisResult, error) {
 	// Read the file
-	data, err := ioutil.ReadFile(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("reading file: %w", err)
 	}
@@ -200,7 +200,7 @@ func (r *FileRenderer) RenderMarkdownFile(filePath string) (string, error) {
 
 // loadProcess loads a process from a file
 func (r *FileRenderer) loadProcess(filePath string) (*Process, error) {
-	data, err := ioutil.ReadFile(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("reading file: %w", err)
 	}

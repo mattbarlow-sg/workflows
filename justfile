@@ -45,7 +45,7 @@ format-check:
     fi
     @echo "All files are properly formatted!"
 
-# Run linter
+# Run linter (basic checks)
 lint:
     @if command -v golangci-lint >/dev/null 2>&1; then \
         golangci-lint run ./...; \
@@ -63,6 +63,15 @@ lint-quick:
         echo "golangci-lint not installed. Run 'just install-tools' to install it."; \
         echo "Falling back to 'go vet'..."; \
         go vet ./...; \
+    fi
+
+# Strict lint (all checks enabled, for CI)
+lint-strict:
+    @if command -v golangci-lint >/dev/null 2>&1; then \
+        golangci-lint run --enable-all --disable=exhaustruct,wrapcheck,nlreturn,gochecknoglobals,varnamelen,wsl,lll,paralleltest,testpackage,gomnd,funlen ./...; \
+    else \
+        echo "golangci-lint not installed. Run 'just install-tools' to install it."; \
+        exit 1; \
     fi
 
 # Run tests
