@@ -36,5 +36,3 @@ model: opus
 
 # Tools
 - ast-grep
-- madge (for typescript projects)
-- pycallgraph (for python projects)

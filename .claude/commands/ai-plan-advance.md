@@ -23,6 +23,14 @@ allowed-tools: Bash(echo:*),Bash(ls:*),Bash(./workflows:*)
   - Interface definitions
 
 ## Instructions
+### Decide Next Step
 - Run discovery on the plan: !`./workflows mpc discover --next-only ai/${CURRENT_IMPLEMENTATION_ID}/plan.yaml` `./workflows mpc discover --next-only ai/${CURRENT_IMPLEMENTATION_ID}/plan.yaml`
-- If the next step is BPMN generation, stop and inform the user to run the /ai-bpmn-create command with the node contents.
-- If the next step is Spec generation, stop and inform the user to run the /ai-spec-create command with the node contents.
+- The command will tell you the next required step and artifacts, and you must make a judgement call on required artifacts:
+
+## Choose Path
+- If you judge that BPMN is not required for this node type, create a bpmn artifact with a null value.
+- If you judge that BPMN is required, read the instructions in @.claude/commands/ai-bpmn-create.md and walk the user through the workshop.
+- If you judge that Formal Spec is not required for this node type, create a formal_spec artifact with a null value.
+- If you judge that Formal Spec is required, STOP and inform the user to run @.claude/commands/ai-spec-create.md.
+- If you judge that Schemas are not required for this node type, create a schemas artifact with a null value.
+- If you judge that Schemas are required, STOP and inform the user to run @.claude/commands/ai-spec-create.md.
