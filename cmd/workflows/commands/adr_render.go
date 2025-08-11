@@ -23,10 +23,10 @@ func NewADRRenderCommand() *ADRRenderCommand {
 			"Convert ADR JSON to Markdown",
 		),
 	}
-	
+
 	// Define flags
 	cmd.FlagSet().StringVar(&cmd.output, "output", "", "Output file path (optional)")
-	
+
 	return cmd
 }
 
@@ -36,15 +36,15 @@ func (c *ADRRenderCommand) Execute(args []string) error {
 	if err := c.ParseFlags(args); err != nil {
 		return errors.NewUsageError(fmt.Sprintf("invalid arguments: %v", err))
 	}
-	
+
 	// Check required arguments
 	if c.NArg() < 1 {
 		c.Usage()
 		return errors.NewUsageError("render command requires input file path")
 	}
-	
+
 	inputPath := c.Arg(0)
-	
+
 	// Validate inputs
 	if err := cli.NewValidationChain().
 		ValidateFilePath(inputPath, "input file path").
@@ -52,7 +52,7 @@ func (c *ADRRenderCommand) Execute(args []string) error {
 		Error(); err != nil {
 		return err
 	}
-	
+
 	// If output is specified, validate it
 	if c.output != "" {
 		if err := cli.NewValidationChain().
@@ -61,7 +61,7 @@ func (c *ADRRenderCommand) Execute(args []string) error {
 			return err
 		}
 	}
-	
+
 	// Render the ADR
 	renderer := adr.NewRenderer()
 	markdown, err := renderer.RenderFile(inputPath)
@@ -75,7 +75,7 @@ func (c *ADRRenderCommand) Execute(args []string) error {
 		}
 		return errors.NewIOError("rendering ADR", err)
 	}
-	
+
 	// Output the result
 	if c.output == "" {
 		fmt.Print(markdown)
@@ -85,7 +85,7 @@ func (c *ADRRenderCommand) Execute(args []string) error {
 		}
 		fmt.Printf("✓ ADR rendered to %s\n", c.output)
 	}
-	
+
 	return nil
 }
 

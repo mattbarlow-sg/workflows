@@ -95,7 +95,7 @@ func (v *Validator) ValidateFile(filePath string) (*ValidationResult, error) {
 	semanticErrors, semanticWarnings := v.validateSemantics(&mpc)
 	result.Errors = append(result.Errors, semanticErrors...)
 	result.Warnings = append(result.Warnings, semanticWarnings...)
-	
+
 	if len(semanticErrors) > 0 {
 		result.Valid = false
 	}
@@ -110,7 +110,7 @@ func (v *Validator) validateSchema(jsonData []byte) (*gojsonschema.Result, error
 func (v *Validator) validateSchemaWithPath(jsonData []byte, schemaPath string) (*gojsonschema.Result, error) {
 	schemaLoader := gojsonschema.NewReferenceLoader("file://" + schemaPath)
 	documentLoader := gojsonschema.NewBytesLoader(jsonData)
-	
+
 	return gojsonschema.Validate(schemaLoader, documentLoader)
 }
 
@@ -177,7 +177,7 @@ func (v *Validator) validateSemantics(mpc *MPC) ([]ValidationError, []Validation
 
 	// Track upstream dependencies for each node
 	upstreamDeps := make(map[string][]string)
-	
+
 	// Validate each node
 	for i, node := range mpc.Nodes {
 		nodePath := fmt.Sprintf("nodes[%d]", i)
@@ -231,14 +231,14 @@ func (v *Validator) validateSemantics(mpc *MPC) ([]ValidationError, []Validation
 		// Validate subtask completion consistency with status
 		completedCount := node.GetCompletedSubtaskCount()
 		totalSubtasks := len(node.Subtasks)
-		
+
 		if node.Status == StatusCompleted && completedCount < totalSubtasks {
 			warnings = append(warnings, ValidationWarning{
 				Path:    fmt.Sprintf("%s.status", nodePath),
 				Message: fmt.Sprintf("node marked as 'Completed' but only %d/%d subtasks are completed", completedCount, totalSubtasks),
 			})
 		}
-		
+
 		if node.Status == StatusReady && completedCount > 0 {
 			warnings = append(warnings, ValidationWarning{
 				Path:    fmt.Sprintf("%s.status", nodePath),
@@ -276,7 +276,7 @@ func (v *Validator) validateSemantics(mpc *MPC) ([]ValidationError, []Validation
 func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) error {
 	// Check if at least one artifact is specified
 	hasArtifact := false
-	
+
 	// BPMN
 	if artifacts.BPMN != "" {
 		hasArtifact = true
@@ -284,7 +284,7 @@ func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) err
 			return fmt.Errorf("BPMN file should have .json or .bpmn extension")
 		}
 	}
-	
+
 	// Old format validation
 	if artifacts.Spec != "" {
 		hasArtifact = true
@@ -301,7 +301,7 @@ func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) err
 			return fmt.Errorf("properties file should have .json extension")
 		}
 	}
-	
+
 	// New format validation
 	if artifacts.PropertiesStruct != nil {
 		hasArtifact = true
@@ -315,7 +315,7 @@ func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) err
 			return fmt.Errorf("generators file should have .json or .ts extension")
 		}
 	}
-	
+
 	if artifacts.SpecsStruct != nil {
 		hasArtifact = true
 		if artifacts.SpecsStruct.API != "" && !strings.HasSuffix(artifacts.SpecsStruct.API, ".yaml") && !strings.HasSuffix(artifacts.SpecsStruct.API, ".yml") {
@@ -328,7 +328,7 @@ func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) err
 			return fmt.Errorf("schemas file should have .json extension")
 		}
 	}
-	
+
 	if artifacts.TestsStruct != nil {
 		hasArtifact = true
 		// Test paths can have wildcards, so we don't validate extensions
@@ -351,12 +351,11 @@ func isValidStatus(status string) bool {
 	return false
 }
 
-
 func hasCircularDependency(nodeID string, nodeMap map[string]*Node, visited map[string]bool) bool {
 	if visited[nodeID] {
 		return true
 	}
-	
+
 	visited[nodeID] = true
 	defer delete(visited, nodeID)
 
@@ -387,7 +386,7 @@ func findReachableNodes(startNode string, nodeMap map[string]*Node) map[string]b
 		}
 
 		reachable[current] = true
-		
+
 		if node := nodeMap[current]; node != nil {
 			queue = append(queue, node.Downstream...)
 		}

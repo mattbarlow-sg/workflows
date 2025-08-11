@@ -90,14 +90,14 @@ func (r *Renderer) renderText() (string, error) {
 	sb.WriteString("\n\nARCHITECTURE\n")
 	sb.WriteString(strings.Repeat("-", 40) + "\n")
 	sb.WriteString(fmt.Sprintf("Overview: %s\n", r.mpc.Architecture.Overview))
-	
+
 	if len(r.mpc.Architecture.ADRs) > 0 {
 		sb.WriteString("\nADRs:\n")
 		for _, adr := range r.mpc.Architecture.ADRs {
 			sb.WriteString(fmt.Sprintf("  • %s\n", adr))
 		}
 	}
-	
+
 	if len(r.mpc.Architecture.Constraints) > 0 {
 		sb.WriteString("\nConstraints:\n")
 		for _, constraint := range r.mpc.Architecture.Constraints {
@@ -109,15 +109,15 @@ func (r *Renderer) renderText() (string, error) {
 	sb.WriteString("\n\nTOOLING\n")
 	sb.WriteString(strings.Repeat("-", 40) + "\n")
 	sb.WriteString(fmt.Sprintf("Primary Language: %s\n", r.mpc.Tooling.PrimaryLanguage))
-	
+
 	if len(r.mpc.Tooling.SecondaryLanguages) > 0 {
 		sb.WriteString(fmt.Sprintf("Secondary Languages: %s\n", strings.Join(r.mpc.Tooling.SecondaryLanguages, ", ")))
 	}
-	
+
 	if len(r.mpc.Tooling.Frameworks) > 0 {
 		sb.WriteString(fmt.Sprintf("Frameworks: %s\n", strings.Join(r.mpc.Tooling.Frameworks, ", ")))
 	}
-	
+
 	sb.WriteString("\nCoding Standards:\n")
 	sb.WriteString(fmt.Sprintf("  • Lint: %s\n", r.mpc.Tooling.CodingStandards.Lint))
 	sb.WriteString(fmt.Sprintf("  • Formatting: %s\n", r.mpc.Tooling.CodingStandards.Formatting))
@@ -136,12 +136,12 @@ func (r *Renderer) renderText() (string, error) {
 		if i > 0 {
 			sb.WriteString("\n" + strings.Repeat("-", 80) + "\n")
 		}
-		
+
 		// Node header
 		sb.WriteString(fmt.Sprintf("\nNode: %s\n", node.ID))
 		sb.WriteString(fmt.Sprintf("Status: %s | Materialization: %.1f\n", node.Status, node.Materialization))
 		sb.WriteString(fmt.Sprintf("Description: %s\n", node.Description))
-		
+
 		// Detailed description
 		if node.DetailedDescription != "" {
 			sb.WriteString("\nDetailed Description:\n")
@@ -192,7 +192,7 @@ func (r *Renderer) renderText() (string, error) {
 			if node.Artifacts.BPMN != "" {
 				sb.WriteString(fmt.Sprintf("  • BPMN: %s\n", node.Artifacts.BPMN))
 			}
-			
+
 			// Handle old format
 			if node.Artifacts.Spec != "" {
 				sb.WriteString(fmt.Sprintf("  • Spec: %s\n", node.Artifacts.Spec))
@@ -203,7 +203,7 @@ func (r *Renderer) renderText() (string, error) {
 			if node.Artifacts.Properties != "" {
 				sb.WriteString(fmt.Sprintf("  • Properties: %s\n", node.Artifacts.Properties))
 			}
-			
+
 			// Handle new format
 			if node.Artifacts.PropertiesStruct != nil {
 				sb.WriteString("  • Properties:\n")
@@ -217,7 +217,7 @@ func (r *Renderer) renderText() (string, error) {
 					sb.WriteString(fmt.Sprintf("    - Generators: %s\n", node.Artifacts.PropertiesStruct.Generators))
 				}
 			}
-			
+
 			if node.Artifacts.SpecsStruct != nil {
 				sb.WriteString("  • Specs:\n")
 				if node.Artifacts.SpecsStruct.API != "" {
@@ -230,7 +230,7 @@ func (r *Renderer) renderText() (string, error) {
 					sb.WriteString(fmt.Sprintf("    - Schemas: %s\n", node.Artifacts.SpecsStruct.Schemas))
 				}
 			}
-			
+
 			if node.Artifacts.TestsStruct != nil {
 				sb.WriteString("  • Tests:\n")
 				if node.Artifacts.TestsStruct.Property != "" {
@@ -269,23 +269,23 @@ func (r *Renderer) renderText() (string, error) {
 	sb.WriteString("\n\n" + strings.Repeat("=", 80) + "\n")
 	sb.WriteString("SUMMARY\n")
 	sb.WriteString(strings.Repeat("-", 40) + "\n")
-	
+
 	// Count nodes by status
 	statusCounts := make(map[string]int)
 	totalSubtasks := 0
 	completedSubtasks := 0
-	
+
 	for _, node := range r.mpc.Nodes {
 		statusCounts[node.Status]++
 		totalSubtasks += len(node.Subtasks)
 		completedSubtasks += node.GetCompletedSubtaskCount()
 	}
-	
+
 	sb.WriteString(fmt.Sprintf("Total Nodes: %d\n", len(r.mpc.Nodes)))
 	for status, count := range statusCounts {
 		sb.WriteString(fmt.Sprintf("  • %s: %d\n", status, count))
 	}
-	
+
 	sb.WriteString(fmt.Sprintf("\nTotal Subtasks: %d\n", totalSubtasks))
 	sb.WriteString(fmt.Sprintf("Completed Subtasks: %d\n", completedSubtasks))
 	if totalSubtasks > 0 {

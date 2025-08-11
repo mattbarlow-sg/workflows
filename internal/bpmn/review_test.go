@@ -26,7 +26,7 @@ func TestReviewPatterns(t *testing.T) {
 				"ai_to_human", "human_to_ai", "collaborative",
 				"peer_review", "hierarchical", "custom",
 			}
-			
+
 			found := false
 			for _, vp := range validPatterns {
 				if vp == tt.pattern {
@@ -34,7 +34,7 @@ func TestReviewPatterns(t *testing.T) {
 					break
 				}
 			}
-			
+
 			if found != tt.valid {
 				t.Errorf("Pattern %s validation = %v, want %v", tt.pattern, found, tt.valid)
 			}
@@ -99,7 +99,7 @@ func TestReviewCriteria(t *testing.T) {
 
 func TestReviewTypes(t *testing.T) {
 	validTypes := []string{"approval", "validation", "quality-check"}
-	
+
 	for _, reviewType := range validTypes {
 		review := &ReviewConfig{
 			Required: true,
@@ -109,7 +109,7 @@ func TestReviewTypes(t *testing.T) {
 				ID:   "reviewer",
 			},
 		}
-		
+
 		if review.Type != reviewType {
 			t.Errorf("Review type = %s, want %s", review.Type, reviewType)
 		}

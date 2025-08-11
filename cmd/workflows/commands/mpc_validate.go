@@ -19,10 +19,10 @@ func NewMPCValidateCommand() *MPCValidateCommand {
 	cmd := &MPCValidateCommand{
 		BaseCommand: cli.NewBaseCommand("validate", "Validate an MPC workflow file"),
 	}
-	
+
 	// Define flags
 	cmd.FlagSet().BoolVar(&cmd.verbose, "verbose", false, "Show detailed validation information")
-	
+
 	return cmd
 }
 
@@ -36,15 +36,15 @@ func (c *MPCValidateCommand) Execute(args []string) error {
 		}
 		return errors.NewUsageError(fmt.Sprintf("invalid arguments: %v", err))
 	}
-	
+
 	// Check required arguments
 	if c.NArg() < 1 {
 		c.Usage()
 		return errors.NewUsageError("validate command requires file path")
 	}
-	
+
 	inputFile := c.Arg(0)
-	
+
 	// Validate inputs
 	if err := cli.NewValidationChain().
 		ValidateFilePath(inputFile, "file path").
@@ -52,7 +52,7 @@ func (c *MPCValidateCommand) Execute(args []string) error {
 		Error(); err != nil {
 		return err
 	}
-	
+
 	// Get schema path
 	cfg := config.New()
 	schemaPath := cfg.GetSchemaPath("mpc")
@@ -68,7 +68,7 @@ func (c *MPCValidateCommand) Execute(args []string) error {
 
 	// Print results
 	fmt.Println(result.String())
-	
+
 	// Always show details to display global BPMN status
 	result.PrintDetails()
 

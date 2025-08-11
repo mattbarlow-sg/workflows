@@ -30,15 +30,15 @@ func (c *ADRValidateCommand) Execute(args []string) error {
 	if err := c.ParseFlags(args); err != nil {
 		return errors.NewUsageError(fmt.Sprintf("invalid arguments: %v", err))
 	}
-	
+
 	// Check required arguments
 	if c.NArg() < 1 {
 		c.Usage()
 		return errors.NewUsageError("validate command requires file path")
 	}
-	
+
 	filePath := c.Arg(0)
-	
+
 	// Validate inputs
 	if err := cli.NewValidationChain().
 		ValidateFilePath(filePath, "file path").
@@ -46,23 +46,23 @@ func (c *ADRValidateCommand) Execute(args []string) error {
 		Error(); err != nil {
 		return err
 	}
-	
+
 	// Get schema path
 	cfg := config.New()
 	schemaPath := cfg.GetSchemaPath("adr")
-	
+
 	// Validate the file
 	result, err := schema.ValidateFile(schemaPath, filePath)
 	if err != nil {
 		return errors.NewIOError("validating file", err)
 	}
-	
+
 	// Report results
 	if result.Valid {
 		fmt.Printf("✓ ADR file '%s' is valid\n", filePath)
 		return nil
 	}
-	
+
 	fmt.Printf("✗ ADR file '%s' is invalid\n", filePath)
 	fmt.Println("\nValidation errors:")
 	for i, err := range result.Errors {

@@ -13,7 +13,7 @@ type MPC struct {
 }
 
 type Context struct {
-	BusinessGoal               string   `json:"business_goal" yaml:"business_goal"`
+	BusinessGoal              string   `json:"business_goal" yaml:"business_goal"`
 	NonFunctionalRequirements []string `json:"non_functional_requirements" yaml:"non_functional_requirements"`
 }
 
@@ -24,10 +24,10 @@ type Architecture struct {
 }
 
 type Tooling struct {
-	PrimaryLanguage    string           `json:"primary_language" yaml:"primary_language"`
-	SecondaryLanguages []string         `json:"secondary_languages" yaml:"secondary_languages"`
-	Frameworks         []string         `json:"frameworks" yaml:"frameworks"`
-	CodingStandards    CodingStandards  `json:"coding_standards" yaml:"coding_standards"`
+	PrimaryLanguage    string          `json:"primary_language" yaml:"primary_language"`
+	SecondaryLanguages []string        `json:"secondary_languages" yaml:"secondary_languages"`
+	Frameworks         []string        `json:"frameworks" yaml:"frameworks"`
+	CodingStandards    CodingStandards `json:"coding_standards" yaml:"coding_standards"`
 }
 
 type CodingStandards struct {
@@ -37,18 +37,18 @@ type CodingStandards struct {
 }
 
 type Node struct {
-	ID                   string     `json:"id" yaml:"id"`
-	Status               string     `json:"status" yaml:"status"`
-	Materialization      float64    `json:"materialization" yaml:"materialization"`
-	Description          string     `json:"description" yaml:"description"`
-	DetailedDescription  string     `json:"detailed_description" yaml:"detailed_description"`
-	Subtasks             []Subtask  `json:"subtasks" yaml:"subtasks"`
-	Outputs              []string   `json:"outputs,omitempty" yaml:"outputs,omitempty"`
-	AcceptanceCriteria   []string   `json:"acceptance_criteria" yaml:"acceptance_criteria"`
-	DefinitionOfDone     string     `json:"definition_of_done" yaml:"definition_of_done"`
-	RequiredKnowledge    []string   `json:"required_knowledge,omitempty" yaml:"required_knowledge,omitempty"`
-	Artifacts            *Artifacts `json:"artifacts,omitempty" yaml:"artifacts,omitempty"`
-	Downstream           []string   `json:"downstream" yaml:"downstream"`
+	ID                  string     `json:"id" yaml:"id"`
+	Status              string     `json:"status" yaml:"status"`
+	Materialization     float64    `json:"materialization" yaml:"materialization"`
+	Description         string     `json:"description" yaml:"description"`
+	DetailedDescription string     `json:"detailed_description" yaml:"detailed_description"`
+	Subtasks            []Subtask  `json:"subtasks" yaml:"subtasks"`
+	Outputs             []string   `json:"outputs,omitempty" yaml:"outputs,omitempty"`
+	AcceptanceCriteria  []string   `json:"acceptance_criteria" yaml:"acceptance_criteria"`
+	DefinitionOfDone    string     `json:"definition_of_done" yaml:"definition_of_done"`
+	RequiredKnowledge   []string   `json:"required_knowledge,omitempty" yaml:"required_knowledge,omitempty"`
+	Artifacts           *Artifacts `json:"artifacts,omitempty" yaml:"artifacts,omitempty"`
+	Downstream          []string   `json:"downstream" yaml:"downstream"`
 }
 
 type Subtask struct {
@@ -59,12 +59,12 @@ type Subtask struct {
 // Artifacts supports both old (simple string) and new (structured) formats
 type Artifacts struct {
 	BPMN string `json:"bpmn,omitempty" yaml:"bpmn,omitempty"`
-	
+
 	// Old format - simple strings (backward compatibility)
 	Spec       string `json:"spec,omitempty" yaml:"spec,omitempty"`
 	Tests      string `json:"tests,omitempty" yaml:"tests,omitempty"`
 	Properties string `json:"properties,omitempty" yaml:"properties,omitempty"`
-	
+
 	// New format - structured (enhanced)
 	PropertiesStruct *ArtifactProperties `json:"properties_struct,omitempty" yaml:"properties_struct,omitempty"`
 	SchemasStruct    *ArtifactSchemas    `json:"schemas_struct,omitempty" yaml:"schemas_struct,omitempty"`

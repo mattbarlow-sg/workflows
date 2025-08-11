@@ -71,7 +71,7 @@ func (r *Registry) loadSchema(path string) (*Schema, error) {
 	}
 
 	name := strings.TrimSuffix(filepath.Base(path), ".json")
-	
+
 	schema := &Schema{
 		Name:    name,
 		Path:    path,

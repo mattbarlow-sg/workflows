@@ -27,9 +27,9 @@ type AgentMetrics struct {
 
 // AssignmentContext provides context for agent assignment decisions
 type AssignmentContext struct {
-	Activity      *Activity              `json:"activity"`
-	ProcessData   map[string]interface{} `json:"process_data"`
-	CurrentAgents map[string]*Agent      `json:"current_agents"`
+	Activity      *Activity                `json:"activity"`
+	ProcessData   map[string]interface{}   `json:"process_data"`
+	CurrentAgents map[string]*Agent        `json:"current_agents"`
 	Metrics       map[string]*AgentMetrics `json:"metrics"`
 }
 
@@ -43,11 +43,11 @@ type AssignmentResult struct {
 
 // ReviewResult contains the result of a review workflow
 type ReviewResult struct {
-	Approved     bool                   `json:"approved"`
-	ReviewerID   string                 `json:"reviewer_id"`
-	Comments     string                 `json:"comments"`
-	Timestamp    time.Time              `json:"timestamp"`
-	ReviewData   map[string]interface{} `json:"review_data"`
+	Approved   bool                   `json:"approved"`
+	ReviewerID string                 `json:"reviewer_id"`
+	Comments   string                 `json:"comments"`
+	Timestamp  time.Time              `json:"timestamp"`
+	ReviewData map[string]interface{} `json:"review_data"`
 }
 
 // NewAgentManager creates a new agent manager
@@ -65,12 +65,12 @@ func (am *AgentManager) RegisterAgent(agent *Agent) error {
 	if agent.ID == "" {
 		return fmt.Errorf("agent ID cannot be empty")
 	}
-	
+
 	am.agents[agent.ID] = agent
 	am.metrics[agent.ID] = &AgentMetrics{
 		LastAssignment: time.Now(),
 	}
-	
+
 	return nil
 }
 
@@ -192,8 +192,8 @@ func (am *AgentManager) checkConstraints(agent *Agent, ctx AssignmentContext) bo
 
 	// Check max concurrent tasks
 	metrics := am.metrics[agent.ID]
-	if agent.Constraints.MaxConcurrentTasks > 0 && 
-	   metrics.CurrentLoad >= agent.Constraints.MaxConcurrentTasks {
+	if agent.Constraints.MaxConcurrentTasks > 0 &&
+		metrics.CurrentLoad >= agent.Constraints.MaxConcurrentTasks {
 		return false
 	}
 
@@ -207,12 +207,12 @@ func (am *AgentManager) checkConstraints(agent *Agent, ctx AssignmentContext) bo
 	if agent.Constraints.TimeConstraints != nil {
 		now := time.Now()
 		tc := agent.Constraints.TimeConstraints
-		
+
 		// Check business hours
 		if tc.BusinessHoursOnly && !isBusinessHours(now) {
 			return false
 		}
-		
+
 		// Check availability windows
 		if len(tc.AvailabilityWindows) > 0 {
 			inWindow := false
@@ -254,7 +254,7 @@ func (am *AgentManager) calculateLoadScore(agent *Agent) float64 {
 	if agent.Constraints == nil || agent.Constraints.MaxConcurrentTasks == 0 {
 		return 1.0
 	}
-	
+
 	load := float64(metrics.CurrentLoad) / float64(agent.Constraints.MaxConcurrentTasks)
 	return 1.0 - load
 }
@@ -262,7 +262,7 @@ func (am *AgentManager) calculateLoadScore(agent *Agent) float64 {
 // getAlternatives returns alternative agents
 func (am *AgentManager) getAlternatives(eligible []*Agent, selected *Agent, count int) []*Agent {
 	var alternatives []*Agent
-	
+
 	for _, agent := range eligible {
 		if agent.ID != selected.ID {
 			alternatives = append(alternatives, agent)
@@ -271,7 +271,7 @@ func (am *AgentManager) getAlternatives(eligible []*Agent, selected *Agent, coun
 			}
 		}
 	}
-	
+
 	return alternatives
 }
 
@@ -288,15 +288,15 @@ func (am *AgentManager) CompleteTask(agentID string, duration time.Duration) {
 	metrics := am.metrics[agentID]
 	metrics.TasksCompleted++
 	metrics.CurrentLoad--
-	
+
 	// Update average task time
 	if metrics.TasksCompleted == 1 {
 		metrics.AverageTaskTime = duration
 	} else {
 		// Moving average
 		metrics.AverageTaskTime = time.Duration(
-			(int64(metrics.AverageTaskTime)*(int64(metrics.TasksCompleted)-1) + int64(duration)) / 
-			int64(metrics.TasksCompleted),
+			(int64(metrics.AverageTaskTime)*(int64(metrics.TasksCompleted)-1) + int64(duration)) /
+				int64(metrics.TasksCompleted),
 		)
 	}
 }
@@ -331,7 +331,7 @@ func (am *AgentManager) ProcessReview(workflowID string, data map[string]interfa
 			if score, ok := data["score"].(float64); ok {
 				if score < workflow.Rules.ApprovalThreshold {
 					approved = false
-					comments = append(comments, fmt.Sprintf("Score %.2f below threshold %.2f", 
+					comments = append(comments, fmt.Sprintf("Score %.2f below threshold %.2f",
 						score, workflow.Rules.ApprovalThreshold))
 				}
 			}
@@ -356,7 +356,7 @@ func (am *AgentManager) ProcessReview(workflowID string, data map[string]interfa
 func (am *AgentManager) selectReviewer(workflow *ReviewWorkflow, data map[string]interface{}) (*Agent, error) {
 	// Get eligible reviewers
 	var eligibleReviewers []*Agent
-	
+
 	for _, agent := range am.agents {
 		if am.canReview(agent, workflow) {
 			eligibleReviewers = append(eligibleReviewers, agent)
@@ -401,42 +401,42 @@ func (am *AgentManager) canReview(agent *Agent, workflow *ReviewWorkflow) bool {
 // GetAgentWorkloadReport generates a workload report
 func (am *AgentManager) GetAgentWorkloadReport() string {
 	var report strings.Builder
-	
+
 	report.WriteString("=== Agent Workload Report ===\n\n")
-	
+
 	// Sort agents by current load
 	var agents []*Agent
 	for _, agent := range am.agents {
 		agents = append(agents, agent)
 	}
-	
+
 	sort.Slice(agents, func(i, j int) bool {
 		return am.metrics[agents[i].ID].CurrentLoad > am.metrics[agents[j].ID].CurrentLoad
 	})
-	
+
 	// Generate report
 	for _, agent := range agents {
 		metrics := am.metrics[agent.ID]
 		report.WriteString(fmt.Sprintf("Agent: %s (%s)\n", agent.Name, agent.ID))
 		report.WriteString(fmt.Sprintf("  Type: %s\n", agent.Type))
 		report.WriteString(fmt.Sprintf("  Current Load: %d", metrics.CurrentLoad))
-		
+
 		if agent.Constraints != nil && agent.Constraints.MaxConcurrentTasks > 0 {
 			report.WriteString(fmt.Sprintf("/%d", agent.Constraints.MaxConcurrentTasks))
 		}
 		report.WriteString("\n")
-		
+
 		report.WriteString(fmt.Sprintf("  Tasks Assigned: %d\n", metrics.TasksAssigned))
 		report.WriteString(fmt.Sprintf("  Tasks Completed: %d\n", metrics.TasksCompleted))
-		
+
 		if metrics.AverageTaskTime > 0 {
 			report.WriteString(fmt.Sprintf("  Average Task Time: %v\n", metrics.AverageTaskTime))
 		}
-		
+
 		report.WriteString(fmt.Sprintf("  Last Assignment: %v\n", metrics.LastAssignment.Format(time.RFC3339)))
 		report.WriteString("\n")
 	}
-	
+
 	return report.String()
 }
 
@@ -445,7 +445,7 @@ func (am *AgentManager) GetAgentWorkloadReport() string {
 func isBusinessHours(t time.Time) bool {
 	hour := t.Hour()
 	weekday := t.Weekday()
-	
+
 	// Monday-Friday, 9 AM - 5 PM
 	return weekday >= time.Monday && weekday <= time.Friday &&
 		hour >= 9 && hour < 17
@@ -496,11 +496,11 @@ func (r CapabilityMatchRule) calculateCapabilityScore(agent *Agent, required []s
 			}
 		}
 	}
-	
+
 	if len(required) == 0 {
 		return 1.0
 	}
-	
+
 	return float64(matches) / float64(len(required))
 }
 
@@ -532,7 +532,7 @@ func (r *RoundRobinRule) SelectAgent(agents []*Agent, ctx AssignmentContext) (*A
 	processID := "default" // Would get from context
 	lastIdx := r.lastAssigned[processID]
 	nextIdx := (lastIdx + 1) % len(agents)
-	
+
 	r.lastAssigned[processID] = nextIdx
 	return agents[nextIdx], 1.0
 }
@@ -552,7 +552,7 @@ func (r RandomAssignmentRule) SelectAgent(agents []*Agent, ctx AssignmentContext
 	if len(agents) == 0 {
 		return nil, 0
 	}
-	
+
 	idx := rand.Intn(len(agents))
 	return agents[idx], 0.5 // Medium confidence score
 }

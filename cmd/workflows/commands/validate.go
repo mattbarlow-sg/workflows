@@ -32,16 +32,16 @@ func (c *ValidateCommand) Execute(args []string) error {
 	if err := c.ParseFlags(args); err != nil {
 		return errors.NewUsageError(fmt.Sprintf("invalid arguments: %v", err))
 	}
-	
+
 	// Check required arguments
 	if c.NArg() < 2 {
 		fmt.Fprintln(os.Stderr, "Usage: workflows validate <schema> <file>")
 		return errors.NewUsageError("validate command requires schema name and file path")
 	}
-	
+
 	schemaName := c.Arg(0)
 	filePath := c.Arg(1)
-	
+
 	// Validate inputs using the validation chain
 	if err := cli.NewValidationChain().
 		ValidateSchemaName(schemaName, "schema name").
@@ -50,34 +50,34 @@ func (c *ValidateCommand) Execute(args []string) error {
 		Error(); err != nil {
 		return err
 	}
-	
+
 	// Load configuration and registry
 	cfg := config.New()
 	registry := schema.NewRegistry(cfg.SchemaDir)
-	
+
 	if err := registry.Discover(); err != nil {
 		return errors.NewConfigError("discovering schemas", err)
 	}
-	
+
 	// Get the schema
 	schemaObj, found := registry.Get(schemaName)
 	if !found {
 		fmt.Fprintln(os.Stderr, "Use 'workflows list' to see available schemas")
 		return errors.NewValidationError(fmt.Sprintf("schema '%s' not found", schemaName), nil)
 	}
-	
+
 	// Validate the file
 	result, err := schema.ValidateFile(schemaObj.Path, filePath)
 	if err != nil {
 		return errors.NewIOError("validating file", err)
 	}
-	
+
 	// Report results
 	if result.Valid {
 		fmt.Printf("✓ File '%s' is valid according to schema '%s'\n", filePath, schemaName)
 		return nil
 	}
-	
+
 	fmt.Printf("✗ File '%s' is invalid according to schema '%s'\n", filePath, schemaName)
 	fmt.Println("\nValidation errors:")
 	for i, err := range result.Errors {

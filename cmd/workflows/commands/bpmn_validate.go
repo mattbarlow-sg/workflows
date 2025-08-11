@@ -22,10 +22,10 @@ func NewBPMNValidateCommand() *BPMNValidateCommand {
 			"Validate a BPMN process file",
 		),
 	}
-	
+
 	// Define flags
 	cmd.FlagSet().BoolVar(&cmd.verbose, "verbose", false, "Show detailed validation results")
-	
+
 	return cmd
 }
 
@@ -35,15 +35,15 @@ func (c *BPMNValidateCommand) Execute(args []string) error {
 	if err := c.ParseFlags(args); err != nil {
 		return errors.NewUsageError(fmt.Sprintf("invalid arguments: %v", err))
 	}
-	
+
 	// Check required arguments
 	if c.NArg() < 1 {
 		c.Usage()
 		return errors.NewUsageError("validate command requires file path")
 	}
-	
+
 	filePath := c.Arg(0)
-	
+
 	// Validate inputs
 	if err := cli.NewValidationChain().
 		ValidateFilePath(filePath, "file path").
@@ -51,16 +51,16 @@ func (c *BPMNValidateCommand) Execute(args []string) error {
 		Error(); err != nil {
 		return err
 	}
-	
+
 	// Create validator
 	validator := &bpmn.FileValidator{}
-	
+
 	// Validate the file
 	result, err := validator.ValidateFile(filePath)
 	if err != nil {
 		return errors.NewIOError("reading BPMN file", err)
 	}
-	
+
 	// Report results
 	if result.Valid {
 		fmt.Printf("✓ BPMN file '%s' is valid\n", filePath)
@@ -72,23 +72,23 @@ func (c *BPMNValidateCommand) Execute(args []string) error {
 		}
 		return nil
 	}
-	
+
 	fmt.Printf("✗ BPMN file '%s' is invalid\n", filePath)
-	
+
 	if len(result.Errors) > 0 {
 		fmt.Println("\nValidation errors:")
 		for i, err := range result.Errors {
 			fmt.Printf("  %d. %s\n", i+1, err)
 		}
 	}
-	
+
 	if c.verbose && len(result.Warnings) > 0 {
 		fmt.Println("\nWarnings:")
 		for i, warning := range result.Warnings {
 			fmt.Printf("  %d. %s\n", i+1, warning)
 		}
 	}
-	
+
 	return errors.NewValidationError("BPMN validation failed", nil)
 }
 

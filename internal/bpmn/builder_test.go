@@ -6,7 +6,7 @@ import (
 
 func TestBuilderBasicProcess(t *testing.T) {
 	builder := NewProcessBuilder("test_process", "Test Process")
-	
+
 	process, err := builder.
 		WithDescription("A test process").
 		AddStartEvent("start", "Start").
@@ -45,7 +45,7 @@ func TestBuilderBasicProcess(t *testing.T) {
 
 func TestBuilderParallelGateway(t *testing.T) {
 	builder := NewProcessBuilder("parallel_process", "Parallel Process")
-	
+
 	process, err := builder.
 		AddStartEvent("start", "Start").
 		AddParallelGateway("split", "Split", "diverging").
@@ -80,7 +80,7 @@ func TestBuilderParallelGateway(t *testing.T) {
 
 func TestBuilderWithConditions(t *testing.T) {
 	builder := NewProcessBuilder("decision_process", "Decision Process")
-	
+
 	process, err := builder.
 		AddStartEvent("start", "Start").
 		AddExclusiveGateway("decision", "Decision").
@@ -117,7 +117,7 @@ func TestBuilderWithAgents(t *testing.T) {
 	systemAgent := NewSystemAgent("automation")
 
 	builder := NewProcessBuilder("agent_process", "Agent Process")
-	
+
 	process, err := builder.
 		AddStartEvent("start", "Start").
 		AddUserTask("human_task", "Human Review", humanAgent).
@@ -161,9 +161,9 @@ func TestBuilderWithAgents(t *testing.T) {
 
 func TestBuilderWithReview(t *testing.T) {
 	builder := NewProcessBuilder("review_process", "Review Process")
-	
+
 	aiAgent := NewAIAgent("ai-writer", []string{"content-generation"})
-	
+
 	process, err := builder.
 		AddStartEvent("start", "Start").
 		AddServiceTask("create_content", "Create Content", aiAgent).
@@ -171,7 +171,7 @@ func TestBuilderWithReview(t *testing.T) {
 		ConnectElements("f1", "start", "create_content").
 		ConnectElements("f2", "create_content", "end").
 		Build()
-	
+
 	// Manually add review configuration to test it
 	if len(process.ProcessInfo.Elements.Activities) > 0 {
 		process.ProcessInfo.Elements.Activities[0].Review = &ReviewConfig{
@@ -212,7 +212,7 @@ func TestBuilderValidation(t *testing.T) {
 	// Test that builder can create process without connections
 	// (validation happens separately with the Validator)
 	builder := NewProcessBuilder("unconnected_process", "Unconnected Process")
-	
+
 	process, err := builder.
 		AddStartEvent("start", "Start").
 		AddUserTask("task1", "Task 1", nil).
@@ -223,12 +223,12 @@ func TestBuilderValidation(t *testing.T) {
 	if err != nil {
 		t.Errorf("Builder should not fail even without connections: %v", err)
 	}
-	
+
 	// The process should be created but invalid when validated
 	if process == nil {
 		t.Error("Process should be created")
 	}
-	
+
 	// Verify elements were added
 	if len(process.ProcessInfo.Elements.Events) != 2 {
 		t.Error("Should have 2 events")
@@ -243,7 +243,7 @@ func TestBuilderValidation(t *testing.T) {
 
 func TestBuilderSubProcess(t *testing.T) {
 	builder := NewProcessBuilder("main_process", "Main Process")
-	
+
 	// Using a userTask with isSubProcess flag as a workaround
 	process, err := builder.
 		AddStartEvent("start", "Start").
@@ -282,7 +282,7 @@ func TestBuilderSubProcess(t *testing.T) {
 
 func TestBuilderBoundaryEvent(t *testing.T) {
 	builder := NewProcessBuilder("timeout_process", "Timeout Process")
-	
+
 	process, err := builder.
 		AddStartEvent("start", "Start").
 		AddUserTask("long_task", "Long Running Task", nil).
@@ -308,7 +308,7 @@ func TestBuilderBoundaryEvent(t *testing.T) {
 		EventType:   "timer",
 	}
 	process.ProcessInfo.Elements.Events = append(process.ProcessInfo.Elements.Events, boundaryEvent)
-	
+
 	// Add flow from boundary event
 	process.ProcessInfo.Elements.SequenceFlows = append(process.ProcessInfo.Elements.SequenceFlows,
 		SequenceFlow{ID: "f3", SourceRef: "timeout", TargetRef: "handle_timeout"})

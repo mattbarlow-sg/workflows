@@ -12,16 +12,16 @@ type ReviewType string
 const (
 	// ReviewTypePeer requires peer review from same level
 	ReviewTypePeer ReviewType = "peer_review"
-	
+
 	// ReviewTypeHierarchical requires review from higher level
 	ReviewTypeHierarchical ReviewType = "hierarchical"
-	
+
 	// ReviewTypeSpecialist requires review from domain expert
 	ReviewTypeSpecialist ReviewType = "specialist"
-	
+
 	// ReviewTypeCollaborative requires multiple reviewers
 	ReviewTypeCollaborative ReviewType = "collaborative"
-	
+
 	// ReviewTypeAutomated uses automated rules
 	ReviewTypeAutomated ReviewType = "automated"
 )
@@ -32,10 +32,10 @@ type ReviewPattern string
 const (
 	// PatternSequential reviews happen one after another
 	PatternSequential ReviewPattern = "sequential"
-	
+
 	// PatternParallel reviews happen simultaneously
 	PatternParallel ReviewPattern = "parallel"
-	
+
 	// PatternIterative allows for revision cycles
 	PatternIterative ReviewPattern = "iterative"
 )
@@ -46,47 +46,47 @@ type ReviewStatus string
 const (
 	// StatusPending review not yet started
 	StatusPending ReviewStatus = "pending"
-	
+
 	// StatusInProgress review underway
 	StatusInProgress ReviewStatus = "in_progress"
-	
+
 	// StatusApproved review approved
 	StatusApproved ReviewStatus = "approved"
-	
+
 	// StatusRejected review rejected
 	StatusRejected ReviewStatus = "rejected"
-	
+
 	// StatusRevisionRequired needs changes
 	StatusRevisionRequired ReviewStatus = "revision_required"
 )
 
 // ReviewRequest represents a request for review
 type ReviewRequest struct {
-	ID              string                 `json:"id"`
-	WorkflowID      string                 `json:"workflow_id"`
-	ActivityID      string                 `json:"activity_id"`
-	SubmitterID     string                 `json:"submitter_id"`
-	ReviewerID      string                 `json:"reviewer_id"`
-	Status          ReviewStatus           `json:"status"`
-	SubmittedAt     time.Time              `json:"submitted_at"`
-	ReviewedAt      *time.Time             `json:"reviewed_at,omitempty"`
-	Data            map[string]interface{} `json:"data"`
-	Comments        []ReviewComment        `json:"comments"`
-	RevisionCount   int                    `json:"revision_count"`
+	ID            string                 `json:"id"`
+	WorkflowID    string                 `json:"workflow_id"`
+	ActivityID    string                 `json:"activity_id"`
+	SubmitterID   string                 `json:"submitter_id"`
+	ReviewerID    string                 `json:"reviewer_id"`
+	Status        ReviewStatus           `json:"status"`
+	SubmittedAt   time.Time              `json:"submitted_at"`
+	ReviewedAt    *time.Time             `json:"reviewed_at,omitempty"`
+	Data          map[string]interface{} `json:"data"`
+	Comments      []ReviewComment        `json:"comments"`
+	RevisionCount int                    `json:"revision_count"`
 }
 
 // ReviewComment represents a comment in the review process
 type ReviewComment struct {
-	ID         string    `json:"id"`
-	AuthorID   string    `json:"author_id"`
-	Text       string    `json:"text"`
-	Timestamp  time.Time `json:"timestamp"`
-	Type       string    `json:"type"` // "comment", "approval", "rejection", "suggestion"
+	ID        string    `json:"id"`
+	AuthorID  string    `json:"author_id"`
+	Text      string    `json:"text"`
+	Timestamp time.Time `json:"timestamp"`
+	Type      string    `json:"type"` // "comment", "approval", "rejection", "suggestion"
 }
 
 // ReviewQueue manages pending reviews
 type ReviewQueue struct {
-	requests map[string]*ReviewRequest
+	requests   map[string]*ReviewRequest
 	byReviewer map[string][]*ReviewRequest
 	byStatus   map[ReviewStatus][]*ReviewRequest
 }
@@ -103,7 +103,7 @@ func NewReviewQueue() *ReviewQueue {
 // AddRequest adds a review request to the queue
 func (rq *ReviewQueue) AddRequest(request *ReviewRequest) {
 	rq.requests[request.ID] = request
-	
+
 	// Update indices
 	rq.byReviewer[request.ReviewerID] = append(rq.byReviewer[request.ReviewerID], request)
 	rq.byStatus[request.Status] = append(rq.byStatus[request.Status], request)
@@ -150,9 +150,9 @@ func (rq *ReviewQueue) UpdateRequestStatus(requestID string, newStatus ReviewSta
 
 // ReviewEngine processes review workflows
 type ReviewEngine struct {
-	queue      *ReviewQueue
-	workflows  map[string]*ReviewWorkflow
-	handlers   map[ReviewType]ReviewHandler
+	queue     *ReviewQueue
+	workflows map[string]*ReviewWorkflow
+	handlers  map[ReviewType]ReviewHandler
 }
 
 // ReviewHandler handles specific review types
@@ -320,7 +320,7 @@ func (h *PeerReviewHandler) ProcessReview(request *ReviewRequest, workflow *Revi
 			if score, ok := request.Data["score"].(float64); ok {
 				result.Approved = score >= workflow.Rules.ApprovalThreshold
 				if !result.Approved {
-					result.Comments = fmt.Sprintf("Score %.2f below threshold %.2f", 
+					result.Comments = fmt.Sprintf("Score %.2f below threshold %.2f",
 						score, workflow.Rules.ApprovalThreshold)
 				}
 			}
@@ -364,7 +364,7 @@ func (h *AutomatedReviewHandler) ProcessReview(request *ReviewRequest, workflow 
 			if dataValue, exists := request.Data[key]; exists {
 				if dataValue != value {
 					result.Approved = false
-					result.Comments = fmt.Sprintf("Rule failed: %s expected %v, got %v", 
+					result.Comments = fmt.Sprintf("Rule failed: %s expected %v, got %v",
 						key, value, dataValue)
 					break
 				}

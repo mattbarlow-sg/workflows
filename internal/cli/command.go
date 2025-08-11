@@ -11,13 +11,13 @@ import (
 type Command interface {
 	// Name returns the command name
 	Name() string
-	
+
 	// Description returns a short description of the command
 	Description() string
-	
+
 	// Usage prints detailed usage information
 	Usage()
-	
+
 	// Execute runs the command with the given arguments
 	Execute(args []string) error
 }

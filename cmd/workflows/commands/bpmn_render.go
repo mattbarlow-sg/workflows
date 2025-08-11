@@ -24,11 +24,11 @@ func NewBPMNRenderCommand() *BPMNRenderCommand {
 			"Render BPMN process to various formats",
 		),
 	}
-	
+
 	// Define flags
 	cmd.FlagSet().StringVar(&cmd.format, "format", "markdown", "Output format: markdown, dot, mermaid, text")
 	cmd.FlagSet().StringVar(&cmd.output, "output", "", "Output file path (optional)")
-	
+
 	return cmd
 }
 
@@ -38,15 +38,15 @@ func (c *BPMNRenderCommand) Execute(args []string) error {
 	if err := c.ParseFlags(args); err != nil {
 		return errors.NewUsageError(fmt.Sprintf("invalid arguments: %v", err))
 	}
-	
+
 	// Check required arguments
 	if c.NArg() < 1 {
 		c.Usage()
 		return errors.NewUsageError("render command requires file path")
 	}
-	
+
 	filePath := c.Arg(0)
-	
+
 	// Validate inputs
 	if err := cli.NewValidationChain().
 		ValidateFilePath(filePath, "file path").
@@ -54,7 +54,7 @@ func (c *BPMNRenderCommand) Execute(args []string) error {
 		Error(); err != nil {
 		return err
 	}
-	
+
 	// Validate format
 	validFormats := []string{"markdown", "dot", "mermaid", "text"}
 	valid := false
@@ -67,14 +67,14 @@ func (c *BPMNRenderCommand) Execute(args []string) error {
 	if !valid {
 		return errors.NewValidationError(fmt.Sprintf("invalid format '%s', must be one of: %v", c.format, validFormats), nil)
 	}
-	
+
 	// Create renderer
 	renderer := &bpmn.FileRenderer{}
-	
+
 	// Render the file
 	var output string
 	var err error
-	
+
 	switch c.format {
 	case "markdown":
 		output, err = renderer.RenderMarkdownFile(filePath)
@@ -85,11 +85,11 @@ func (c *BPMNRenderCommand) Execute(args []string) error {
 	case "text":
 		output, err = renderer.RenderTextFile(filePath)
 	}
-	
+
 	if err != nil {
 		return errors.NewIOError(fmt.Sprintf("rendering BPMN as %s", c.format), err)
 	}
-	
+
 	// Output the result
 	if c.output == "" {
 		fmt.Print(output)
@@ -99,7 +99,7 @@ func (c *BPMNRenderCommand) Execute(args []string) error {
 		}
 		fmt.Printf("✓ BPMN rendered to %s\n", c.output)
 	}
-	
+
 	return nil
 }
 

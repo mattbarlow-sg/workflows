@@ -63,9 +63,9 @@ type Decision struct {
 }
 
 type Validation struct {
-	Method         string   `json:"method,omitempty"`
+	Method          string   `json:"method,omitempty"`
 	SuccessCriteria []string `json:"successCriteria,omitempty"`
-	Metrics        []Metric `json:"metrics,omitempty"`
+	Metrics         []Metric `json:"metrics,omitempty"`
 }
 
 type Metric struct {
@@ -86,17 +86,17 @@ type Compliance struct {
 }
 
 type Stakeholders struct {
-	Deciders   []string `json:"deciders,omitempty"`
-	Consulted  []string `json:"consulted,omitempty"`
-	Informed   []string `json:"informed,omitempty"`
+	Deciders  []string `json:"deciders,omitempty"`
+	Consulted []string `json:"consulted,omitempty"`
+	Informed  []string `json:"informed,omitempty"`
 }
 
 type AIMetadata struct {
-	Tags           []string      `json:"tags,omitempty"`
-	ImpactScores   *ImpactScores `json:"impactScores,omitempty"`
-	Dependencies   []Dependency  `json:"dependencies,omitempty"`
-	EstimatedCost  *Cost         `json:"estimatedCost,omitempty"`
-	Keywords       []string      `json:"keywords,omitempty"`
+	Tags          []string      `json:"tags,omitempty"`
+	ImpactScores  *ImpactScores `json:"impactScores,omitempty"`
+	Dependencies  []Dependency  `json:"dependencies,omitempty"`
+	EstimatedCost *Cost         `json:"estimatedCost,omitempty"`
+	Keywords      []string      `json:"keywords,omitempty"`
 }
 
 type ImpactScores struct {

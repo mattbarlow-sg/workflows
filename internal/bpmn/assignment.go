@@ -10,10 +10,10 @@ import (
 type AssignmentRule interface {
 	// Name returns the name of the rule
 	Name() string
-	
+
 	// Applies checks if this rule applies to the given context
 	Applies(ctx AssignmentContext) bool
-	
+
 	// SelectAgent selects an agent based on the rule logic
 	// Returns the selected agent and a confidence score (0-1)
 	SelectAgent(agents []*Agent, ctx AssignmentContext) (*Agent, float64)
@@ -25,22 +25,22 @@ type AssignmentStrategy string
 const (
 	// StrategyStatic assigns a specific agent
 	StrategyStatic AssignmentStrategy = "static"
-	
+
 	// StrategyDynamic assigns based on runtime conditions
 	StrategyDynamic AssignmentStrategy = "dynamic"
-	
+
 	// StrategyPool assigns from a pool of agents
 	StrategyPool AssignmentStrategy = "pool"
-	
+
 	// StrategyLoadBalance assigns based on workload
 	StrategyLoadBalance AssignmentStrategy = "load_balance"
-	
+
 	// StrategyRoundRobin assigns in rotation
 	StrategyRoundRobin AssignmentStrategy = "round_robin"
-	
+
 	// StrategyRandom assigns randomly
 	StrategyRandom AssignmentStrategy = "random"
-	
+
 	// StrategyCapabilityMatch assigns based on best capability match
 	StrategyCapabilityMatch AssignmentStrategy = "capability_match"
 )
@@ -51,13 +51,13 @@ type LoadBalancingStrategy string
 const (
 	// LoadBalanceLeastTasks assigns to agent with fewest tasks
 	LoadBalanceLeastTasks LoadBalancingStrategy = "least_tasks"
-	
+
 	// LoadBalanceLeastLoad assigns to agent with lowest workload score
 	LoadBalanceLeastLoad LoadBalancingStrategy = "least_load"
-	
+
 	// LoadBalanceWeighted assigns based on agent weights
 	LoadBalanceWeighted LoadBalancingStrategy = "weighted"
-	
+
 	// LoadBalanceFairShare ensures equal distribution over time
 	LoadBalanceFairShare LoadBalancingStrategy = "fair_share"
 )
@@ -98,7 +98,7 @@ func EvaluateCondition(condition DynamicAssignmentCondition, data map[string]int
 func compareNumeric(a, b interface{}, op string) bool {
 	aFloat, aOk := toFloat64(a)
 	bFloat, bOk := toFloat64(b)
-	
+
 	if !aOk || !bOk {
 		return false
 	}

@@ -11,7 +11,7 @@ func buildFlowConnections(process *Process) {
 	if process == nil || process.ProcessInfo.Elements.SequenceFlows == nil {
 		return
 	}
-	
+
 	// Clear existing connections
 	for i := range process.ProcessInfo.Elements.Events {
 		process.ProcessInfo.Elements.Events[i].Incoming = []string{}
@@ -25,7 +25,7 @@ func buildFlowConnections(process *Process) {
 		process.ProcessInfo.Elements.Gateways[i].Incoming = []string{}
 		process.ProcessInfo.Elements.Gateways[i].Outgoing = []string{}
 	}
-	
+
 	// Build connections from sequence flows
 	for _, flow := range process.ProcessInfo.Elements.SequenceFlows {
 		// Add outgoing to source
@@ -44,7 +44,7 @@ func addOutgoingToElement(process *Process, elementID, flowID string) {
 			return
 		}
 	}
-	
+
 	// Check activities
 	for i := range process.ProcessInfo.Elements.Activities {
 		if process.ProcessInfo.Elements.Activities[i].ID == elementID {
@@ -53,7 +53,7 @@ func addOutgoingToElement(process *Process, elementID, flowID string) {
 			return
 		}
 	}
-	
+
 	// Check gateways
 	for i := range process.ProcessInfo.Elements.Gateways {
 		if process.ProcessInfo.Elements.Gateways[i].ID == elementID {
@@ -73,7 +73,7 @@ func addIncomingToElement(process *Process, elementID, flowID string) {
 			return
 		}
 	}
-	
+
 	// Check activities
 	for i := range process.ProcessInfo.Elements.Activities {
 		if process.ProcessInfo.Elements.Activities[i].ID == elementID {
@@ -82,7 +82,7 @@ func addIncomingToElement(process *Process, elementID, flowID string) {
 			return
 		}
 	}
-	
+
 	// Check gateways
 	for i := range process.ProcessInfo.Elements.Gateways {
 		if process.ProcessInfo.Elements.Gateways[i].ID == elementID {
@@ -103,22 +103,22 @@ func (v *FileValidator) ValidateFile(filePath string) (*ValidationResult, error)
 	if err != nil {
 		return nil, fmt.Errorf("reading file: %w", err)
 	}
-	
+
 	// Parse the process
 	var process Process
 	if err := json.Unmarshal(data, &process); err != nil {
 		return &ValidationResult{
-			Valid: false,
+			Valid:  false,
 			Errors: []ValidationError{{Message: fmt.Sprintf("Invalid JSON: %v", err)}},
 		}, nil
 	}
-	
+
 	// Build incoming/outgoing connections from sequence flows
 	buildFlowConnections(&process)
-	
+
 	// Create validator with the process
 	validator := NewValidator(&process)
-	
+
 	// Validate
 	return validator.Validate(), nil
 }
@@ -133,19 +133,19 @@ func (a *FileAnalyzer) AnalyzeFile(filePath string) (*AnalysisResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading file: %w", err)
 	}
-	
+
 	// Parse the process
 	var process Process
 	if err := json.Unmarshal(data, &process); err != nil {
 		return nil, fmt.Errorf("parsing JSON: %w", err)
 	}
-	
+
 	// Build incoming/outgoing connections from sequence flows
 	buildFlowConnections(&process)
-	
+
 	// Create analyzer with the process
 	analyzer := NewAnalyzer(&process)
-	
+
 	// Analyze
 	return analyzer.Analyze(), nil
 }
@@ -159,7 +159,7 @@ func (r *FileRenderer) RenderDotFile(filePath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	renderer := NewRenderer(process)
 	return renderer.Render(FormatDOT)
 }
@@ -170,7 +170,7 @@ func (r *FileRenderer) RenderMermaidFile(filePath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	renderer := NewRenderer(process)
 	// Mermaid is rendered as DOT for now
 	return renderer.Render(FormatDOT)
@@ -182,7 +182,7 @@ func (r *FileRenderer) RenderTextFile(filePath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	renderer := NewRenderer(process)
 	return renderer.Render(FormatText)
 }
@@ -193,7 +193,7 @@ func (r *FileRenderer) RenderMarkdownFile(filePath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	renderer := NewRenderer(process)
 	return renderer.Render(FormatMarkdown)
 }
@@ -204,14 +204,14 @@ func (r *FileRenderer) loadProcess(filePath string) (*Process, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading file: %w", err)
 	}
-	
+
 	var process Process
 	if err := json.Unmarshal(data, &process); err != nil {
 		return nil, fmt.Errorf("parsing JSON: %w", err)
 	}
-	
+
 	// Build incoming/outgoing connections from sequence flows
 	buildFlowConnections(&process)
-	
+
 	return &process, nil
 }

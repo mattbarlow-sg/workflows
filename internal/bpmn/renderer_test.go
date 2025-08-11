@@ -19,7 +19,7 @@ func TestRendererTextFormat(t *testing.T) {
 	if len(output) == 0 {
 		t.Error("Expected non-empty text output")
 	}
-	
+
 	// Check for basic content
 	if !strings.Contains(output, "test_process") {
 		t.Error("Expected output to contain process ID")
@@ -39,7 +39,7 @@ func TestRendererMarkdownFormat(t *testing.T) {
 	if !strings.Contains(output, "#") {
 		t.Error("Expected markdown to contain headers")
 	}
-	
+
 	if !strings.Contains(output, "test_process") {
 		t.Error("Expected markdown to contain process ID")
 	}
@@ -79,7 +79,7 @@ func TestRendererGraphvizFormat(t *testing.T) {
 	if !strings.Contains(output, "digraph") {
 		t.Error("Expected DOT output to contain 'digraph'")
 	}
-	
+
 	if !strings.Contains(output, "->") {
 		t.Error("Expected DOT output to contain edges")
 	}
@@ -87,11 +87,11 @@ func TestRendererGraphvizFormat(t *testing.T) {
 
 func TestRendererWithAnalysis(t *testing.T) {
 	process := createTestProcess()
-	
+
 	// Create renderer with options including analysis
 	analyzer := NewAnalyzer(process)
 	_ = analyzer.Analyze()
-	
+
 	renderer := NewRenderer(process)
 	// Can't directly set analysis, would need a method for this
 
@@ -108,11 +108,11 @@ func TestRendererWithAnalysis(t *testing.T) {
 
 func TestRendererWithValidation(t *testing.T) {
 	process := createTestProcess()
-	
+
 	// Create renderer with validation results
 	validator := NewValidator(process)
 	_ = validator.Validate()
-	
+
 	renderer := NewRenderer(process)
 	// Can't directly set validation, would need a method for this
 

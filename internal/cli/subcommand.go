@@ -26,16 +26,16 @@ func (h *SubcommandHandler) Register(cmd Command) error {
 	if cmd == nil {
 		return fmt.Errorf("cannot register nil subcommand")
 	}
-	
+
 	name := cmd.Name()
 	if name == "" {
 		return fmt.Errorf("subcommand name cannot be empty")
 	}
-	
+
 	if _, exists := h.subcommands[name]; exists {
 		return fmt.Errorf("subcommand '%s' already registered", name)
 	}
-	
+
 	h.subcommands[name] = cmd
 	return nil
 }
@@ -46,14 +46,14 @@ func (h *SubcommandHandler) Execute(args []string) error {
 		h.Usage()
 		return errors.NewUsageError(fmt.Sprintf("no %s subcommand specified", h.name))
 	}
-	
+
 	subcommand := args[0]
 	cmd, exists := h.subcommands[subcommand]
 	if !exists {
 		h.Usage()
 		return errors.NewUsageError(fmt.Sprintf("unknown %s subcommand: %s", h.name, subcommand))
 	}
-	
+
 	return cmd.Execute(args[1:])
 }
 
@@ -65,14 +65,14 @@ func (h *SubcommandHandler) Usage() {
 	fmt.Printf("  workflows %s <subcommand> [arguments]\n", h.name)
 	fmt.Println()
 	fmt.Println("Subcommands:")
-	
+
 	// Sort subcommands for consistent output
 	var names []string
 	for name := range h.subcommands {
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	
+
 	// Display subcommands with descriptions
 	for _, name := range names {
 		cmd := h.subcommands[name]

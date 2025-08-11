@@ -32,14 +32,14 @@ func TestProcessCreation(t *testing.T) {
 				},
 				SequenceFlows: []SequenceFlow{
 					{
-						ID:       "flow1",
-						Name:     "Flow 1",
+						ID:        "flow1",
+						Name:      "Flow 1",
 						SourceRef: "start",
 						TargetRef: "task1",
 					},
 					{
-						ID:       "flow2",
-						Name:     "Flow 2",
+						ID:        "flow2",
+						Name:      "Flow 2",
 						SourceRef: "task1",
 						TargetRef: "end",
 					},
@@ -58,7 +58,7 @@ func TestProcessCreation(t *testing.T) {
 	if len(activities) != 1 {
 		t.Errorf("Expected 1 activity, got %d", len(activities))
 	}
-	
+
 	// Test finding elements
 	var foundStart bool
 	for _, e := range events {
@@ -139,17 +139,17 @@ func TestSequenceFlowWithCondition(t *testing.T) {
 
 func TestGatewayTypes(t *testing.T) {
 	tests := []struct {
-		name        string
-		gateway     Gateway
-		wantType    string
+		name          string
+		gateway       Gateway
+		wantType      string
 		wantDirection string
 	}{
 		{
 			name: "Exclusive gateway",
 			gateway: Gateway{
-				ID:       "xor1",
-				Name:     "Decision Point",
-				Type:     "exclusiveGateway",
+				ID:               "xor1",
+				Name:             "Decision Point",
+				Type:             "exclusiveGateway",
 				GatewayDirection: "diverging",
 			},
 			wantType:      "exclusiveGateway",
@@ -158,9 +158,9 @@ func TestGatewayTypes(t *testing.T) {
 		{
 			name: "Parallel gateway",
 			gateway: Gateway{
-				ID:       "and1",
-				Name:     "Fork",
-				Type:     "parallelGateway",
+				ID:               "and1",
+				Name:             "Fork",
+				Type:             "parallelGateway",
 				GatewayDirection: "diverging",
 			},
 			wantType:      "parallelGateway",
@@ -169,9 +169,9 @@ func TestGatewayTypes(t *testing.T) {
 		{
 			name: "Inclusive gateway",
 			gateway: Gateway{
-				ID:       "or1",
-				Name:     "Inclusive Decision",
-				Type:     "inclusiveGateway",
+				ID:               "or1",
+				Name:             "Inclusive Decision",
+				Type:             "inclusiveGateway",
 				GatewayDirection: "converging",
 			},
 			wantType:      "inclusiveGateway",

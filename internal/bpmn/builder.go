@@ -42,11 +42,11 @@ func (pb *ProcessBuilder) WithWorkSessionID(workSessionID string) *ProcessBuilde
 // AddStartEvent adds a start event to the process
 func (pb *ProcessBuilder) AddStartEvent(id, name string) *ProcessBuilder {
 	event := Event{
-		ID:   id,
-		Name: name,
-		Type: "startEvent",
+		ID:        id,
+		Name:      name,
+		Type:      "startEvent",
 		EventType: "none",
-		Outgoing: []string{},
+		Outgoing:  []string{},
 	}
 	pb.process.ProcessInfo.Elements.Events = append(pb.process.ProcessInfo.Elements.Events, event)
 	return pb
@@ -55,11 +55,11 @@ func (pb *ProcessBuilder) AddStartEvent(id, name string) *ProcessBuilder {
 // AddEndEvent adds an end event to the process
 func (pb *ProcessBuilder) AddEndEvent(id, name string) *ProcessBuilder {
 	event := Event{
-		ID:   id,
-		Name: name,
-		Type: "endEvent",
+		ID:        id,
+		Name:      name,
+		Type:      "endEvent",
 		EventType: "none",
-		Incoming: []string{},
+		Incoming:  []string{},
 	}
 	pb.process.ProcessInfo.Elements.Events = append(pb.process.ProcessInfo.Elements.Events, event)
 	return pb
@@ -144,17 +144,17 @@ func (pb *ProcessBuilder) ConnectElements(id, sourceID, targetID string) *Proces
 		SourceRef: sourceID,
 		TargetRef: targetID,
 	}
-	
+
 	// Update source element's outgoing
 	if err := pb.addOutgoing(sourceID, id); err != nil {
 		pb.errors = append(pb.errors, err)
 	}
-	
+
 	// Update target element's incoming
 	if err := pb.addIncoming(targetID, id); err != nil {
 		pb.errors = append(pb.errors, err)
 	}
-	
+
 	pb.process.ProcessInfo.Elements.SequenceFlows = append(pb.process.ProcessInfo.Elements.SequenceFlows, flow)
 	return pb
 }
@@ -170,17 +170,17 @@ func (pb *ProcessBuilder) ConnectWithCondition(id, sourceID, targetID, language,
 			Body:     condition,
 		},
 	}
-	
+
 	// Update source element's outgoing
 	if err := pb.addOutgoing(sourceID, id); err != nil {
 		pb.errors = append(pb.errors, err)
 	}
-	
+
 	// Update target element's incoming
 	if err := pb.addIncoming(targetID, id); err != nil {
 		pb.errors = append(pb.errors, err)
 	}
-	
+
 	pb.process.ProcessInfo.Elements.SequenceFlows = append(pb.process.ProcessInfo.Elements.SequenceFlows, flow)
 	return pb
 }
@@ -213,14 +213,14 @@ func (pb *ProcessBuilder) WithReview(reviewType string, reviewer *AgentAssignmen
 		pb.errors = append(pb.errors, fmt.Errorf("no activity to add review to"))
 		return pb
 	}
-	
+
 	lastActivity := &pb.process.ProcessInfo.Elements.Activities[len(activities)-1]
 	lastActivity.Review = &ReviewConfig{
 		Required: true,
 		Type:     reviewType,
 		Reviewer: *reviewer,
 	}
-	
+
 	return pb
 }
 
@@ -243,7 +243,7 @@ func (pb *ProcessBuilder) addOutgoing(elementID, flowID string) error {
 			return nil
 		}
 	}
-	
+
 	// Check activities
 	for i := range pb.process.ProcessInfo.Elements.Activities {
 		if pb.process.ProcessInfo.Elements.Activities[i].ID == elementID {
@@ -252,7 +252,7 @@ func (pb *ProcessBuilder) addOutgoing(elementID, flowID string) error {
 			return nil
 		}
 	}
-	
+
 	// Check gateways
 	for i := range pb.process.ProcessInfo.Elements.Gateways {
 		if pb.process.ProcessInfo.Elements.Gateways[i].ID == elementID {
@@ -261,7 +261,7 @@ func (pb *ProcessBuilder) addOutgoing(elementID, flowID string) error {
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("element %s not found", elementID)
 }
 
@@ -274,7 +274,7 @@ func (pb *ProcessBuilder) addIncoming(elementID, flowID string) error {
 			return nil
 		}
 	}
-	
+
 	// Check activities
 	for i := range pb.process.ProcessInfo.Elements.Activities {
 		if pb.process.ProcessInfo.Elements.Activities[i].ID == elementID {
@@ -283,7 +283,7 @@ func (pb *ProcessBuilder) addIncoming(elementID, flowID string) error {
 			return nil
 		}
 	}
-	
+
 	// Check gateways
 	for i := range pb.process.ProcessInfo.Elements.Gateways {
 		if pb.process.ProcessInfo.Elements.Gateways[i].ID == elementID {
@@ -292,7 +292,7 @@ func (pb *ProcessBuilder) addIncoming(elementID, flowID string) error {
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("element %s not found", elementID)
 }
 

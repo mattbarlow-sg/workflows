@@ -27,28 +27,28 @@ func run() error {
 		"Schema Validation CLI",
 		"A tool for managing and validating JSON schemas, Architecture Decision Records (ADRs), BPMN workflows, and MPC (Model Predictive Control) workflows.",
 	)
-	
+
 	// Register commands
 	if err := manager.Register(commands.NewListCommand()); err != nil {
 		return err
 	}
-	
+
 	if err := manager.Register(commands.NewValidateCommand()); err != nil {
 		return err
 	}
-	
+
 	if err := manager.Register(commands.NewADRCommand()); err != nil {
 		return err
 	}
-	
+
 	if err := manager.Register(commands.NewBPMNCommand()); err != nil {
 		return err
 	}
-	
+
 	if err := manager.Register(commands.NewMPCCommand()); err != nil {
 		return err
 	}
-	
+
 	// Execute the command
 	return manager.Execute(os.Args[1:])
 }

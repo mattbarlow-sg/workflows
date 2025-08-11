@@ -17,7 +17,7 @@ func NewBuilder() *Builder {
 				Constraints: []string{},
 				Assumptions: []string{},
 			},
-			Options: []Option{},
+			Options:  []Option{},
 			Decision: Decision{},
 			Consequences: Consequences{
 				Positive: []string{},
@@ -25,7 +25,7 @@ func NewBuilder() *Builder {
 				Neutral:  []string{},
 			},
 			DecisionDrivers: []DecisionDriver{},
-			Links: []Link{},
+			Links:           []Link{},
 		},
 	}
 }
@@ -36,12 +36,12 @@ func (b *Builder) Build() *ADR {
 	if b.adr.ID == "" {
 		b.adr.ID = GenerateID()
 	}
-	
+
 	// Set date if not set
 	if b.adr.Date == "" {
 		b.adr.Date = time.Now().Format("2006-01-02")
 	}
-	
+
 	return b.adr
 }
 

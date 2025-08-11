@@ -21,11 +21,11 @@ func NewMPCRenderCommand() *MPCRenderCommand {
 	cmd := &MPCRenderCommand{
 		BaseCommand: cli.NewBaseCommand("render", "Render an MPC workflow in different formats"),
 	}
-	
+
 	// Define flags
 	cmd.FlagSet().StringVar(&cmd.format, "format", "yaml", "Output format (yaml, json, text)")
 	cmd.FlagSet().StringVar(&cmd.output, "output", "", "Output file (default: stdout)")
-	
+
 	return cmd
 }
 
@@ -39,15 +39,15 @@ func (c *MPCRenderCommand) Execute(args []string) error {
 		}
 		return errors.NewUsageError(fmt.Sprintf("invalid arguments: %v", err))
 	}
-	
+
 	// Check required arguments
 	if c.NArg() < 1 {
 		c.Usage()
 		return errors.NewUsageError("render command requires file path")
 	}
-	
+
 	inputFile := c.Arg(0)
-	
+
 	// Validate inputs
 	if err := cli.NewValidationChain().
 		ValidateFilePath(inputFile, "file path").

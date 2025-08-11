@@ -16,39 +16,39 @@ type ADRNewFlags struct {
 	Background   string
 	ChosenOption string
 	Rationale    string
-	
+
 	// Consequences (at least one required)
 	Positive string
 	Negative string
 	Neutral  string
-	
+
 	// Optional fields
-	Status   string
-	Deciders string
+	Status    string
+	Deciders  string
 	Consulted string
 	Informed  string
-	
+
 	// Context optional fields
 	Constraints string
 	Assumptions string
-	
+
 	// Options
 	Options     string
 	OptionDescs string
-	
+
 	// Technical story
 	StoryID    string
 	StoryTitle string
 	StoryDesc  string
-	
+
 	// Decision drivers
 	Drivers       string
 	DriverWeights string
-	
+
 	// AI metadata
 	Tags     string
 	Keywords string
-	
+
 	// Output options
 	Output string
 	Format string
@@ -65,24 +65,24 @@ func NewADRNewFlags() *ADRNewFlags {
 // Validate checks if required fields are present
 func (f *ADRNewFlags) Validate() error {
 	chain := cli.NewValidationChain()
-	
+
 	// Required fields
 	chain.ValidateRequired(f.Title, "title")
 	chain.ValidateRequired(f.Problem, "problem")
 	chain.ValidateRequired(f.Background, "background")
 	chain.ValidateRequired(f.ChosenOption, "chosen option")
 	chain.ValidateRequired(f.Rationale, "rationale")
-	
+
 	// At least one consequence required
 	if f.Positive == "" && f.Negative == "" && f.Neutral == "" {
 		chain.ValidateRequired("", "at least one consequence (positive, negative, or neutral)")
 	}
-	
+
 	// Problem must be at least 10 characters
 	if len(f.Problem) < 10 && f.Problem != "" {
 		return errors.NewValidationError("problem statement must be at least 10 characters", nil)
 	}
-	
+
 	// Validate status if provided
 	if f.Status != "" {
 		validStatuses := []string{"draft", "proposed", "accepted", "deprecated", "superseded", "rejected"}
@@ -97,7 +97,7 @@ func (f *ADRNewFlags) Validate() error {
 			return errors.NewValidationError(fmt.Sprintf("invalid status '%s', must be one of: %v", f.Status, validStatuses), nil)
 		}
 	}
-	
+
 	// If driver weights provided, must match number of drivers
 	if f.DriverWeights != "" && f.Drivers != "" {
 		drivers := strings.Split(f.Drivers, ",")
@@ -106,6 +106,6 @@ func (f *ADRNewFlags) Validate() error {
 			return errors.NewValidationError(fmt.Sprintf("number of driver weights (%d) must match number of drivers (%d)", len(weights), len(drivers)), nil)
 		}
 	}
-	
+
 	return chain.Error()
 }

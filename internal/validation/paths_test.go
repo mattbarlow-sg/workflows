@@ -61,10 +61,10 @@ func TestValidateSchemaName(t *testing.T) {
 
 func TestValidateFileExtension(t *testing.T) {
 	tests := []struct {
-		name       string
-		path       string
-		allowed    []string
-		wantErr    bool
+		name    string
+		path    string
+		allowed []string
+		wantErr bool
 	}{
 		{"json file allowed", "test.json", []string{".json"}, false},
 		{"JSON uppercase", "test.JSON", []string{".json"}, false},
@@ -78,7 +78,7 @@ func TestValidateFileExtension(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateFileExtension(tt.path, tt.allowed)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ValidateFileExtension(%q, %v) error = %v, wantErr %v", 
+				t.Errorf("ValidateFileExtension(%q, %v) error = %v, wantErr %v",
 					tt.path, tt.allowed, err, tt.wantErr)
 			}
 		})

@@ -8,19 +8,19 @@ import (
 
 // AnalysisResult contains the results of graph analysis
 type AnalysisResult struct {
-	Reachability   ReachabilityAnalysis   `json:"reachability"`
-	Deadlocks      []DeadlockInfo        `json:"deadlocks"`
-	Paths          PathAnalysis          `json:"paths"`
-	Metrics        ProcessMetrics        `json:"metrics"`
-	AgentWorkload  AgentWorkloadAnalysis `json:"agent_workload"`
+	Reachability  ReachabilityAnalysis  `json:"reachability"`
+	Deadlocks     []DeadlockInfo        `json:"deadlocks"`
+	Paths         PathAnalysis          `json:"paths"`
+	Metrics       ProcessMetrics        `json:"metrics"`
+	AgentWorkload AgentWorkloadAnalysis `json:"agent_workload"`
 }
 
 // ReachabilityAnalysis contains reachability information
 type ReachabilityAnalysis struct {
-	UnreachableElements []string          `json:"unreachable_elements"`
-	DeadEndElements     []string          `json:"dead_end_elements"`
-	ReachableFromStart  map[string]bool   `json:"reachable_from_start"`
-	ReachesEnd          map[string]bool   `json:"reaches_end"`
+	UnreachableElements []string        `json:"unreachable_elements"`
+	DeadEndElements     []string        `json:"dead_end_elements"`
+	ReachableFromStart  map[string]bool `json:"reachable_from_start"`
+	ReachesEnd          map[string]bool `json:"reaches_end"`
 }
 
 // DeadlockInfo describes a potential deadlock
@@ -32,13 +32,13 @@ type DeadlockInfo struct {
 
 // PathAnalysis contains path-related information
 type PathAnalysis struct {
-	CriticalPath      []string           `json:"critical_path"`
-	AllPaths          [][]string         `json:"all_paths"`
-	LoopDetected      bool               `json:"loop_detected"`
-	Loops             []Loop             `json:"loops"`
-	MaxPathLength     int                `json:"max_path_length"`
-	MinPathLength     int                `json:"min_path_length"`
-	AveragePathLength float64            `json:"average_path_length"`
+	CriticalPath      []string   `json:"critical_path"`
+	AllPaths          [][]string `json:"all_paths"`
+	LoopDetected      bool       `json:"loop_detected"`
+	Loops             []Loop     `json:"loops"`
+	MaxPathLength     int        `json:"max_path_length"`
+	MinPathLength     int        `json:"min_path_length"`
+	AveragePathLength float64    `json:"average_path_length"`
 }
 
 // Loop describes a loop in the process
@@ -49,11 +49,11 @@ type Loop struct {
 
 // ProcessMetrics contains complexity and other metrics
 type ProcessMetrics struct {
-	Elements      ElementCount `json:"elements"`
-	Complexity    int          `json:"complexity"`
-	Depth         int          `json:"depth"`
-	Width         int          `json:"width"`
-	Connectivity  float64      `json:"connectivity"`
+	Elements     ElementCount `json:"elements"`
+	Complexity   int          `json:"complexity"`
+	Depth        int          `json:"depth"`
+	Width        int          `json:"width"`
+	Connectivity float64      `json:"connectivity"`
 }
 
 // ElementCount tracks counts of different element types
@@ -67,10 +67,10 @@ type ElementCount struct {
 
 // AgentWorkloadAnalysis analyzes agent assignment distribution
 type AgentWorkloadAnalysis struct {
-	AgentTasks      map[string][]string `json:"agent_tasks"`
-	WorkloadBalance float64             `json:"workload_balance"`
-	OverloadedAgents []string           `json:"overloaded_agents"`
-	UnassignedTasks []string            `json:"unassigned_tasks"`
+	AgentTasks       map[string][]string `json:"agent_tasks"`
+	WorkloadBalance  float64             `json:"workload_balance"`
+	OverloadedAgents []string            `json:"overloaded_agents"`
+	UnassignedTasks  []string            `json:"unassigned_tasks"`
 }
 
 // Analyzer performs graph analysis on BPMN processes
@@ -184,9 +184,9 @@ func (a *Analyzer) detectDeadlocks() []DeadlockInfo {
 				// This can cause deadlock if other paths fail
 				for _, source := range incoming {
 					// Check if this is a direct connection from a diverging gateway
-					if srcGateway := a.findGateway(source); srcGateway != nil && 
-					   srcGateway.Type == "parallelGateway" && 
-					   srcGateway.GatewayDirection == "diverging" {
+					if srcGateway := a.findGateway(source); srcGateway != nil &&
+						srcGateway.Type == "parallelGateway" &&
+						srcGateway.GatewayDirection == "diverging" {
 						deadlocks = append(deadlocks, DeadlockInfo{
 							Type:        "incomplete-join",
 							Elements:    []string{gateway.ID, source},
@@ -261,7 +261,7 @@ func (a *Analyzer) analyzePaths() PathAnalysis {
 		}
 
 		result.AveragePathLength = float64(totalLength) / float64(len(result.AllPaths))
-		
+
 		// Critical path is the longest path
 		for _, path := range result.AllPaths {
 			if len(path) == result.MaxPathLength {
@@ -285,9 +285,9 @@ func (a *Analyzer) calculateMetrics() ProcessMetrics {
 			Flows:      len(a.process.ProcessInfo.Elements.SequenceFlows),
 		},
 	}
-	
-	metrics.Elements.Total = metrics.Elements.Events + 
-		metrics.Elements.Activities + 
+
+	metrics.Elements.Total = metrics.Elements.Events +
+		metrics.Elements.Activities +
 		metrics.Elements.Gateways
 
 	// Calculate complexity for BPMN processes
@@ -336,14 +336,14 @@ func (a *Analyzer) analyzeAgentWorkload() AgentWorkloadAnalysis {
 			total += float64(count)
 		}
 		mean := total / float64(len(counts))
-		
+
 		variance := 0.0
 		for _, count := range counts {
 			diff := count - mean
 			variance += diff * diff
 		}
 		variance /= float64(len(counts))
-		
+
 		// Balance score: 1.0 = perfect balance, 0.0 = worst imbalance
 		if mean > 0 {
 			result.WorkloadBalance = 1.0 - (variance / (mean * mean))
@@ -451,7 +451,7 @@ func (a *Analyzer) findLoopsDFS(node string, visited, stack map[string]bool, pat
 
 func (a *Analyzer) findAllPaths(start, end string, path []string, visited map[string]bool) [][]string {
 	path = append(path, start)
-	
+
 	if start == end {
 		return [][]string{append([]string{}, path...)}
 	}
@@ -475,7 +475,7 @@ func (a *Analyzer) countConnectedComponents() int {
 	// as all elements should be reachable from start to end.
 	// We'll check if all nodes are in one connected component by
 	// treating the graph as undirected for this calculation.
-	
+
 	visited := make(map[string]bool)
 	components := 0
 
@@ -484,7 +484,7 @@ func (a *Analyzer) countConnectedComponents() int {
 	for node := range a.graph {
 		undirected[node] = []string{}
 	}
-	
+
 	// Add edges in both directions
 	for source, targets := range a.graph {
 		for _, target := range targets {
@@ -549,7 +549,7 @@ func (a *Analyzer) calculateWidth() int {
 	// Width is the maximum number of parallel activities
 	levels := make(map[int][]string)
 	visited := make(map[string]bool)
-	
+
 	startEvents := a.findStartEvents()
 	for _, start := range startEvents {
 		a.assignLevels(start, 0, visited, levels)
@@ -570,9 +570,9 @@ func (a *Analyzer) assignLevels(node string, level int, visited map[string]bool,
 		return
 	}
 	visited[node] = true
-	
+
 	levels[level] = append(levels[level], node)
-	
+
 	for _, child := range a.graph[node] {
 		a.assignLevels(child, level+1, visited, levels)
 	}
@@ -624,7 +624,7 @@ func FormatAnalysisReport(result *AnalysisResult) string {
 	} else {
 		report.WriteString("  ✓ All elements are reachable from start\n")
 	}
-	
+
 	if len(result.Reachability.DeadEndElements) > 0 {
 		report.WriteString("  ⚠️  Dead-end Elements:\n")
 		for _, elem := range result.Reachability.DeadEndElements {
@@ -660,7 +660,7 @@ func FormatAnalysisReport(result *AnalysisResult) string {
 			report.WriteString(fmt.Sprintf("  Critical Path: %v\n", result.Paths.CriticalPath))
 		}
 	}
-	
+
 	if result.Paths.LoopDetected {
 		report.WriteString(fmt.Sprintf("  ⚠️  Loops Detected: %d\n", len(result.Paths.Loops)))
 		for i, loop := range result.Paths.Loops {
@@ -679,7 +679,7 @@ func FormatAnalysisReport(result *AnalysisResult) string {
 			report.WriteString(fmt.Sprintf("    - %s: %d tasks\n", agent, len(tasks)))
 		}
 		report.WriteString(fmt.Sprintf("  Workload Balance Score: %.2f\n", result.AgentWorkload.WorkloadBalance))
-		
+
 		if len(result.AgentWorkload.OverloadedAgents) > 0 {
 			report.WriteString("  ⚠️  Overloaded Agents:\n")
 			for _, agent := range result.AgentWorkload.OverloadedAgents {
@@ -687,7 +687,7 @@ func FormatAnalysisReport(result *AnalysisResult) string {
 			}
 		}
 	}
-	
+
 	if len(result.AgentWorkload.UnassignedTasks) > 0 {
 		report.WriteString(fmt.Sprintf("  ⚠️  Unassigned Tasks: %d\n", len(result.AgentWorkload.UnassignedTasks)))
 	}

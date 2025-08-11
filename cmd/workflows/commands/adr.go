@@ -17,12 +17,12 @@ func NewADRCommand() *ADRCommand {
 			"Architecture Decision Record commands",
 		),
 	}
-	
+
 	// Register subcommands
 	cmd.Register(NewADRNewCommand())
 	cmd.Register(NewADRRenderCommand())
 	cmd.Register(NewADRValidateCommand())
-	
+
 	return cmd
 }
 
@@ -30,7 +30,7 @@ func NewADRCommand() *ADRCommand {
 func (c *ADRCommand) Usage() {
 	// Call parent usage first
 	c.SubcommandHandler.Usage()
-	
+
 	// Add examples
 	println()
 	println("Examples:")

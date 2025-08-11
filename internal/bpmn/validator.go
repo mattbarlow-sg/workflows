@@ -6,8 +6,8 @@ import (
 
 // Validator performs semantic validation on BPMN processes
 type Validator struct {
-	process *Process
-	errors  []ValidationError
+	process  *Process
+	errors   []ValidationError
 	warnings []ValidationError
 }
 
@@ -25,7 +25,7 @@ func (v *Validator) Validate() *ValidationResult {
 	// Reset errors and warnings
 	v.errors = []ValidationError{}
 	v.warnings = []ValidationError{}
-	
+
 	// Run validation checks
 	v.validateProcessStructure()
 	v.validateStartAndEndEvents()
@@ -35,7 +35,7 @@ func (v *Validator) Validate() *ValidationResult {
 	v.validateBoundaryEvents()
 	v.validateAgentAssignments()
 	v.validateReviewWorkflows()
-	
+
 	return &ValidationResult{
 		Valid:         len(v.errors) == 0,
 		Errors:        v.errors,
@@ -49,15 +49,15 @@ func (v *Validator) Validate() *ValidationResult {
 // validateProcessStructure checks basic process structure
 func (v *Validator) validateProcessStructure() {
 	elements := &v.process.ProcessInfo.Elements
-	
+
 	// Check for at least one element
-	totalElements := len(elements.Events) + len(elements.Activities) + 
+	totalElements := len(elements.Events) + len(elements.Activities) +
 		len(elements.Gateways) + len(elements.Artifacts)
-	
+
 	if totalElements == 0 {
 		v.addError("process", "Process must contain at least one element", "structure.empty")
 	}
-	
+
 	// Check for duplicate IDs
 	idMap := make(map[string]string)
 	v.checkDuplicateIDs(idMap)
@@ -68,7 +68,7 @@ func (v *Validator) validateStartAndEndEvents() {
 	elements := &v.process.ProcessInfo.Elements
 	startEvents := 0
 	endEvents := 0
-	
+
 	for _, event := range elements.Events {
 		switch event.Type {
 		case "startEvent":
@@ -81,7 +81,7 @@ func (v *Validator) validateStartAndEndEvents() {
 			if len(event.Outgoing) == 0 {
 				v.addError(event.ID, "Start event must have at least one outgoing sequence flow", "event.start.outgoing")
 			}
-			
+
 		case "endEvent":
 			endEvents++
 			// End events should not have outgoing flows
@@ -94,7 +94,7 @@ func (v *Validator) validateStartAndEndEvents() {
 			}
 		}
 	}
-	
+
 	// Check for required events
 	if startEvents == 0 {
 		v.addError("process", "Process must have at least one start event", "process.start.missing")
@@ -108,7 +108,7 @@ func (v *Validator) validateStartAndEndEvents() {
 func (v *Validator) validateSequenceFlows() {
 	elements := &v.process.ProcessInfo.Elements
 	elementIDs := make(map[string]bool)
-	
+
 	// Build element ID map
 	for _, e := range elements.Events {
 		elementIDs[e.ID] = true
@@ -119,19 +119,19 @@ func (v *Validator) validateSequenceFlows() {
 	for _, g := range elements.Gateways {
 		elementIDs[g.ID] = true
 	}
-	
+
 	// Validate each sequence flow
 	for _, flow := range elements.SequenceFlows {
 		// Check source exists
 		if !elementIDs[flow.SourceRef] {
 			v.addError(flow.ID, fmt.Sprintf("Sequence flow source '%s' does not exist", flow.SourceRef), "flow.source.invalid")
 		}
-		
+
 		// Check target exists
 		if !elementIDs[flow.TargetRef] {
 			v.addError(flow.ID, fmt.Sprintf("Sequence flow target '%s' does not exist", flow.TargetRef), "flow.target.invalid")
 		}
-		
+
 		// Check for self-loops
 		if flow.SourceRef == flow.TargetRef {
 			v.addWarning(flow.ID, "Sequence flow creates a self-loop", "flow.selfloop")
@@ -142,7 +142,7 @@ func (v *Validator) validateSequenceFlows() {
 // validateGateways checks gateway-specific rules
 func (v *Validator) validateGateways() {
 	elements := &v.process.ProcessInfo.Elements
-	
+
 	for _, gateway := range elements.Gateways {
 		switch gateway.Type {
 		case "exclusiveGateway":
@@ -152,7 +152,7 @@ func (v *Validator) validateGateways() {
 		case "inclusiveGateway":
 			v.validateInclusiveGateway(gateway)
 		}
-		
+
 		// General gateway validations
 		if len(gateway.Incoming) == 0 && len(gateway.Outgoing) == 0 {
 			v.addError(gateway.ID, "Gateway must have at least one incoming or outgoing flow", "gateway.isolated")
@@ -163,9 +163,9 @@ func (v *Validator) validateGateways() {
 // validateExclusiveGateway validates exclusive gateway rules
 func (v *Validator) validateExclusiveGateway(gateway Gateway) {
 	// For diverging gateways, check conditions
-	if gateway.GatewayDirection == "diverging" || 
-	   (gateway.GatewayDirection == "" && len(gateway.Outgoing) > 1) {
-		
+	if gateway.GatewayDirection == "diverging" ||
+		(gateway.GatewayDirection == "" && len(gateway.Outgoing) > 1) {
+
 		// Count flows with conditions
 		conditionedFlows := 0
 		for _, flowID := range gateway.Outgoing {
@@ -174,7 +174,7 @@ func (v *Validator) validateExclusiveGateway(gateway Gateway) {
 				conditionedFlows++
 			}
 		}
-		
+
 		// At least one flow should have a condition (unless there's a default)
 		if conditionedFlows == 0 && gateway.DefaultFlow == "" && len(gateway.Outgoing) > 1 {
 			v.addWarning(gateway.ID, "Exclusive gateway should have conditions on outgoing flows or a default flow", "gateway.exclusive.conditions")
@@ -182,12 +182,12 @@ func (v *Validator) validateExclusiveGateway(gateway Gateway) {
 	}
 }
 
-// validateParallelGateway validates parallel gateway rules  
+// validateParallelGateway validates parallel gateway rules
 func (v *Validator) validateParallelGateway(gateway Gateway) {
 	// Parallel gateways should not have conditions on outgoing flows
-	if gateway.GatewayDirection == "diverging" || 
-	   (gateway.GatewayDirection == "" && len(gateway.Outgoing) > 1) {
-		
+	if gateway.GatewayDirection == "diverging" ||
+		(gateway.GatewayDirection == "" && len(gateway.Outgoing) > 1) {
+
 		for _, flowID := range gateway.Outgoing {
 			flow := v.findSequenceFlow(flowID)
 			if flow != nil && flow.ConditionExpression != nil {
@@ -200,9 +200,9 @@ func (v *Validator) validateParallelGateway(gateway Gateway) {
 // validateInclusiveGateway validates inclusive gateway rules
 func (v *Validator) validateInclusiveGateway(gateway Gateway) {
 	// Similar to exclusive but all conditions can be true
-	if gateway.GatewayDirection == "diverging" || 
-	   (gateway.GatewayDirection == "" && len(gateway.Outgoing) > 1) {
-		
+	if gateway.GatewayDirection == "diverging" ||
+		(gateway.GatewayDirection == "" && len(gateway.Outgoing) > 1) {
+
 		// Should have at least one default flow for safety
 		if gateway.DefaultFlow == "" && len(gateway.Outgoing) > 1 {
 			v.addWarning(gateway.ID, "Inclusive gateway should have a default flow", "gateway.inclusive.default")
@@ -213,18 +213,18 @@ func (v *Validator) validateInclusiveGateway(gateway Gateway) {
 // validateActivities validates activity-specific rules
 func (v *Validator) validateActivities() {
 	elements := &v.process.ProcessInfo.Elements
-	
+
 	for _, activity := range elements.Activities {
 		// All activities should be connected
 		if len(activity.Incoming) == 0 && len(activity.Outgoing) == 0 {
 			v.addError(activity.ID, "Activity must be connected to the process flow", "activity.isolated")
 		}
-		
+
 		// Script tasks must have scripts
 		if activity.Type == "scriptTask" && activity.Script == nil {
 			v.addError(activity.ID, "Script task must have a script definition", "activity.script.missing")
 		}
-		
+
 		// Check for proper agent assignment
 		if activity.Type == "userTask" && activity.Agent == nil {
 			v.addWarning(activity.ID, "User task should have an agent assignment", "activity.agent.missing")
@@ -236,12 +236,12 @@ func (v *Validator) validateActivities() {
 func (v *Validator) validateBoundaryEvents() {
 	elements := &v.process.ProcessInfo.Elements
 	activityIDs := make(map[string]bool)
-	
+
 	// Build activity ID map
 	for _, a := range elements.Activities {
 		activityIDs[a.ID] = true
 	}
-	
+
 	// Check boundary events
 	for _, event := range elements.Events {
 		if event.Type == "boundaryEvent" {
@@ -250,7 +250,7 @@ func (v *Validator) validateBoundaryEvents() {
 			} else if !activityIDs[event.AttachedTo] {
 				v.addError(event.ID, fmt.Sprintf("Boundary event attached to non-existent activity '%s'", event.AttachedTo), "event.boundary.invalid")
 			}
-			
+
 			// Boundary events should have outgoing flows
 			if len(event.Outgoing) == 0 {
 				v.addError(event.ID, "Boundary event must have at least one outgoing flow", "event.boundary.outgoing")
@@ -262,14 +262,14 @@ func (v *Validator) validateBoundaryEvents() {
 // validateAgentAssignments validates agent configurations
 func (v *Validator) validateAgentAssignments() {
 	elements := &v.process.ProcessInfo.Elements
-	
+
 	for _, activity := range elements.Activities {
 		if activity.Agent != nil {
 			// Validate assignment strategy
 			if activity.Agent.Type == "unspecified" && activity.Agent.Strategy == "" {
 				v.addError(activity.ID, "Unspecified agent must have an assignment strategy", "agent.strategy.missing")
 			}
-			
+
 			// Validate assignment rules
 			for i, rule := range activity.Agent.AssignmentRules {
 				if rule.Condition.Body == "" {
@@ -283,19 +283,19 @@ func (v *Validator) validateAgentAssignments() {
 // validateReviewWorkflows validates review configurations
 func (v *Validator) validateReviewWorkflows() {
 	elements := &v.process.ProcessInfo.Elements
-	
+
 	for _, activity := range elements.Activities {
 		if activity.Review != nil && activity.Review.Required {
 			// Check reviewer assignment
 			if activity.Review.Reviewer.Type == "" {
 				v.addError(activity.ID, "Review configuration must specify reviewer", "review.reviewer.missing")
 			}
-			
+
 			// Check timeout configuration
 			if activity.Review.Timeout != "" && activity.Review.OnTimeout == "" {
 				v.addWarning(activity.ID, "Review timeout specified without timeout action", "review.timeout.action")
 			}
-			
+
 			// Validate review type
 			if activity.Review.Type == "" {
 				v.addError(activity.ID, "Review configuration must specify type", "review.type.missing")
@@ -308,7 +308,7 @@ func (v *Validator) validateReviewWorkflows() {
 
 func (v *Validator) checkDuplicateIDs(idMap map[string]string) {
 	elements := &v.process.ProcessInfo.Elements
-	
+
 	// Check all element types
 	for _, e := range elements.Events {
 		if existing, found := idMap[e.ID]; found {
@@ -316,21 +316,21 @@ func (v *Validator) checkDuplicateIDs(idMap map[string]string) {
 		}
 		idMap[e.ID] = "event"
 	}
-	
+
 	for _, a := range elements.Activities {
 		if existing, found := idMap[a.ID]; found {
 			v.addError(a.ID, fmt.Sprintf("Duplicate ID: also used by %s", existing), "id.duplicate")
 		}
 		idMap[a.ID] = "activity"
 	}
-	
+
 	for _, g := range elements.Gateways {
 		if existing, found := idMap[g.ID]; found {
 			v.addError(g.ID, fmt.Sprintf("Duplicate ID: also used by %s", existing), "id.duplicate")
 		}
 		idMap[g.ID] = "gateway"
 	}
-	
+
 	for _, f := range elements.SequenceFlows {
 		if existing, found := idMap[f.ID]; found {
 			v.addError(f.ID, fmt.Sprintf("Duplicate ID: also used by %s", existing), "id.duplicate")
@@ -360,7 +360,7 @@ func (v *Validator) addError(path, message, rule string) {
 
 func (v *Validator) addWarning(path, message, rule string) {
 	v.warnings = append(v.warnings, ValidationError{
-		Level:   "warning", 
+		Level:   "warning",
 		Type:    "semantic",
 		Path:    path,
 		Message: message,

@@ -33,16 +33,16 @@ func (m *Manager) Register(cmd Command) error {
 	if cmd == nil {
 		return fmt.Errorf("cannot register nil command")
 	}
-	
+
 	name := cmd.Name()
 	if name == "" {
 		return fmt.Errorf("command name cannot be empty")
 	}
-	
+
 	if _, exists := m.commands[name]; exists {
 		return fmt.Errorf("command '%s' already registered", name)
 	}
-	
+
 	m.commands[name] = cmd
 	return nil
 }
@@ -53,9 +53,9 @@ func (m *Manager) Execute(args []string) error {
 		m.printUsage()
 		return errors.NewUsageError("no command specified")
 	}
-	
+
 	cmdName := args[0]
-	
+
 	// Handle help commands
 	if cmdName == "help" || cmdName == "--help" || cmdName == "-h" {
 		if len(args) > 1 {
@@ -65,13 +65,13 @@ func (m *Manager) Execute(args []string) error {
 		m.printUsage()
 		return nil
 	}
-	
+
 	cmd, exists := m.commands[cmdName]
 	if !exists {
 		m.printUsage()
 		return errors.NewUsageError(fmt.Sprintf("unknown command: %s", cmdName))
 	}
-	
+
 	// Execute the command with remaining arguments
 	return cmd.Execute(args[1:])
 }
@@ -82,7 +82,7 @@ func (m *Manager) showCommandHelp(cmdName string) error {
 	if !exists {
 		return errors.NewUsageError(fmt.Sprintf("unknown command: %s", cmdName))
 	}
-	
+
 	cmd.Usage()
 	return nil
 }
@@ -99,14 +99,14 @@ func (m *Manager) printUsage() {
 	fmt.Fprintln(m.output, "  workflows <command> [arguments]")
 	fmt.Fprintln(m.output)
 	fmt.Fprintln(m.output, "Commands:")
-	
+
 	// Sort commands for consistent output
 	var names []string
 	for name := range m.commands {
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	
+
 	// Use tabwriter for aligned output
 	w := tabwriter.NewWriter(m.output, 0, 0, 2, ' ', 0)
 	for _, name := range names {
@@ -115,7 +115,7 @@ func (m *Manager) printUsage() {
 	}
 	fmt.Fprintf(w, "  help\tShow this help message\n")
 	w.Flush()
-	
+
 	fmt.Fprintln(m.output)
 	fmt.Fprintln(m.output, "Run 'workflows help <command>' for more information on a command.")
 }

@@ -17,12 +17,12 @@ func NewBPMNCommand() *BPMNCommand {
 			"BPMN 2.0 workflow commands",
 		),
 	}
-	
+
 	// Register subcommands
 	cmd.Register(NewBPMNValidateCommand())
 	cmd.Register(NewBPMNAnalyzeCommand())
 	cmd.Register(NewBPMNRenderCommand())
-	
+
 	return cmd
 }
 
@@ -30,7 +30,7 @@ func NewBPMNCommand() *BPMNCommand {
 func (c *BPMNCommand) Usage() {
 	// Call parent usage first
 	c.SubcommandHandler.Usage()
-	
+
 	// Add examples
 	println()
 	println("Examples:")

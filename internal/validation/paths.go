@@ -34,9 +34,9 @@ func ValidateSchemaName(name string) error {
 
 	// Only allow alphanumeric, dash, underscore
 	for _, r := range name {
-		if !((r >= 'a' && r <= 'z') || 
-			(r >= 'A' && r <= 'Z') || 
-			(r >= '0' && r <= '9') || 
+		if !((r >= 'a' && r <= 'z') ||
+			(r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') ||
 			r == '-' || r == '_') {
 			return fmt.Errorf("invalid character in schema name: %c", r)
 		}

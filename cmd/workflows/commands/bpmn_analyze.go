@@ -30,15 +30,15 @@ func (c *BPMNAnalyzeCommand) Execute(args []string) error {
 	if err := c.ParseFlags(args); err != nil {
 		return errors.NewUsageError(fmt.Sprintf("invalid arguments: %v", err))
 	}
-	
+
 	// Check required arguments
 	if c.NArg() < 1 {
 		c.Usage()
 		return errors.NewUsageError("analyze command requires file path")
 	}
-	
+
 	filePath := c.Arg(0)
-	
+
 	// Validate inputs
 	if err := cli.NewValidationChain().
 		ValidateFilePath(filePath, "file path").
@@ -46,20 +46,20 @@ func (c *BPMNAnalyzeCommand) Execute(args []string) error {
 		Error(); err != nil {
 		return err
 	}
-	
+
 	// Create analyzer
 	analyzer := &bpmn.FileAnalyzer{}
-	
+
 	// Analyze the file
 	result, err := analyzer.AnalyzeFile(filePath)
 	if err != nil {
 		return errors.NewIOError("analyzing BPMN file", err)
 	}
-	
+
 	// Display analysis results
 	fmt.Printf("BPMN Process Analysis for: %s\n", filePath)
 	fmt.Println(strings.Repeat("=", 50))
-	
+
 	// Process metrics
 	metrics := result.Metrics
 	fmt.Printf("\nProcess Metrics:\n")
@@ -67,7 +67,7 @@ func (c *BPMNAnalyzeCommand) Execute(args []string) error {
 	fmt.Printf("  Depth: %d\n", metrics.Depth)
 	fmt.Printf("  Width: %d\n", metrics.Width)
 	fmt.Printf("  Connectivity: %.2f\n", metrics.Connectivity)
-	
+
 	// Element breakdown
 	fmt.Printf("\nElement Breakdown:\n")
 	fmt.Printf("  Total Elements: %d\n", metrics.Elements.Total)
@@ -75,7 +75,7 @@ func (c *BPMNAnalyzeCommand) Execute(args []string) error {
 	fmt.Printf("  Activities: %d\n", metrics.Elements.Activities)
 	fmt.Printf("  Gateways: %d\n", metrics.Elements.Gateways)
 	fmt.Printf("  Flows: %d\n", metrics.Elements.Flows)
-	
+
 	// Path analysis
 	fmt.Printf("\nPath Analysis:\n")
 	fmt.Printf("  Critical Path Length: %d\n", len(result.Paths.CriticalPath))
@@ -85,7 +85,7 @@ func (c *BPMNAnalyzeCommand) Execute(args []string) error {
 	if result.Paths.LoopDetected {
 		fmt.Printf("  Loops Detected: %d\n", len(result.Paths.Loops))
 	}
-	
+
 	// Reachability issues
 	if len(result.Reachability.UnreachableElements) > 0 {
 		fmt.Printf("\nUnreachable Elements:\n")
@@ -93,14 +93,14 @@ func (c *BPMNAnalyzeCommand) Execute(args []string) error {
 			fmt.Printf("  - %s\n", elem)
 		}
 	}
-	
+
 	if len(result.Reachability.DeadEndElements) > 0 {
 		fmt.Printf("\nDead End Elements:\n")
 		for _, elem := range result.Reachability.DeadEndElements {
 			fmt.Printf("  - %s\n", elem)
 		}
 	}
-	
+
 	// Deadlocks
 	if len(result.Deadlocks) > 0 {
 		fmt.Printf("\nPotential Deadlocks:\n")
@@ -108,7 +108,7 @@ func (c *BPMNAnalyzeCommand) Execute(args []string) error {
 			fmt.Printf("  %d. %s: %s\n", i+1, deadlock.Type, deadlock.Description)
 		}
 	}
-	
+
 	// Agent workload
 	if len(result.AgentWorkload.AgentTasks) > 0 {
 		fmt.Printf("\nAgent Workload:\n")
@@ -123,7 +123,7 @@ func (c *BPMNAnalyzeCommand) Execute(args []string) error {
 			fmt.Printf("  Overloaded Agents: %v\n", result.AgentWorkload.OverloadedAgents)
 		}
 	}
-	
+
 	return nil
 }
 

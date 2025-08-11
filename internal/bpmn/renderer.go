@@ -12,13 +12,13 @@ type RenderFormat string
 const (
 	// FormatText renders as plain text
 	FormatText RenderFormat = "text"
-	
+
 	// FormatMarkdown renders as markdown
 	FormatMarkdown RenderFormat = "markdown"
-	
+
 	// FormatJSON renders as JSON
 	FormatJSON RenderFormat = "json"
-	
+
 	// FormatDOT renders as Graphviz DOT
 	FormatDOT RenderFormat = "dot"
 )
@@ -209,7 +209,7 @@ func (r *Renderer) renderDOT() string {
 		if event.Type == "endEvent" {
 			shape = "doublecircle"
 		}
-		sb.WriteString(fmt.Sprintf("  %s [label=\"%s\", shape=%s];\n", 
+		sb.WriteString(fmt.Sprintf("  %s [label=\"%s\", shape=%s];\n",
 			event.ID, event.Name, shape))
 	}
 
@@ -219,13 +219,13 @@ func (r *Renderer) renderDOT() string {
 		if activity.Type == "subProcess" {
 			style = "rounded,bold"
 		}
-		
+
 		label := activity.Name
 		if activity.Agent != nil && activity.Agent.ID != "" {
 			label += fmt.Sprintf("\\n[%s]", activity.Agent.ID)
 		}
-		
-		sb.WriteString(fmt.Sprintf("  %s [label=\"%s\", style=\"%s\"];\n", 
+
+		sb.WriteString(fmt.Sprintf("  %s [label=\"%s\", style=\"%s\"];\n",
 			activity.ID, label, style))
 	}
 
@@ -233,7 +233,7 @@ func (r *Renderer) renderDOT() string {
 	for _, gateway := range r.process.ProcessInfo.Elements.Gateways {
 		shape := "diamond"
 		label := gatewaySymbol(gateway.Type)
-		sb.WriteString(fmt.Sprintf("  %s [label=\"%s\", shape=%s];\n", 
+		sb.WriteString(fmt.Sprintf("  %s [label=\"%s\", shape=%s];\n",
 			gateway.ID, label, shape))
 	}
 
@@ -243,7 +243,7 @@ func (r *Renderer) renderDOT() string {
 		if flow.Name != "" {
 			label = fmt.Sprintf(" [label=\"%s\"]", flow.Name)
 		}
-		sb.WriteString(fmt.Sprintf("  %s -> %s%s;\n", 
+		sb.WriteString(fmt.Sprintf("  %s -> %s%s;\n",
 			flow.SourceRef, flow.TargetRef, label))
 	}
 
@@ -262,7 +262,7 @@ func (r *Renderer) renderMermaid() string {
 		if event.Type == "endEvent" {
 			shape = "((()))"
 		}
-		sb.WriteString(fmt.Sprintf("  %s%s%s[%s]\n", 
+		sb.WriteString(fmt.Sprintf("  %s%s%s[%s]\n",
 			event.ID, shape[:len(shape)/2], event.Name, shape[len(shape)/2:]))
 	}
 
@@ -283,7 +283,7 @@ func (r *Renderer) renderMermaid() string {
 		if flow.Name != "" {
 			arrow = fmt.Sprintf("-->|%s|", flow.Name)
 		}
-		sb.WriteString(fmt.Sprintf("  %s %s %s\n", 
+		sb.WriteString(fmt.Sprintf("  %s %s %s\n",
 			flow.SourceRef, arrow, flow.TargetRef))
 	}
 
@@ -355,7 +355,7 @@ func (r *Renderer) renderActivityMarkdown(activity *Activity) string {
 		sb.WriteString(fmt.Sprintf("- **Agent**: %s\n", r.renderAgentAssignment(activity.Agent)))
 	}
 	if activity.ReviewWorkflow != nil {
-		sb.WriteString(fmt.Sprintf("- **Review**: %s (%s)\n", 
+		sb.WriteString(fmt.Sprintf("- **Review**: %s (%s)\n",
 			activity.ReviewWorkflow.Type, activity.ReviewWorkflow.Pattern))
 	}
 	sb.WriteString("\n")
@@ -386,7 +386,7 @@ func (r *Renderer) renderAnalysisMarkdown(analysis *AnalysisResult) string {
 	// Issues
 	if len(analysis.Reachability.UnreachableElements) > 0 || len(analysis.Deadlocks) > 0 {
 		sb.WriteString("### Issues\n\n")
-		
+
 		if len(analysis.Reachability.UnreachableElements) > 0 {
 			sb.WriteString("**Unreachable Elements:**\n")
 			for _, elem := range analysis.Reachability.UnreachableElements {
@@ -394,7 +394,7 @@ func (r *Renderer) renderAnalysisMarkdown(analysis *AnalysisResult) string {
 			}
 			sb.WriteString("\n")
 		}
-		
+
 		if len(analysis.Deadlocks) > 0 {
 			sb.WriteString("**Potential Deadlocks:**\n")
 			for _, deadlock := range analysis.Deadlocks {
@@ -430,11 +430,11 @@ func (r *Renderer) renderAgentAssignment(agent *AgentAssignment) string {
 
 func (r *Renderer) renderAgentSummary(indent string) string {
 	var sb strings.Builder
-	
+
 	// Count activities by agent
 	agentTasks := make(map[string][]string)
 	unassigned := []string{}
-	
+
 	for _, activity := range r.process.ProcessInfo.Elements.Activities {
 		if activity.Agent != nil && activity.Agent.ID != "" {
 			agentTasks[activity.Agent.ID] = append(agentTasks[activity.Agent.ID], activity.Name)
@@ -442,7 +442,7 @@ func (r *Renderer) renderAgentSummary(indent string) string {
 			unassigned = append(unassigned, activity.Name)
 		}
 	}
-	
+
 	// Render summary
 	for agent, tasks := range agentTasks {
 		sb.WriteString(fmt.Sprintf("%s%s: %d tasks\n", indent, agent, len(tasks)))
@@ -450,14 +450,14 @@ func (r *Renderer) renderAgentSummary(indent string) string {
 			sb.WriteString(fmt.Sprintf("%s  - %s\n", indent, task))
 		}
 	}
-	
+
 	if len(unassigned) > 0 {
 		sb.WriteString(fmt.Sprintf("%sUnassigned: %d tasks\n", indent, len(unassigned)))
 		for _, task := range unassigned {
 			sb.WriteString(fmt.Sprintf("%s  - %s\n", indent, task))
 		}
 	}
-	
+
 	return sb.String()
 }
 
@@ -481,7 +481,7 @@ func RenderValidationReport(result ValidationResult) string {
 	var sb strings.Builder
 
 	sb.WriteString("=== BPMN Validation Report ===\n\n")
-	
+
 	if result.Valid {
 		sb.WriteString("✓ Process is valid\n\n")
 	} else {
@@ -501,7 +501,7 @@ func RenderValidationReport(result ValidationResult) string {
 	if len(result.Errors) > 0 {
 		sb.WriteString("Semantic Errors:\n")
 		for _, err := range result.Errors {
-			sb.WriteString(fmt.Sprintf("  - [%s] %s: %s\n", 
+			sb.WriteString(fmt.Sprintf("  - [%s] %s: %s\n",
 				err.Level, err.Path, err.Message))
 		}
 		sb.WriteString("\n")
@@ -511,7 +511,7 @@ func RenderValidationReport(result ValidationResult) string {
 	if len(result.Warnings) > 0 {
 		sb.WriteString("Warnings:\n")
 		for _, warn := range result.Warnings {
-			sb.WriteString(fmt.Sprintf("  - [%s] %s: %s\n", 
+			sb.WriteString(fmt.Sprintf("  - [%s] %s: %s\n",
 				warn.Level, warn.Path, warn.Message))
 		}
 		sb.WriteString("\n")
@@ -532,13 +532,13 @@ func RenderProcessSummary(process *Process) string {
 
 	sb.WriteString(fmt.Sprintf("Process: %s\n", process.ProcessInfo.Name))
 	sb.WriteString(fmt.Sprintf("ID: %s\n", process.ProcessInfo.ID))
-	
+
 	// Count elements
 	eventCount := len(process.ProcessInfo.Elements.Events)
 	activityCount := len(process.ProcessInfo.Elements.Activities)
 	gatewayCount := len(process.ProcessInfo.Elements.Gateways)
 	flowCount := len(process.ProcessInfo.Elements.SequenceFlows)
-	
+
 	sb.WriteString(fmt.Sprintf("Elements: %d events, %d activities, %d gateways, %d flows\n",
 		eventCount, activityCount, gatewayCount, flowCount))
 
@@ -551,10 +551,9 @@ func RenderProcessSummary(process *Process) string {
 			ends = append(ends, event.Name)
 		}
 	}
-	
+
 	sb.WriteString(fmt.Sprintf("Start: %s\n", strings.Join(starts, ", ")))
 	sb.WriteString(fmt.Sprintf("End: %s\n", strings.Join(ends, ", ")))
 
 	return sb.String()
 }
-

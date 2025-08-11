@@ -26,7 +26,7 @@ func (r *Renderer) RenderFile(filePath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("reading file: %w", err)
 	}
-	
+
 	adr, err := FromJSON(data)
 	if err != nil {
 		// Try to provide validation error details
@@ -36,19 +36,19 @@ func (r *Renderer) RenderFile(filePath string) (string, error) {
 				Errors: []string{fmt.Sprintf("JSON syntax error at position %d: %v", syntaxErr.Offset, err)},
 			}
 		}
-		
+
 		var typeErr *json.UnmarshalTypeError
 		if errors.As(err, &typeErr) {
 			return "", &ValidationError{
 				Errors: []string{fmt.Sprintf("Type error: expected %s for field %s, got %s", typeErr.Type, typeErr.Field, typeErr.Value)},
 			}
 		}
-		
+
 		return "", &ValidationError{
 			Errors: []string{fmt.Sprintf("Invalid JSON: %v", err)},
 		}
 	}
-	
+
 	return r.Render(adr)
 }
 

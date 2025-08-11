@@ -22,7 +22,7 @@ func (v *ValidationChain) ValidateSchemaName(name string, fieldName string) *Val
 	if v.err != nil {
 		return v
 	}
-	
+
 	if err := validation.ValidateSchemaName(name); err != nil {
 		v.err = errors.NewValidationError(fmt.Sprintf("invalid %s", fieldName), err)
 	}
@@ -34,7 +34,7 @@ func (v *ValidationChain) ValidateFilePath(path string, fieldName string) *Valid
 	if v.err != nil {
 		return v
 	}
-	
+
 	if err := validation.ValidateFilePath(path); err != nil {
 		v.err = errors.NewValidationError(fmt.Sprintf("invalid %s", fieldName), err)
 	}
@@ -46,7 +46,7 @@ func (v *ValidationChain) ValidateFileExtension(path string, extensions []string
 	if v.err != nil {
 		return v
 	}
-	
+
 	if err := validation.ValidateFileExtension(path, extensions); err != nil {
 		v.err = errors.NewValidationError(fmt.Sprintf("invalid %s", fieldName), err)
 	}
@@ -58,7 +58,7 @@ func (v *ValidationChain) ValidateRequired(value string, fieldName string) *Vali
 	if v.err != nil {
 		return v
 	}
-	
+
 	if value == "" {
 		v.err = errors.NewValidationError(fmt.Sprintf("%s is required", fieldName), nil)
 	}

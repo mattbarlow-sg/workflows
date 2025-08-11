@@ -12,21 +12,21 @@ import (
 
 type MPCDiscoverCommand struct {
 	*cli.BaseCommand
-	showStatus bool
+	showStatus   bool
 	showProgress bool
-	nextOnly bool
+	nextOnly     bool
 }
 
 func NewMPCDiscoverCommand() *MPCDiscoverCommand {
 	cmd := &MPCDiscoverCommand{
 		BaseCommand: cli.NewBaseCommand("discover", "Discover what tasks can be worked on next"),
 	}
-	
+
 	// Define flags
 	cmd.FlagSet().BoolVar(&cmd.showStatus, "status", false, "Show node status")
 	cmd.FlagSet().BoolVar(&cmd.showProgress, "progress", false, "Show progress indicators")
 	cmd.FlagSet().BoolVar(&cmd.nextOnly, "next-only", false, "Show only what's immediately actionable")
-	
+
 	return cmd
 }
 
@@ -40,15 +40,15 @@ func (c *MPCDiscoverCommand) Execute(args []string) error {
 		}
 		return errors.NewUsageError(fmt.Sprintf("invalid arguments: %v", err))
 	}
-	
+
 	// Check required arguments
 	if c.NArg() < 1 {
 		c.Usage()
 		return errors.NewUsageError("discover command requires file path")
 	}
-	
+
 	inputFile := c.Arg(0)
-	
+
 	// Validate inputs
 	if err := cli.NewValidationChain().
 		ValidateFilePath(inputFile, "file path").
@@ -70,7 +70,7 @@ func (c *MPCDiscoverCommand) Execute(args []string) error {
 		fmt.Printf("MPC Workflow: %s\n", mpcData.PlanName)
 		fmt.Printf("Plan ID: %s\n", mpcData.PlanID)
 		fmt.Println()
-		
+
 		// Analyze and display workflow state
 		c.analyzeWorkflow(mpcData)
 	}
@@ -84,10 +84,10 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 	inProgressNodes := []*mpc.Node{}
 	needsBPMN := []*mpc.Node{}
 	needsSpecs := []*mpc.Node{}
-	
+
 	for i := range mpcData.Nodes {
 		node := &mpcData.Nodes[i]
-		
+
 		switch node.Status {
 		case mpc.StatusInProgress:
 			inProgressNodes = append(inProgressNodes, node)
@@ -100,7 +100,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 			} else {
 				// Check if all dependencies are completed
 				canWork := true
-				
+
 				// Find nodes that have this node as downstream
 				for j := range mpcData.Nodes {
 					upstream := &mpcData.Nodes[j]
@@ -114,7 +114,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 						break
 					}
 				}
-				
+
 				if canWork {
 					workableNow = append(workableNow, node)
 					// Check if node needs artifacts
@@ -123,14 +123,14 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 			}
 		}
 	}
-	
+
 	// Show what needs to be done right now
 	hasWork := false
-	
+
 	fmt.Printf("MPC Workflow: %s\n", mpcData.PlanName)
 	fmt.Printf("Plan ID: %s\n", mpcData.PlanID)
 	fmt.Println()
-	
+
 	// Show artifact generation first
 	if len(needsBPMN) > 0 {
 		hasWork = true
@@ -143,7 +143,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 		}
 		fmt.Println()
 	}
-	
+
 	if len(needsSpecs) > 0 {
 		hasWork = true
 		if len(needsBPMN) == 0 {
@@ -159,7 +159,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 		}
 		fmt.Println()
 	}
-	
+
 	// Show ready work with full details
 	if len(workableNow) > 0 {
 		hasWork = true
@@ -169,7 +169,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 			c.printFullNodeDetails(node)
 		}
 	}
-	
+
 	// Show in-progress work with full details
 	if len(inProgressNodes) > 0 {
 		hasWork = true
@@ -179,7 +179,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 			c.printFullNodeDetails(node)
 		}
 	}
-	
+
 	completedCount := 0
 	for _, node := range mpcData.Nodes {
 		if node.Status == mpc.StatusCompleted {
@@ -188,12 +188,12 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 	}
 	fmt.Printf("  Completed: %d\n", completedCount)
 	fmt.Printf("  Total: %d\n", len(mpcData.Nodes))
-	
+
 	if len(mpcData.Nodes) > 0 {
 		completionRate := float64(completedCount) / float64(len(mpcData.Nodes)) * 100
 		fmt.Printf("  Overall completion: %.1f%%\n", completionRate)
 	}
-	
+
 	if !hasWork {
 		if completedCount == len(mpcData.Nodes) {
 			fmt.Println("\n✅ All tasks completed!")
@@ -210,17 +210,17 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 	blockedNodes := []*mpc.Node{}
 	inProgressNodes := []*mpc.Node{}
 	completedNodes := []*mpc.Node{}
-	
+
 	// New categories for artifact tracking
 	needsBPMN := []*mpc.Node{}
 	needsSpecs := []*mpc.Node{}
-	
+
 	// Track which nodes have incomplete dependencies
 	nodeBlockers := make(map[string][]string)
-	
+
 	for i := range mpcData.Nodes {
 		node := &mpcData.Nodes[i]
-		
+
 		switch node.Status {
 		case mpc.StatusCompleted:
 			completedNodes = append(completedNodes, node)
@@ -238,7 +238,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 				// Check if all dependencies are completed
 				canWork := true
 				blockers := []string{}
-				
+
 				// Find nodes that have this node as downstream
 				for j := range mpcData.Nodes {
 					upstream := &mpcData.Nodes[j]
@@ -249,7 +249,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 						}
 					}
 				}
-				
+
 				if canWork {
 					workableNow = append(workableNow, node)
 					// Check if node needs artifacts
@@ -261,12 +261,12 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 			}
 		}
 	}
-	
+
 	// Display artifact needs first
 	if len(needsBPMN) > 0 || len(needsSpecs) > 0 {
 		fmt.Println("🔧 ARTIFACT GENERATION NEEDED:")
 		fmt.Println(strings.Repeat("=", 60))
-		
+
 		if len(needsBPMN) > 0 {
 			fmt.Println("\n  📐 Nodes needing BPMN design:")
 			for _, node := range needsBPMN {
@@ -274,7 +274,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 				fmt.Printf("      → Run: ./workflows ai bpmn-create --node %s\n", node.ID)
 			}
 		}
-		
+
 		if len(needsSpecs) > 0 {
 			fmt.Println("\n  📝 Nodes needing Specs/Tests/Properties:")
 			for _, node := range needsSpecs {
@@ -286,7 +286,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 		}
 		fmt.Println()
 	}
-	
+
 	// Display workable nodes
 	if len(workableNow) == 1 {
 		fmt.Println("🚀 READY TO WORK ON NOW:")
@@ -303,7 +303,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 			c.printNodeSummary(node)
 		}
 	}
-	
+
 	// Display in-progress nodes
 	if len(inProgressNodes) > 0 {
 		fmt.Println("\n⏳ IN PROGRESS:")
@@ -312,7 +312,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 			c.printNodeSummary(node)
 		}
 	}
-	
+
 	// Display blocked nodes with their blockers
 	if len(blockedNodes) > 0 {
 		fmt.Println("\n🔒 BLOCKED (waiting on dependencies):")
@@ -324,12 +324,12 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 			}
 		}
 	}
-	
+
 	// Show workflow execution stages
 	fmt.Println("\n📋 WORKFLOW EXECUTION STAGES:")
 	fmt.Println(strings.Repeat("=", 60))
 	c.showExecutionStages(mpcData)
-	
+
 	// Summary statistics
 	fmt.Println("\n📊 SUMMARY:")
 	fmt.Println(strings.Repeat("=", 60))
@@ -338,7 +338,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 	fmt.Printf("  Blocked: %d\n", len(blockedNodes))
 	fmt.Printf("  Completed: %d\n", len(completedNodes))
 	fmt.Printf("  Total: %d\n", len(mpcData.Nodes))
-	
+
 	if len(mpcData.Nodes) > 0 {
 		completionRate := float64(len(completedNodes)) / float64(len(mpcData.Nodes)) * 100
 		fmt.Printf("  Overall completion: %.1f%%\n", completionRate)
@@ -348,7 +348,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 func (c *MPCDiscoverCommand) printNodeSummary(node *mpc.Node) {
 	fmt.Printf("  %s %s\n", c.getStatusIcon(node.Status), node.ID)
 	fmt.Printf("     Description: %s\n", node.Description)
-	
+
 	if c.showProgress {
 		progress := node.GetCompletionPercentage()
 		fmt.Printf("     Progress: %.0f%% complete", progress)
@@ -357,7 +357,7 @@ func (c *MPCDiscoverCommand) printNodeSummary(node *mpc.Node) {
 		totalCount := len(node.Subtasks)
 		fmt.Printf("     Subtasks: %d/%d completed\n", completedCount, totalCount)
 	}
-	
+
 	if len(node.Downstream) > 0 {
 		fmt.Printf("     Unlocks: %s\n", strings.Join(node.Downstream, ", "))
 	}
@@ -368,7 +368,7 @@ func (c *MPCDiscoverCommand) printFullNodeDetails(node *mpc.Node) {
 	fmt.Printf("     Status: %s\n", node.Status)
 	fmt.Printf("     Materialization: %.1f\n", node.Materialization)
 	fmt.Printf("     Description: %s\n", node.Description)
-	
+
 	if node.DetailedDescription != "" {
 		fmt.Printf("     Detailed Description:\n")
 		lines := strings.Split(strings.TrimSpace(node.DetailedDescription), "\n")
@@ -376,7 +376,7 @@ func (c *MPCDiscoverCommand) printFullNodeDetails(node *mpc.Node) {
 			fmt.Printf("       %s\n", line)
 		}
 	}
-	
+
 	if len(node.Subtasks) > 0 {
 		fmt.Printf("     Subtasks:\n")
 		for _, subtask := range node.Subtasks {
@@ -387,26 +387,26 @@ func (c *MPCDiscoverCommand) printFullNodeDetails(node *mpc.Node) {
 			}
 		}
 	}
-	
+
 	if len(node.Outputs) > 0 {
 		fmt.Printf("     Outputs: %s\n", strings.Join(node.Outputs, ", "))
 	}
-	
+
 	if len(node.AcceptanceCriteria) > 0 {
 		fmt.Printf("     Acceptance Criteria:\n")
 		for _, criteria := range node.AcceptanceCriteria {
 			fmt.Printf("       - %s\n", criteria)
 		}
 	}
-	
+
 	if node.DefinitionOfDone != "" {
 		fmt.Printf("     Definition of Done: %s\n", node.DefinitionOfDone)
 	}
-	
+
 	if len(node.RequiredKnowledge) > 0 {
 		fmt.Printf("     Required Knowledge: %s\n", strings.Join(node.RequiredKnowledge, ", "))
 	}
-	
+
 	if node.Artifacts != nil {
 		fmt.Printf("     Artifacts:\n")
 		if node.Artifacts.BPMN != "" {
@@ -421,7 +421,7 @@ func (c *MPCDiscoverCommand) printFullNodeDetails(node *mpc.Node) {
 		if node.Artifacts.Properties != "" {
 			fmt.Printf("       Properties: %s\n", node.Artifacts.Properties)
 		}
-		
+
 		// Check structured artifacts
 		if node.Artifacts.SpecsStruct != nil {
 			if node.Artifacts.SpecsStruct.API != "" {
@@ -434,7 +434,7 @@ func (c *MPCDiscoverCommand) printFullNodeDetails(node *mpc.Node) {
 				fmt.Printf("       Schemas Spec: %s\n", node.Artifacts.SpecsStruct.Schemas)
 			}
 		}
-		
+
 		if node.Artifacts.TestsStruct != nil {
 			if node.Artifacts.TestsStruct.Unit != "" {
 				fmt.Printf("       Unit Tests: %s\n", node.Artifacts.TestsStruct.Unit)
@@ -446,7 +446,7 @@ func (c *MPCDiscoverCommand) printFullNodeDetails(node *mpc.Node) {
 				fmt.Printf("       E2E Tests: %s\n", node.Artifacts.TestsStruct.E2E)
 			}
 		}
-		
+
 		if node.Artifacts.PropertiesStruct != nil {
 			if node.Artifacts.PropertiesStruct.Invariants != "" {
 				fmt.Printf("       Invariants: %s\n", node.Artifacts.PropertiesStruct.Invariants)
@@ -456,23 +456,23 @@ func (c *MPCDiscoverCommand) printFullNodeDetails(node *mpc.Node) {
 			}
 		}
 	}
-	
+
 	if len(node.Downstream) > 0 {
 		fmt.Printf("     Downstream: %s\n", strings.Join(node.Downstream, ", "))
 	}
-	
+
 	fmt.Println()
 }
 
 func (c *MPCDiscoverCommand) showExecutionStages(mpcData *mpc.MPC) {
 	// Build execution stages based on dependencies
 	stages := c.buildExecutionStages(mpcData)
-	
+
 	if len(stages) == 0 {
 		fmt.Println("  No execution stages found.")
 		return
 	}
-	
+
 	for i, stage := range stages {
 		fmt.Printf("\n  Stage %d:", i+1)
 		if len(stage) > 1 {
@@ -480,14 +480,14 @@ func (c *MPCDiscoverCommand) showExecutionStages(mpcData *mpc.MPC) {
 		} else {
 			fmt.Printf("\n")
 		}
-		
+
 		for _, nodeID := range stage {
 			node := mpcData.GetNodeByID(nodeID)
 			if node != nil {
 				fmt.Printf("    %s %s - %s\n", c.getStatusIcon(node.Status), nodeID, node.Description)
 			}
 		}
-		
+
 		// Show what this stage unlocks
 		unlocks := make(map[string]bool)
 		for _, nodeID := range stage {
@@ -512,7 +512,7 @@ func (c *MPCDiscoverCommand) buildExecutionStages(mpcData *mpc.MPC) [][]string {
 	// Track which nodes have been assigned to stages
 	assigned := make(map[string]bool)
 	stages := [][]string{}
-	
+
 	// Track dependencies
 	dependencies := make(map[string][]string)
 	for _, node := range mpcData.Nodes {
@@ -520,19 +520,19 @@ func (c *MPCDiscoverCommand) buildExecutionStages(mpcData *mpc.MPC) [][]string {
 			dependencies[downstream] = append(dependencies[downstream], node.ID)
 		}
 	}
-	
+
 	// Build stages
 	for len(assigned) < len(mpcData.Nodes) {
 		currentStage := []string{}
-		
+
 		for i := range mpcData.Nodes {
 			node := &mpcData.Nodes[i]
-			
+
 			// Skip if already assigned
 			if assigned[node.ID] {
 				continue
 			}
-			
+
 			// Check if all dependencies are satisfied
 			canAdd := true
 			if deps, hasDeps := dependencies[node.ID]; hasDeps {
@@ -546,12 +546,12 @@ func (c *MPCDiscoverCommand) buildExecutionStages(mpcData *mpc.MPC) [][]string {
 				// If no dependencies and not entry node, check if it's reachable
 				canAdd = false
 			}
-			
+
 			if canAdd {
 				currentStage = append(currentStage, node.ID)
 			}
 		}
-		
+
 		// Add current stage
 		if len(currentStage) > 0 {
 			for _, nodeID := range currentStage {
@@ -563,10 +563,9 @@ func (c *MPCDiscoverCommand) buildExecutionStages(mpcData *mpc.MPC) [][]string {
 			break
 		}
 	}
-	
+
 	return stages
 }
-
 
 func (c *MPCDiscoverCommand) getStatusIcon(status string) string {
 	switch status {
@@ -588,31 +587,31 @@ func (c *MPCDiscoverCommand) checkNodeArtifacts(node *mpc.Node, needsBPMN, needs
 		*needsBPMN = append(*needsBPMN, node)
 		return
 	}
-	
+
 	// Check for BPMN first
 	if node.Artifacts.BPMN == "" {
 		*needsBPMN = append(*needsBPMN, node)
 		return
 	}
-	
+
 	// Check for specs, tests, and properties
-	hasSpec := node.Artifacts.Spec != "" || 
-		(node.Artifacts.SpecsStruct != nil && 
-			(node.Artifacts.SpecsStruct.API != "" || 
-			 node.Artifacts.SpecsStruct.Models != "" || 
-			 node.Artifacts.SpecsStruct.Schemas != ""))
-	
-	hasTests := node.Artifacts.Tests != "" || 
-		(node.Artifacts.TestsStruct != nil && 
-			(node.Artifacts.TestsStruct.Unit != "" || 
-			 node.Artifacts.TestsStruct.Integration != "" || 
-			 node.Artifacts.TestsStruct.E2E != ""))
-	
-	hasProperties := node.Artifacts.Properties != "" || 
-		(node.Artifacts.PropertiesStruct != nil && 
-			(node.Artifacts.PropertiesStruct.Invariants != "" || 
-			 node.Artifacts.PropertiesStruct.StateProperties != ""))
-	
+	hasSpec := node.Artifacts.Spec != "" ||
+		(node.Artifacts.SpecsStruct != nil &&
+			(node.Artifacts.SpecsStruct.API != "" ||
+				node.Artifacts.SpecsStruct.Models != "" ||
+				node.Artifacts.SpecsStruct.Schemas != ""))
+
+	hasTests := node.Artifacts.Tests != "" ||
+		(node.Artifacts.TestsStruct != nil &&
+			(node.Artifacts.TestsStruct.Unit != "" ||
+				node.Artifacts.TestsStruct.Integration != "" ||
+				node.Artifacts.TestsStruct.E2E != ""))
+
+	hasProperties := node.Artifacts.Properties != "" ||
+		(node.Artifacts.PropertiesStruct != nil &&
+			(node.Artifacts.PropertiesStruct.Invariants != "" ||
+				node.Artifacts.PropertiesStruct.StateProperties != ""))
+
 	if !hasSpec || !hasTests || !hasProperties {
 		*needsSpecs = append(*needsSpecs, node)
 	}
@@ -620,28 +619,28 @@ func (c *MPCDiscoverCommand) checkNodeArtifacts(node *mpc.Node, needsBPMN, needs
 
 func (c *MPCDiscoverCommand) getMissingArtifacts(node *mpc.Node) []string {
 	missing := []string{}
-	
+
 	if node.Artifacts == nil {
 		return []string{"specs", "tests", "properties"}
 	}
-	
-	hasSpec := node.Artifacts.Spec != "" || 
-		(node.Artifacts.SpecsStruct != nil && 
-			(node.Artifacts.SpecsStruct.API != "" || 
-			 node.Artifacts.SpecsStruct.Models != "" || 
-			 node.Artifacts.SpecsStruct.Schemas != ""))
-	
-	hasTests := node.Artifacts.Tests != "" || 
-		(node.Artifacts.TestsStruct != nil && 
-			(node.Artifacts.TestsStruct.Unit != "" || 
-			 node.Artifacts.TestsStruct.Integration != "" || 
-			 node.Artifacts.TestsStruct.E2E != ""))
-	
-	hasProperties := node.Artifacts.Properties != "" || 
-		(node.Artifacts.PropertiesStruct != nil && 
-			(node.Artifacts.PropertiesStruct.Invariants != "" || 
-			 node.Artifacts.PropertiesStruct.StateProperties != ""))
-	
+
+	hasSpec := node.Artifacts.Spec != "" ||
+		(node.Artifacts.SpecsStruct != nil &&
+			(node.Artifacts.SpecsStruct.API != "" ||
+				node.Artifacts.SpecsStruct.Models != "" ||
+				node.Artifacts.SpecsStruct.Schemas != ""))
+
+	hasTests := node.Artifacts.Tests != "" ||
+		(node.Artifacts.TestsStruct != nil &&
+			(node.Artifacts.TestsStruct.Unit != "" ||
+				node.Artifacts.TestsStruct.Integration != "" ||
+				node.Artifacts.TestsStruct.E2E != ""))
+
+	hasProperties := node.Artifacts.Properties != "" ||
+		(node.Artifacts.PropertiesStruct != nil &&
+			(node.Artifacts.PropertiesStruct.Invariants != "" ||
+				node.Artifacts.PropertiesStruct.StateProperties != ""))
+
 	if !hasSpec {
 		missing = append(missing, "specs")
 	}
@@ -651,7 +650,7 @@ func (c *MPCDiscoverCommand) getMissingArtifacts(node *mpc.Node) []string {
 	if !hasProperties {
 		missing = append(missing, "properties")
 	}
-	
+
 	return missing
 }
 

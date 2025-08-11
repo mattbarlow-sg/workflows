@@ -34,10 +34,10 @@ func getSchemaDir() string {
 
 	// Try common locations in order
 	locations := []string{
-		filepath.Join(".", "schemas"),                    // Current directory
-		getExecutableRelativePath("schemas"),             // Next to executable
-		getExecutableRelativePath("../schemas"),          // Parent of executable
-		"/etc/workflows/schemas",                         // System location
+		filepath.Join(".", "schemas"),                             // Current directory
+		getExecutableRelativePath("schemas"),                      // Next to executable
+		getExecutableRelativePath("../schemas"),                   // Parent of executable
+		"/etc/workflows/schemas",                                  // System location
 		filepath.Join(os.Getenv("HOME"), ".workflows", "schemas"), // User home
 	}
 
@@ -61,13 +61,13 @@ func getExecutableRelativePath(relPath string) string {
 	if err != nil {
 		return ""
 	}
-	
+
 	// Resolve symlinks
 	realPath, err := filepath.EvalSymlinks(exePath)
 	if err != nil {
 		realPath = exePath
 	}
-	
+
 	exeDir := filepath.Dir(realPath)
 	return filepath.Join(exeDir, relPath)
 }
