@@ -1,352 +1,333 @@
 # Interface Specification for Temporal Validation Framework
 # Node: validation-framework
 # Implementation: 1754471482-temporal-workflow-implementation
+# Language: Go
+# Type: Internal Module (Not REST API)
 
-openapi: 3.0.3
-info:
-  title: Temporal Workflow Validation Framework API
-  description: |
-    Comprehensive validation framework for Temporal workflows that performs 
-    static analysis, determinism checks, and pre-deployment validation.
+interface:
+  name: TemporalValidationFramework
   version: 1.0.0
-  contact:
-    name: Temporal Validation Team
-    
-servers:
-  - url: http://localhost:8080/api/v1
-    description: Local validation service
-    
-paths:
-  /validate:
-    post:
-      summary: Validate Temporal Workflows
-      description: |
-        Performs comprehensive validation of Temporal workflows including
-        determinism checks, activity signature validation, and policy validation.
-      operationId: validateWorkflows
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ValidationRequest'
-      responses:
-        '200':
-          description: Validation completed (may contain errors)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationResult'
-        '400':
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '408':
-          description: Request timeout (exceeded 5 minutes)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-                
-  /validate/cache:
-    get:
-      summary: Get Cached Validation Result
-      description: Retrieve a cached validation result by workflow ID
-      operationId: getCachedValidation
-      parameters:
-        - name: workflow_id
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: source_hash
-          in: query
-          required: false
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Cached result found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CacheEntry'
-        '404':
-          description: No cached result found
-          
-    delete:
-      summary: Invalidate Cache
-      description: Invalidate cached validation results
-      operationId: invalidateCache
-      parameters:
-        - name: workflow_id
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Cache invalidated successfully
-        '404':
-          description: No cache entries found
-
-components:
-  schemas:
-    ValidationRequest:
-      type: object
-      required:
-        - workflow_path
-        - workflow_id
-      properties:
-        workflow_path:
-          type: string
-          description: Absolute path to workflow file or directory
-          pattern: '^/'
-        workflow_id:
-          type: string
-          description: Unique identifier for the workflow
-          minLength: 1
-          maxLength: 255
-        options:
-          $ref: '#/components/schemas/ValidationOptions'
-          
-    ValidationOptions:
-      type: object
-      properties:
-        skip_cache:
-          type: boolean
-          default: false
-          description: Bypass cache lookup
-        max_info_messages:
-          type: integer
-          default: 100
-          minimum: 0
-          maximum: 1000
-          description: Maximum number of info messages to return
-        timeout:
-          type: string
-          format: duration
-          default: "5m"
-          description: Validation timeout (max 5 minutes)
-        parallel_checks:
-          type: boolean
-          default: true
-          description: Enable concurrent validation checks
-          
-    ValidationResult:
-      type: object
-      properties:
-        success:
-          type: boolean
-          description: Whether all validations passed
+  description: |
+    Comprehensive validation framework for Temporal workflows that performs
+    static analysis, determinism checks, and pre-deployment validation
+  
+  module_path: internal/temporal/validator
+  
+  primary_interface:
+    name: ValidationPipeline
+    methods:
+      - name: Validate
+        description: Performs complete validation of Temporal workflows
+        signature: |
+          func (v *ValidationPipeline) Validate(ctx context.Context, request ValidationRequest) (*ValidationResult, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation and timeout
+            required: true
+          - name: request
+            type: ValidationRequest
+            description: Validation request with workflow path and options
+            required: true
+        returns:
+          - type: "*ValidationResult"
+            description: Complete validation result with errors and status
+          - type: error
+            description: System error if validation cannot be performed
         errors:
-          type: array
-          items:
-            $ref: '#/components/schemas/ValidationError'
-        info_messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/InfoMessage'
-        check_status:
-          $ref: '#/components/schemas/CheckStatusMap'
-        duration:
-          type: string
-          format: duration
-          description: Total validation time
-        cache_hit:
-          type: boolean
-          description: Whether result was from cache
-        timestamp:
-          type: string
-          format: date-time
-        source_hash:
-          type: string
-          description: SHA256 hash of validated source
-          
-    CheckStatusMap:
-      type: object
-      properties:
-        determinism_check:
-          $ref: '#/components/schemas/CheckStatus'
-        signature_check:
-          $ref: '#/components/schemas/CheckStatus'
-        policy_check:
-          $ref: '#/components/schemas/CheckStatus'
-          
-    CheckStatus:
-      type: string
-      enum:
-        - PENDING
-        - RUNNING
-        - COMPLETED
-        - CANCELLED
-        - SKIPPED
-        - FAILED
-        
-    ValidationError:
-      type: object
-      required:
-        - severity
-        - category
-        - code
-        - message
-      properties:
-        severity:
-          $ref: '#/components/schemas/ErrorSeverity'
-        category:
-          $ref: '#/components/schemas/ErrorCategory'
-        code:
-          type: string
-          description: Unique error identifier
-        message:
-          type: string
-          description: Error description
-        location:
-          $ref: '#/components/schemas/CodeLocation'
-        fix_instructions:
-          type: string
-          description: Guidance to resolve the error
-        context:
-          type: object
-          additionalProperties: true
-          
-    ErrorSeverity:
-      type: string
-      enum:
-        - ERROR
-        - INFO
-        
-    ErrorCategory:
-      type: string
-      enum:
-        - PERMISSION
-        - SYNTAX
-        - MISSING_DEPS
-        - TYPE_MISMATCH
-        - INVALID_CONFIG
-        - DETERMINISM
-        - NAMING
-        - TIMEOUT
-        - RETRY
-        
-    CodeLocation:
-      type: object
-      properties:
-        file:
-          type: string
-          description: File path relative to workflow root
-        line:
-          type: integer
-          minimum: 1
-          description: Line number (1-indexed)
-        column:
-          type: integer
-          minimum: 0
-          description: Column number (1-indexed)
-        snippet:
-          type: string
-          description: Code snippet around the error
-          
-    InfoMessage:
-      type: object
-      required:
-        - category
-        - message
-      properties:
-        category:
-          $ref: '#/components/schemas/InfoCategory'
-        message:
-          type: string
-        timestamp:
-          type: string
-          format: date-time
-        data:
-          type: object
-          additionalProperties: true
-          
-    InfoCategory:
-      type: string
-      enum:
-        - METRICS
-        - PROGRESS
-        - CACHE
-        - PERFORMANCE
-        - CONFIG
-        
-    CacheEntry:
-      type: object
-      properties:
-        key:
-          type: string
-          description: Composite cache key
-        workflow_id:
-          type: string
-        source_hash:
-          type: string
-        result:
-          $ref: '#/components/schemas/ValidationResult'
-        created_at:
-          type: string
-          format: date-time
-        accessed_at:
-          type: string
-          format: date-time
-        access_count:
-          type: integer
-          
-    ErrorResponse:
-      type: object
-      properties:
-        error:
-          type: string
-        message:
-          type: string
-        timestamp:
-          type: string
-          format: date-time
+          - code: INVALID_PATH
+            description: Workflow path does not exist or is not readable
+          - code: TIMEOUT
+            description: Validation exceeded 5 minute timeout
+          - code: CANCELLED
+            description: Validation was cancelled via context
+      
+      - name: ValidateWithCache
+        description: Performs validation with cache support
+        signature: |
+          func (v *ValidationPipeline) ValidateWithCache(ctx context.Context, request ValidationRequest) (*ValidationResult, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation and timeout
+            required: true
+          - name: request
+            type: ValidationRequest
+            description: Validation request with workflow path and options
+            required: true
+        returns:
+          - type: "*ValidationResult"
+            description: Validation result (possibly from cache)
+          - type: error
+            description: System error if validation cannot be performed
+        cache_behavior:
+          key_generation: "workflowID:sha256(source)"
+          invalidation: "On source content change"
+          storage: "Indefinite until invalidated"
+      
+      - name: CheckDeterminism
+        description: Validates workflow determinism requirements
+        signature: |
+          func (v *ValidationPipeline) CheckDeterminism(ctx context.Context, workflowPath string) (*DeterminismCheckResult, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation
+            required: true
+          - name: workflowPath
+            type: string
+            description: Absolute path to workflow file or directory
+            required: true
+        returns:
+          - type: "*DeterminismCheckResult"
+            description: Results of determinism analysis
+          - type: error
+            description: System error if check cannot be performed
+        patterns_detected:
+          - time.Now() usage
+          - Native goroutines
+          - Native channels
+          - Native select statements
+          - Random number generation
+          - Unsorted map iteration
+      
+      - name: CheckActivitySignatures
+        description: Validates activity signatures and naming
+        signature: |
+          func (v *ValidationPipeline) CheckActivitySignatures(ctx context.Context, workflowPath string) (*ActivitySignatureResult, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation
+            required: true
+          - name: workflowPath
+            type: string
+            description: Absolute path to workflow file or directory
+            required: true
+        returns:
+          - type: "*ActivitySignatureResult"
+            description: Results of signature validation
+          - type: error
+            description: System error if check cannot be performed
+        validations:
+          - PascalCase naming convention
+          - context.Context as first parameter when parameters exist
+          - Returns (result, error) tuple
+          - All parameters are serializable
+      
+      - name: CheckPolicies
+        description: Validates timeout and retry policies
+        signature: |
+          func (v *ValidationPipeline) CheckPolicies(ctx context.Context, workflowPath string) (*PolicyValidationResult, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation
+            required: true
+          - name: workflowPath
+            type: string
+            description: Absolute path to workflow file or directory
+            required: true
+        returns:
+          - type: "*PolicyValidationResult"
+            description: Results of policy validation
+          - type: error
+            description: System error if check cannot be performed
+        policy_rules:
+          - Human tasks have infinite timeout
+          - Non-human workflows timeout ≤ 15 minutes
+          - Retryable errors have ≥ 3 retries
+          - Non-retryable error categories not retried
 
-# CLI Interface Specification
-x-cli-interface:
-  command: workflows validate
-  description: Validate Temporal workflows
-  usage: workflows validate [workflow-path] [options]
-  options:
-    - name: --workflow-id
-      type: string
-      required: true
-      description: Unique workflow identifier
-    - name: --skip-cache
-      type: boolean
-      default: false
-      description: Skip cache lookup
-    - name: --max-info
-      type: integer
-      default: 100
-      description: Maximum info messages
-    - name: --timeout
-      type: duration
-      default: 5m
-      description: Validation timeout
-    - name: --no-parallel
-      type: boolean
-      default: false
-      description: Disable parallel checks
-  examples:
-    - description: Validate a single workflow file
-      command: workflows validate /path/to/workflow.go --workflow-id order-processing
-    - description: Validate directory with cache skip
-      command: workflows validate /path/to/workflows/ --workflow-id payment --skip-cache
-  exit_codes:
-    0: Validation successful
-    1: Validation errors found
-    2: Invalid arguments
-    3: Timeout exceeded
-    4: Internal error
+  cache_interface:
+    name: CacheManager
+    methods:
+      - name: Get
+        signature: |
+          func (c *CacheManager) Get(key string) (*CacheEntry, error)
+      - name: Set
+        signature: |
+          func (c *CacheManager) Set(entry *CacheEntry) error
+      - name: Invalidate
+        signature: |
+          func (c *CacheManager) Invalidate(key string) error
+      - name: InvalidateByWorkflow
+        signature: |
+          func (c *CacheManager) InvalidateByWorkflow(workflowID string) error
+
+  utility_functions:
+    - name: ValidateActivityName
+      signature: |
+        func ValidateActivityName(name string) error
+      description: Validates activity name follows PascalCase convention
+    
+    - name: ValidateTimeoutPolicy
+      signature: |
+        func ValidateTimeoutPolicy(name string, timeout time.Duration, isHumanTask bool) error
+      description: Validates timeout configuration based on task type
+    
+    - name: ValidateRetryPolicy
+      signature: |
+        func ValidateRetryPolicy(activityName string, retryCount int, errorType ErrorCategory) error
+      description: Validates retry configuration based on error type
+    
+    - name: CheckDeterminismPatterns
+      signature: |
+        func CheckDeterminismPatterns(source string) []DeterminismViolation
+      description: Scans source code for non-deterministic patterns
+    
+    - name: ParallelCheckRunner
+      signature: |
+        func ParallelCheckRunner(ctx context.Context, checks map[string]func(context.Context) error) map[string]error
+      description: Runs validation checks in parallel with fast-fail behavior
+    
+    - name: TimeoutEnforcer
+      signature: |
+        func TimeoutEnforcer(timeout time.Duration, fn func() error) error
+      description: Ensures function completes within timeout
+
+  data_types:
+    request:
+      ValidationRequest:
+        fields:
+          - name: WorkflowPath
+            type: string
+            validation: "required,filepath,absolute"
+          - name: WorkflowID
+            type: string
+            validation: "required,min=1,max=255"
+          - name: Options
+            type: ValidationOptions
+            validation: "optional"
+          - name: Context
+            type: context.Context
+            validation: "required"
+    
+    response:
+      ValidationResult:
+        fields:
+          - name: Success
+            type: bool
+            description: Overall validation success
+          - name: Errors
+            type: "[]ValidationError"
+            description: List of validation errors
+          - name: InfoMessages
+            type: "[]InfoMessage"
+            description: Contextual information
+          - name: CheckStatus
+            type: CheckStatusMap
+            description: Status of each check
+          - name: Duration
+            type: time.Duration
+            description: Total validation time
+          - name: CacheHit
+            type: bool
+            description: Whether result from cache
+          - name: Timestamp
+            type: time.Time
+            description: When validation performed
+          - name: SourceHash
+            type: string
+            description: Hash of validated source
+    
+    error_types:
+      ValidationError:
+        severity_levels:
+          - ERROR: Blocks deployment
+          - INFO: Contextual information only
+        categories:
+          - PERMISSION: Permission denied
+          - SYNTAX: Syntax error
+          - MISSING_DEPS: Missing dependencies
+          - TYPE_MISMATCH: Type error
+          - INVALID_CONFIG: Configuration error
+          - DETERMINISM: Non-deterministic code
+          - NAMING: Naming convention violation
+          - TIMEOUT: Timeout policy violation
+          - RETRY: Retry policy violation
+
+  concurrency:
+    parallel_execution:
+      - All three validation checks run concurrently
+      - Fast-fail on first ERROR severity issue
+      - Context cancellation propagates to all checks
+    
+    thread_safety:
+      - Cache operations are thread-safe
+      - Multiple validation requests can run concurrently
+      - Each validation has isolated context
+
+  performance:
+    timeouts:
+      global: 5 minutes
+      determinism_check: 4 minutes
+      signature_check: 4 minutes
+      policy_check: 4 minutes
+    
+    targets:
+      - Validation completes < 30s for typical workflow
+      - Cache hit latency < 1ms
+      - Memory usage < 100MB per validation
+    
+    optimization:
+      - Parallel check execution
+      - Source file caching
+      - AST reuse when possible
+
+  integration_points:
+    cli:
+      command: "just validate-workflows"
+      exit_codes:
+        0: All validations passed
+        1: Validation errors found
+        2: System error
+    
+    temporal_sdk:
+      dependencies:
+        - go.temporal.io/sdk
+        - go.temporal.io/sdk/contrib/workflowcheck
+    
+    internal_packages:
+      - internal/bpmn: BPMN type definitions
+      - internal/cli: CLI command framework
+      - internal/errors: Error handling
+
+  observability:
+    metrics:
+      - validation_duration_seconds
+      - validation_errors_total
+      - cache_hit_ratio
+      - check_cancellation_rate
+    
+    logging:
+      - Validation start/end
+      - Check results
+      - Cache hits/misses
+      - Error details with stack traces
+    
+    tracing:
+      - Validation request lifecycle
+      - Individual check duration
+      - Cache operations
+
+  deployment:
+    package_structure:
+      - internal/temporal/validator.go: Main validation pipeline
+      - internal/temporal/determinism.go: Determinism checker
+      - internal/temporal/signatures.go: Signature validator
+      - internal/temporal/policies.go: Policy validator
+      - internal/temporal/cache.go: Cache manager
+      - internal/temporal/validator_test.go: Unit tests
+    
+    dependencies:
+      go_modules:
+        - github.com/go-playground/validator/v10
+        - go.temporal.io/sdk
+        - go.temporal.io/sdk/contrib/workflowcheck
+    
+    configuration:
+      environment_variables:
+        - TEMPORAL_VALIDATION_TIMEOUT: Override default timeout
+        - TEMPORAL_VALIDATION_CACHE_DIR: Cache storage location
+        - TEMPORAL_VALIDATION_MAX_INFO: Max info messages

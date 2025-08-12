@@ -323,9 +323,9 @@ func GenerateValidationReport(result *ValidationResult) string {
 
 	// Header
 	if result.Success {
-		report.WriteString("✅ All Temporal workflow validations passed\n")
+		report.WriteString("All Temporal workflow validations passed\n")
 	} else {
-		report.WriteString("❌ Temporal workflow validation failed\n")
+		report.WriteString("Temporal workflow validation failed\n")
 	}
 
 	// Summary

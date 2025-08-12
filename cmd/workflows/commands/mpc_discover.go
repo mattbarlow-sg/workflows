@@ -134,12 +134,12 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 	// Show artifact generation first
 	if len(needsBPMN) > 0 {
 		hasWork = true
-		fmt.Println("🔧 ARTIFACT GENERATION NEEDED:")
+		fmt.Println("ARTIFACT GENERATION NEEDED:")
 		fmt.Println(strings.Repeat("=", 60))
-		fmt.Println("\n  📐 Nodes needing BPMN design:")
+		fmt.Println("\n  Nodes needing BPMN design:")
 		for _, node := range needsBPMN {
-			fmt.Printf("    • %s - %s\n", node.ID, node.Description)
-			fmt.Printf("      → Run: ./workflows ai bpmn-create --node %s\n", node.ID)
+			fmt.Printf("    * %s - %s\n", node.ID, node.Description)
+			fmt.Printf("      Run: ./workflows ai bpmn-create --node %s\n", node.ID)
 		}
 		fmt.Println()
 	}
@@ -147,15 +147,15 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 	if len(needsSpecs) > 0 {
 		hasWork = true
 		if len(needsBPMN) == 0 {
-			fmt.Println("🔧 ARTIFACT GENERATION NEEDED:")
+			fmt.Println("ARTIFACT GENERATION NEEDED:")
 			fmt.Println(strings.Repeat("=", 60))
 		}
-		fmt.Println("  📝 Nodes needing Specs/Tests/Properties:")
+		fmt.Println("  Nodes needing Specs/Tests/Properties:")
 		for _, node := range needsSpecs {
 			missing := c.getMissingArtifacts(node)
-			fmt.Printf("    • %s - %s\n", node.ID, node.Description)
+			fmt.Printf("    * %s - %s\n", node.ID, node.Description)
 			fmt.Printf("      Missing: %s\n", strings.Join(missing, ", "))
-			fmt.Printf("      → Run: ./workflows ai spec-generate --node %s\n", node.ID)
+			fmt.Printf("      Run: ./workflows ai spec-generate --node %s\n", node.ID)
 		}
 		fmt.Println()
 	}
@@ -163,7 +163,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 	// Show ready work with full details
 	if len(workableNow) > 0 {
 		hasWork = true
-		fmt.Println("🚀 READY TO WORK ON NOW:")
+		fmt.Println("READY TO WORK ON NOW:")
 		fmt.Println(strings.Repeat("=", 60))
 		for _, node := range workableNow {
 			c.printFullNodeDetails(node)
@@ -196,9 +196,9 @@ func (c *MPCDiscoverCommand) analyzeWorkflowNextOnly(mpcData *mpc.MPC) {
 
 	if !hasWork {
 		if completedCount == len(mpcData.Nodes) {
-			fmt.Println("\n✅ All tasks completed!")
+			fmt.Println("\nAll tasks completed!")
 		} else {
-			fmt.Println("\n⚠️  No tasks are currently ready to work on.")
+			fmt.Println("\nNo tasks are currently ready to work on.")
 			fmt.Println("    Check blocked dependencies with: ./workflows mpc discover <file>")
 		}
 	}
@@ -264,24 +264,24 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 
 	// Display artifact needs first
 	if len(needsBPMN) > 0 || len(needsSpecs) > 0 {
-		fmt.Println("🔧 ARTIFACT GENERATION NEEDED:")
+		fmt.Println("ARTIFACT GENERATION NEEDED:")
 		fmt.Println(strings.Repeat("=", 60))
 
 		if len(needsBPMN) > 0 {
-			fmt.Println("\n  📐 Nodes needing BPMN design:")
+			fmt.Println("\n  Nodes needing BPMN design:")
 			for _, node := range needsBPMN {
-				fmt.Printf("    • %s - %s\n", node.ID, node.Description)
-				fmt.Printf("      → Run: ./workflows ai bpmn-create --node %s\n", node.ID)
+				fmt.Printf("    * %s - %s\n", node.ID, node.Description)
+				fmt.Printf("      Run: ./workflows ai bpmn-create --node %s\n", node.ID)
 			}
 		}
 
 		if len(needsSpecs) > 0 {
-			fmt.Println("\n  📝 Nodes needing Specs/Tests/Properties:")
+			fmt.Println("\n  Nodes needing Specs/Tests/Properties:")
 			for _, node := range needsSpecs {
-				fmt.Printf("    • %s - %s\n", node.ID, node.Description)
+				fmt.Printf("    * %s - %s\n", node.ID, node.Description)
 				missing := c.getMissingArtifacts(node)
 				fmt.Printf("      Missing: %s\n", strings.Join(missing, ", "))
-				fmt.Printf("      → Run: ./workflows ai spec-generate --node %s\n", node.ID)
+				fmt.Printf("      Run: ./workflows ai spec-generate --node %s\n", node.ID)
 			}
 		}
 		fmt.Println()
@@ -289,11 +289,11 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 
 	// Display workable nodes
 	if len(workableNow) == 1 {
-		fmt.Println("🚀 READY TO WORK ON NOW:")
+		fmt.Println("READY TO WORK ON NOW:")
 	} else if len(workableNow) > 1 {
-		fmt.Println("🚀 READY TO WORK ON NOW (can be done in parallel):")
+		fmt.Println("READY TO WORK ON NOW (can be done in parallel):")
 	} else {
-		fmt.Println("🚀 READY TO WORK ON NOW:")
+		fmt.Println("READY TO WORK ON NOW:")
 	}
 	fmt.Println(strings.Repeat("=", 60))
 	if len(workableNow) == 0 {
@@ -306,7 +306,7 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 
 	// Display in-progress nodes
 	if len(inProgressNodes) > 0 {
-		fmt.Println("\n⏳ IN PROGRESS:")
+		fmt.Println("\nIN PROGRESS:")
 		fmt.Println(strings.Repeat("=", 60))
 		for _, node := range inProgressNodes {
 			c.printNodeSummary(node)
@@ -315,23 +315,23 @@ func (c *MPCDiscoverCommand) analyzeWorkflow(mpcData *mpc.MPC) {
 
 	// Display blocked nodes with their blockers
 	if len(blockedNodes) > 0 {
-		fmt.Println("\n🔒 BLOCKED (waiting on dependencies):")
+		fmt.Println("\nBLOCKED (waiting on dependencies):")
 		fmt.Println(strings.Repeat("=", 60))
 		for _, node := range blockedNodes {
 			c.printNodeSummary(node)
 			if blockers, ok := nodeBlockers[node.ID]; ok && len(blockers) > 0 {
-				fmt.Printf("     ⤷ Waiting on: %s\n", strings.Join(blockers, ", "))
+				fmt.Printf("     Waiting on: %s\n", strings.Join(blockers, ", "))
 			}
 		}
 	}
 
 	// Show workflow execution stages
-	fmt.Println("\n📋 WORKFLOW EXECUTION STAGES:")
+	fmt.Println("\nWORKFLOW EXECUTION STAGES:")
 	fmt.Println(strings.Repeat("=", 60))
 	c.showExecutionStages(mpcData)
 
 	// Summary statistics
-	fmt.Println("\n📊 SUMMARY:")
+	fmt.Println("\nSUMMARY:")
 	fmt.Println(strings.Repeat("=", 60))
 	fmt.Printf("  Ready to work: %d\n", len(workableNow))
 	fmt.Printf("  In progress: %d\n", len(inProgressNodes))
@@ -389,7 +389,7 @@ func (c *MPCDiscoverCommand) printFullNodeDetails(node *mpc.Node) {
 		fmt.Printf("     Subtasks:\n")
 		for _, subtask := range node.Subtasks {
 			if subtask.Completed {
-				fmt.Printf("       ✓ %s\n", subtask.Description)
+				fmt.Printf("       [x] %s\n", subtask.Description)
 			} else {
 				fmt.Printf("       - %s\n", subtask.Description)
 			}
@@ -480,7 +480,7 @@ func (c *MPCDiscoverCommand) showExecutionStages(mpcData *mpc.MPC) {
 			for id := range unlocks {
 				unlockList = append(unlockList, id)
 			}
-			fmt.Printf("    → Unlocks: %s\n", strings.Join(unlockList, ", "))
+			fmt.Printf("    Unlocks: %s\n", strings.Join(unlockList, ", "))
 		}
 	}
 }
@@ -637,12 +637,12 @@ Output Modes:
                      - Ready tasks to implement
 
 Display Sections (verbose mode):
-  🔧 ARTIFACT GENERATION: Tasks needing BPMN or spec generation
-  🚀 READY TO WORK: Tasks with all dependencies completed
+  ARTIFACT GENERATION: Tasks needing BPMN or spec generation
+  READY TO WORK: Tasks with all dependencies completed
   ⏳ IN PROGRESS: Tasks currently being worked on
-  🔒 BLOCKED: Tasks waiting on dependencies
-  📋 EXECUTION STAGES: Ordered stages showing parallel/sequential flow
-  📊 SUMMARY: Overall workflow statistics
+  BLOCKED: Tasks waiting on dependencies
+  EXECUTION STAGES: Ordered stages showing parallel/sequential flow
+  SUMMARY: Overall workflow statistics
 
 Status Icons:
   ○ Ready, ◐ In Progress, ■ Blocked, ● Completed

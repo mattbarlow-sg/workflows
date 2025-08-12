@@ -9,7 +9,6 @@ context:
     - "Support for workflows spanning days to weeks with fault tolerance"
     - "Human task management with escalation capabilities"
     - "Full CLI accessibility for workflow control"
-    - "Three UI views: workflows dashboard, single workflow graph, human task queue"
     - "Deterministic workflow execution with static analysis"
     - "Comprehensive integration and unit testing framework"
 
@@ -45,38 +44,46 @@ entry_node: "validation-framework"
 nodes:
   - id: "validation-framework"
     status: "Specified"
-    materialization: 0.2
+    materialization: 1.0
     description: "Create comprehensive validation framework for Temporal workflows"
     detailed_description: "Build a validation framework that performs static analysis, determinism checks, and pre-deployment validation of all Temporal workflows before they can be registered or deployed"
     subtasks:
       - description: "Design BPMN process for validation framework"
         completed: true
       - description: "Generate formal property specifications"
-        completed: false
+        completed: true
       - description: "Create Go schema definitions and contracts"
-        completed: false
+        completed: true
       - description: "Create internal/temporal/validator.go with ValidatorInterface"
-        completed: false
+        completed: true
       - description: "Implement determinism checker using workflowcheck"
-        completed: false
+        completed: true
       - description: "Build activity signature validator"
-        completed: false
+        completed: true
       - description: "Create workflow graph validator for cycles and connectivity"
-        completed: false
+        completed: true
       - description: "Implement timeout and retry policy validators"
-        completed: false
+        completed: true
       - description: "Add human task validation rules"
-        completed: false
+        completed: true
       - description: "Create validation result types and error reporting"
-        completed: false
+        completed: true
       - description: "Write comprehensive unit tests for validators"
-        completed: false
+        completed: true
     outputs:
       - "internal/temporal/validator.go"
       - "internal/temporal/validator_test.go"
       - "internal/temporal/validation_rules.go"
     artifacts:
       bpmn: "definitions/bpmn/temporal-validation-framework.json"
+      invariants: "docs/properties/validation-framework-invariants.yaml"
+      states: "docs/properties/validation-framework-states.yaml"
+      rules: "docs/properties/validation-framework-rules.yaml"
+      test_specs: "docs/properties/validation-framework-test-specs.yaml"
+      interface_spec: "docs/specs/validation-framework.yaml"
+      schema: "src/schemas/validation-framework.schema.go"
+      contracts: "src/schemas/validation-framework.contracts.go"
+      transformations: "src/schemas/validation-framework.transformations.go"
     acceptance_criteria:
       - "All validation functions have >90% test coverage"
       - "Determinism checker correctly identifies non-deterministic code"
@@ -370,47 +377,6 @@ nodes:
       - "Temporal client operations"
       - "Command-line UX patterns"
     downstream:
-      - "ui-implementation"
-
-  - id: "ui-implementation"
-    status: "Blocked"
-    materialization: 0.1
-    description: "Implement three UI views for workflow visualization"
-    detailed_description: "Create web-based UI with three views: full workflows dashboard showing all workflows and statuses, network graph view for single workflow visualization, and queue view for human tasks"
-    subtasks:
-      - description: "Design UI architecture and API endpoints"
-        completed: false
-      - description: "Create workflows dashboard view"
-        completed: false
-      - description: "Implement workflow graph visualization"
-        completed: false
-      - description: "Build human task queue view"
-        completed: false
-      - description: "Add real-time updates via WebSocket"
-        completed: false
-      - description: "Implement filtering and search"
-        completed: false
-      - description: "Create workflow detail modals"
-        completed: false
-      - description: "Write UI integration tests"
-        completed: false
-    outputs:
-      - "ui/src/views/Dashboard.tsx"
-      - "ui/src/views/WorkflowGraph.tsx"
-      - "ui/src/views/TaskQueue.tsx"
-      - "internal/api/handlers.go"
-      - "internal/api/websocket.go"
-    acceptance_criteria:
-      - "All three views are functional"
-      - "Real-time updates work reliably"
-      - "UI is responsive and performant"
-      - "Clear visualization of workflow states"
-    definition_of_done: "UI provides comprehensive visualization and management of workflows and human tasks"
-    required_knowledge:
-      - "Frontend framework (React/Vue)"
-      - "Graph visualization libraries"
-      - "WebSocket implementation"
-    downstream:
       - "integration-testing"
 
   - id: "integration-testing"
@@ -428,8 +394,6 @@ nodes:
       - description: "Validate human task escalation flows"
         completed: false
       - description: "Test CLI command integration"
-        completed: false
-      - description: "Verify UI real-time updates"
         completed: false
       - description: "Perform load and stress testing"
         completed: false

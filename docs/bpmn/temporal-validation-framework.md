@@ -121,7 +121,7 @@ graph TB
 - **Type**: Service Task (Automated)
 - **Agent**: System
 - **Implementation**: stdout reporter
-- **Output**: "✅ All Temporal workflow validations passed"
+- **Output**: "All Temporal workflow validations passed"
 - **Next**: Success End Event
 
 #### 6.2 Error Path
@@ -190,10 +190,10 @@ graph TB
 just validate-workflows
 
 # Expected output for success:
-# ✅ All Temporal workflow validations passed
+# All Temporal workflow validations passed
 
 # Expected output for failure:
-# ❌ Validation failed:
+# Validation failed:
 # - Determinism Check: Non-deterministic use of time.Now() in workflow
 # - Activity Signature: Type mismatch in ProcessOrder activity
 # - Timeout Policy: Missing ScheduleToClose timeout for LongRunningActivity

@@ -97,7 +97,7 @@
             "strategy": "static"
           },
           "implementation": "stdout-reporter",
-          "documentation": "Output success message to stdout: '✅ All Temporal workflow validations passed'"
+          "documentation": "Output success message to stdout: 'All Temporal workflow validations passed'"
         },
         {
           "id": "report-errors",

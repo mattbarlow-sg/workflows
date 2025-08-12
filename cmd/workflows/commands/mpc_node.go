@@ -172,7 +172,6 @@ func (c *MPCNodeCommand) printArtifacts(artifacts *mpc.Artifacts) {
 	fmt.Println()
 }
 
-
 func (c *MPCNodeCommand) printWrapped(text string, indent int) {
 	maxWidth := 78 - indent
 	words := strings.Fields(text)

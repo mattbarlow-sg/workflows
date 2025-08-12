@@ -216,10 +216,10 @@ Ralph loops work best for:
 5. **Session Boundaries** - Natural breaks after planning/spec/implementation
 
 ## Anti-Patterns
-❌ **Big Bang Specification** - Don't spec entire system upfront
-❌ **Rigid Plans** - MPC should evolve continuously
-❌ **Skipping Stages** - Always spec before implementing
-❌ **Over-Parallelization** - Limit concurrent work
+**Big Bang Specification** - Don't spec entire system upfront
+**Rigid Plans** - MPC should evolve continuously
+**Skipping Stages** - Always spec before implementing
+**Over-Parallelization** - Limit concurrent work
 
 ## Summary
 Testing is woven throughout the process, not a phase. This approach combines agile flexibility with formal rigor, ensuring correct implementation while maintaining adaptability.
