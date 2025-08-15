@@ -1,0 +1,404 @@
+# BPMN Adapter Business Rules
+# Generated for: 1754471482-temporal-workflow-implementation
+# Node: bpmn-adapter
+# Version: 1.0
+# Description: Business rules governing BPMN to Temporal conversion
+
+metadata:
+  node_id: bpmn-adapter
+  domain: workflow-conversion
+  generated: 2025-08-12
+  implementation_id: 1754471482-temporal-workflow-implementation
+
+business_rules:
+  # Activity Conversion Rules
+  activity_conversion:
+    - id: RULE-ACT-001
+      name: User Task Conversion
+      description: Convert BPMN user tasks to Temporal activities with human signals
+      condition: "activity.Type == 'userTask'"
+      action: |
+        Generate Temporal Activity with:
+        - SignalChannel for human input
+        - Timeout configuration from BPMN
+        - Escalation path if defined
+      priority: HIGH
+      validation: "Generated activity has signal handler"
+
+    - id: RULE-ACT-002
+      name: Service Task Conversion
+      description: Convert BPMN service tasks to direct Temporal activities
+      condition: "activity.Type == 'serviceTask'"
+      action: |
+        Generate standard Temporal Activity:
+        - Map BPMN properties to activity options
+        - Preserve retry policies
+        - Map data inputs/outputs
+      priority: HIGH
+      validation: "Activity signature matches BPMN I/O"
+
+    - id: RULE-ACT-003
+      name: Script Task Inline Decision
+      description: Inline simple scripts, create activities for complex ones
+      condition: "activity.Type == 'scriptTask'"
+      action: |
+        IF script.LineCount < 50 AND script.Language == 'go':
+          Generate inline workflow code
+        ELSE:
+          Generate separate Activity with script execution
+      priority: MEDIUM
+      validation: "Script execution deterministic"
+
+    - id: RULE-ACT-004
+      name: SubProcess Conversion
+      description: Convert BPMN subprocesses to child workflows
+      condition: "activity.Type == 'subProcess'"
+      action: |
+        Generate Child Workflow:
+        - Create separate workflow definition
+        - Map subprocess elements recursively
+        - Preserve data flow between parent and child
+      priority: HIGH
+      validation: "Child workflow independently executable"
+
+    - id: RULE-ACT-005
+      name: Agent Assignment Mapping
+      description: Map BPMN agent assignments to activity options
+      condition: "activity.Agent != nil"
+      action: |
+        Add to Activity Options:
+        - TaskQueue based on agent type
+        - Retry policy based on agent reliability
+        - Timeout based on agent SLA
+      priority: MEDIUM
+      validation: "Agent properties preserved in options"
+
+  # Gateway Conversion Rules
+  gateway_conversion:
+    - id: RULE-GW-001
+      name: Exclusive Gateway Conversion
+      description: Convert exclusive gateways to if/else statements
+      condition: "gateway.Type == 'exclusiveGateway'"
+      action: |
+        Generate if/else chain:
+        - Evaluate conditions in sequence order
+        - Add default branch if specified
+        - Ensure single path execution
+      priority: HIGH
+      validation: "Exactly one outgoing path executed"
+
+    - id: RULE-GW-002
+      name: Parallel Gateway Conversion
+      description: Convert parallel gateways to workflow.Go with Await
+      condition: "gateway.Type == 'parallelGateway'"
+      action: |
+        For diverging:
+          - Count outgoing flows
+          - Generate workflow.Go for each path
+        For converging:
+          - Generate workflow.Await for all incoming
+      priority: HIGH
+      validation: "All parallel paths execute"
+
+    - id: RULE-GW-003
+      name: Inclusive Gateway Conversion
+      description: Convert inclusive gateways to conditional workflow.Go
+      condition: "gateway.Type == 'inclusiveGateway'"
+      action: |
+        Generate conditional parallel execution:
+        - Evaluate each condition
+        - Execute workflow.Go for true conditions
+        - Await all started paths
+      priority: MEDIUM
+      validation: "At least one path executes"
+
+    - id: RULE-GW-004
+      name: Event-Based Gateway Conversion
+      description: Convert event-based gateways to workflow.Selector
+      condition: "gateway.Type == 'eventBasedGateway'"
+      action: |
+        Generate workflow.Selector:
+        - AddReceive for each message event
+        - AddTimer for each timer event
+        - Execute first matching branch
+      priority: HIGH
+      validation: "Selector handles all event types"
+
+  # Event Conversion Rules
+  event_conversion:
+    - id: RULE-EVT-001
+      name: Start Event Conversion
+      description: Map start events to workflow initialization
+      condition: "event.Type == 'startEvent'"
+      action: |
+        Generate workflow start:
+        - Map event data to workflow input
+        - Set up signal handlers for triggered starts
+        - Initialize workflow context
+      priority: HIGH
+      validation: "Workflow can be started"
+
+    - id: RULE-EVT-002
+      name: Timer Event Conversion
+      description: Convert timer events to Temporal timers
+      condition: "event.EventType == 'timer'"
+      action: |
+        Generate Temporal timer:
+        - workflow.NewTimer for delays
+        - workflow.Sleep for simple waits
+        - Cron expressions for recurring
+      priority: HIGH
+      validation: "Timer respects duration limits"
+
+    - id: RULE-EVT-003
+      name: Message Event Conversion
+      description: Convert message events to typed signals
+      condition: "event.EventType == 'message'"
+      action: |
+        Generate signal handling:
+        - Define signal struct type
+        - Create signal channel
+        - Add signal handler to workflow
+      priority: HIGH
+      validation: "Signal type matches message schema"
+
+    - id: RULE-EVT-004
+      name: Error Event Conversion
+      description: Map error events to retry policies and error handlers
+      condition: "event.EventType == 'error'"
+      action: |
+        Generate error handling:
+        - Activity retry policy for boundary errors
+        - Error return types for throw events
+        - Compensation handlers for error recovery
+      priority: HIGH
+      validation: "Error handling preserves semantics"
+
+    - id: RULE-EVT-005
+      name: Boundary Event Conversion
+      description: Convert boundary events to timeouts and cancellations
+      condition: "event.Type == 'boundaryEvent'"
+      action: |
+        IF event.IsInterrupting:
+          Generate activity timeout/cancellation
+        ELSE:
+          Generate non-blocking event listener
+      priority: HIGH
+      validation: "Boundary behavior preserved"
+
+  # Data Mapping Rules
+  data_mapping:
+    - id: RULE-DATA-001
+      name: Data Object Conversion
+      description: Map BPMN data objects to Go structs
+      condition: "dataObject exists in process"
+      action: |
+        Generate Go struct:
+        - Convert BPMN types to Go types
+        - Add json tags for serialization
+        - Create workflow I/O structs
+      priority: HIGH
+      validation: "Type safety maintained"
+
+    - id: RULE-DATA-002
+      name: Property Conversion
+      description: Map BPMN properties to activity parameters
+      condition: "properties exist on element"
+      action: |
+        Map to Go fields:
+        - Convert property names to Go conventions
+        - Required fields as non-pointer types
+        - Optional fields as pointer types
+      priority: MEDIUM
+      validation: "All properties accessible"
+
+    - id: RULE-DATA-003
+      name: Name Convention Conversion
+      description: Convert BPMN names to Go naming conventions
+      condition: "element has name or ID"
+      action: |
+        Apply naming rules:
+        - snake_case -> CamelCase for fields
+        - IDs -> sanitized Go identifiers
+        - Preserve original as comments
+      priority: MEDIUM
+      validation: "Names are valid Go identifiers"
+
+  # Error Handling Rules
+  error_handling:
+    - id: RULE-ERR-001
+      name: Unsupported Element Handling
+      description: Generate TODOs for unsupported BPMN elements
+      condition: "element type not in supported list"
+      action: |
+        Generate TODO comment:
+        - Document unsupported element type
+        - Provide manual implementation guidance
+        - Add to conversion report
+      priority: LOW
+      validation: "TODO includes context"
+
+    - id: RULE-ERR-002
+      name: Missing Reference Handling
+      description: Handle missing element references
+      condition: "reference target not found"
+      action: |
+        Abort conversion with error:
+        - Report missing reference details
+        - Suggest resolution steps
+        - Fail validation
+      priority: CRITICAL
+      validation: "Error is actionable"
+
+    - id: RULE-ERR-003
+      name: Non-Deterministic Pattern Detection
+      description: Detect and report non-deterministic patterns
+      condition: "pattern violates Temporal determinism"
+      action: |
+        Generate error with suggestion:
+        - Identify non-deterministic code
+        - Suggest deterministic alternative
+        - Add warning to generated code
+      priority: HIGH
+      validation: "Suggestion is implementable"
+
+  # Migration Rules
+  migration:
+    - id: RULE-MIG-001
+      name: Package Structure Generation
+      description: Generate proper Go package structure
+      condition: "conversion initiated"
+      action: |
+        Create package with:
+        - workflow.go for workflow definitions
+        - activities.go for activity implementations
+        - types.go for data structures
+        - mapper.go for conversion utilities
+      priority: HIGH
+      validation: "Package compiles"
+
+    - id: RULE-MIG-002
+      name: Test Generation
+      description: Generate unit tests for converted workflows
+      condition: "config.GenerateTests == true"
+      action: |
+        Generate test files:
+        - Workflow replay tests
+        - Activity unit tests
+        - Integration test templates
+      priority: MEDIUM
+      validation: "Tests are executable"
+
+    - id: RULE-MIG-003
+      name: Incremental Migration Support
+      description: Support partial workflow migration
+      condition: "config.IncrementalMigration == true"
+      action: |
+        Enable incremental features:
+        - Mark migrated elements
+        - Support mixed execution
+        - Provide migration status tracking
+      priority: LOW
+      validation: "Partial workflows functional"
+
+  # Validation Rules
+  validation:
+    - id: RULE-VAL-001
+      name: Determinism Validation
+      description: Ensure generated workflows are deterministic
+      condition: "code generation complete"
+      action: |
+        Run determinism checks:
+        - No time.Now() in workflow code
+        - No random without seed
+        - No direct I/O operations
+      priority: CRITICAL
+      validation: "Passes workflowcheck"
+
+    - id: RULE-VAL-002
+      name: Type Safety Validation
+      description: Ensure type safety across conversion
+      condition: "data mapping complete"
+      action: |
+        Verify type safety:
+        - Go compiler type checking
+        - No implicit conversions
+        - Proper nil handling
+      priority: HIGH
+      validation: "go build succeeds"
+
+    - id: RULE-VAL-003
+      name: Semantic Preservation Validation
+      description: Verify BPMN semantics preserved
+      condition: "conversion complete"
+      action: |
+        Compare execution paths:
+        - BPMN sequence flows match Temporal execution
+        - Gateway logic preserved
+        - Event handling equivalent
+      priority: CRITICAL
+      validation: "Execution traces match"
+
+  # Optimization Rules
+  optimization:
+    - id: RULE-OPT-001
+      name: Activity Batching
+      description: Batch similar activities for efficiency
+      condition: "multiple similar activities in sequence"
+      action: |
+        Consider batching:
+        - Group similar service calls
+        - Use activity with array input
+        - Reduce workflow history size
+      priority: LOW
+      validation: "Batching preserves semantics"
+
+    - id: RULE-OPT-002
+      name: Signal Consolidation
+      description: Consolidate multiple signals into channels
+      condition: "multiple signals of same type"
+      action: |
+        Consolidate signals:
+        - Use single channel with message types
+        - Reduce signal handler complexity
+        - Improve performance
+      priority: LOW
+      validation: "All signals handled"
+
+    - id: RULE-OPT-003
+      name: Parallel Execution Optimization
+      description: Optimize parallel gateway execution
+      condition: "parallel paths with no dependencies"
+      action: |
+        Optimize parallel execution:
+        - Use workflow.Go efficiently
+        - Minimize goroutine overhead
+        - Consider activity options
+      priority: LOW
+      validation: "Parallelism maintained"
+
+rule_precedence:
+  - CRITICAL: [RULE-ERR-002, RULE-VAL-001, RULE-VAL-003]
+  - HIGH: [RULE-ACT-001, RULE-ACT-002, RULE-ACT-004, RULE-GW-001, RULE-GW-002]
+  - MEDIUM: [RULE-ACT-003, RULE-ACT-005, RULE-GW-003, RULE-DATA-002]
+  - LOW: [RULE-ERR-001, RULE-MIG-003, RULE-OPT-001, RULE-OPT-002]
+
+rule_dependencies:
+  RULE-ACT-001: [RULE-DATA-001, RULE-DATA-002]
+  RULE-ACT-004: [RULE-ACT-001, RULE-ACT-002, RULE-ACT-003]
+  RULE-GW-002: [RULE-DATA-001]
+  RULE-MIG-001: [RULE-DATA-001, RULE-DATA-003]
+  RULE-VAL-001: [RULE-ACT-001, RULE-ACT-002, RULE-GW-001]
+
+conflict_resolution:
+  - conflict: "Script inline vs activity creation"
+    rules: [RULE-ACT-003, RULE-VAL-001]
+    resolution: "Determinism takes precedence - create activity if uncertain"
+    
+  - conflict: "Performance vs semantic preservation"
+    rules: [RULE-OPT-001, RULE-VAL-003]
+    resolution: "Semantic preservation always wins"
+    
+  - conflict: "Name collision in conversion"
+    rules: [RULE-DATA-003, RULE-ERR-002]
+    resolution: "Add numeric suffix to resolve conflicts"

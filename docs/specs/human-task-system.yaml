@@ -1,0 +1,811 @@
+# Human Task System Specification
+# Generated for: 1754471482-temporal-workflow-implementation
+# Node: human-task-system
+# Version: 1.0
+# Description: Human task queue management system with LIFO processing and AI-assisted validation
+
+metadata:
+  node_id: human-task-system
+  domain: human-task-orchestration
+  generated: 2025-08-15
+  implementation_id: 1754471482-temporal-workflow-implementation
+  specification_type: task_management_system
+
+# Mathematical Invariants
+invariants:
+  queue_ordering:
+    description: Tasks always processed in LIFO (Last-In-First-Out) order
+    formula: |
+      ∀ t1, t2 ∈ Queue: 
+        CreatedAt(t1) < CreatedAt(t2) ⟹ ProcessOrder(t2) < ProcessOrder(t1)
+    constraints:
+      - New tasks added to front of queue
+      - Processing always from front (newest first)
+      - Escalation does not change queue position
+  
+  single_state:
+    description: Each task has exactly one state at any time
+    formula: |
+      ∀ t ∈ Tasks, ∀ time: 
+        |{s ∈ States : HasState(t, s, time)}| = 1
+    states:
+      - pending
+      - in_review
+      - awaiting_clarification
+      - completed
+      - approved
+      - rejected
+      - cancelled
+  
+  operator_exclusivity:
+    description: Single operator handles all tasks, no concurrency
+    formula: |
+      ∀ t1, t2 ∈ Tasks:
+        InReview(t1) ∧ InReview(t2) ⟹ t1 = t2
+    constraints:
+      - At most one task in_review at any time
+      - No reassignment between operators
+      - Operator lock prevents concurrent access
+  
+  escalation_persistence:
+    description: Once escalated, task remains escalated
+    formula: |
+      ∀ t ∈ Tasks, ∀ t1, t2 ∈ Time:
+        t1 < t2 ∧ Escalated(t, t1) ⟹ Escalated(t, t2)
+    trigger: Task age exceeds 14 days (P14D)
+  
+  immutable_history:
+    description: All state transitions are recorded and immutable
+    formula: |
+      ∀ h ∈ History:
+        Created(h) ⟹ ∀ t > CreatedAt(h): Unchanged(h, t)
+    properties:
+      - Append-only history
+      - No deletion or modification
+      - Complete audit trail
+  
+  proof_requirement:
+    description: Completed tasks must have AI-validated proof
+    formula: |
+      ∀ t ∈ Tasks:
+        Status(t) ∈ {completed, approved} ⟹ 
+          ∃ p ∈ Proofs: Valid(p) ∧ BelongsTo(p, t)
+    validation:
+      - AI validates proof sufficiency
+      - Proof required for completion
+      - Validation result stored
+
+# State Machine Specification
+state_machine:
+  initial_state: pending
+  
+  states:
+    pending:
+      description: Task waiting in queue for operator
+      entry_actions:
+        - Set creation timestamp
+        - Add to queue front (LIFO)
+        - Initialize escalation timer
+      invariants:
+        - No operator assigned
+        - In queue for processing
+    
+    in_review:
+      description: Task being actively reviewed by operator
+      entry_actions:
+        - Assign operator
+        - Lock task for exclusive access
+        - Start review timer
+      invariants:
+        - Exactly one operator assigned
+        - Not available to other operators
+        - Can transition to multiple states
+    
+    awaiting_clarification:
+      description: Task requires additional information
+      entry_actions:
+        - Increment clarification counter
+        - Send clarification request
+        - Release operator lock
+      invariants:
+        - No active operator
+        - Waiting for external input
+        - Can return to in_review multiple times
+    
+    completed:
+      description: Task successfully completed with proof
+      entry_actions:
+        - Validate proof via AI
+        - Record completion timestamp
+        - Archive task
+      invariants:
+        - Has validated proof
+        - Terminal state (no further transitions)
+        - Immutable record
+    
+    approved:
+      description: Task approved by operator
+      entry_actions:
+        - Record approval
+        - Validate any required proof
+        - Notify stakeholders
+      invariants:
+        - Can only transition to cancelled
+        - Has approval record
+    
+    rejected:
+      description: Task rejected by operator
+      entry_actions:
+        - Record rejection reason
+        - Archive task
+        - Notify stakeholders
+      invariants:
+        - Terminal state
+        - Has rejection reason
+    
+    cancelled:
+      description: Task cancelled
+      entry_actions:
+        - Record cancellation reason
+        - Archive task
+        - Clean up resources
+      invariants:
+        - Terminal state
+        - No resurrection allowed
+  
+  transitions:
+    - from: pending
+      to: in_review
+      guard: Operator available
+      action: Assign operator
+    
+    - from: in_review
+      to: completed
+      guard: Proof provided and AI-validated
+      action: Complete task with proof
+    
+    - from: in_review
+      to: approved
+      guard: Operator approves
+      action: Record approval
+    
+    - from: in_review
+      to: rejected
+      guard: Operator rejects
+      action: Record rejection with reason
+    
+    - from: in_review
+      to: cancelled
+      guard: Cancellation requested
+      action: Cancel with reason
+    
+    - from: in_review
+      to: awaiting_clarification
+      guard: Clarification needed
+      action: Request clarification
+    
+    - from: awaiting_clarification
+      to: in_review
+      guard: Clarification received
+      action: Resume review
+    
+    - from: approved
+      to: cancelled
+      guard: Cancellation allowed post-approval
+      action: Cancel approved task
+  
+  forbidden_transitions:
+    - from: cancelled
+      to: "*"
+      reason: Cancelled tasks cannot be reopened
+    
+    - from: approved
+      to: rejected
+      reason: Approved tasks cannot be rejected
+    
+    - from: completed
+      to: "*"
+      reason: Completed tasks are terminal
+    
+    - from: rejected
+      to: "*"
+      reason: Rejected tasks are terminal
+
+# Business Rules
+business_rules:
+  queue_management:
+    lifo_processing:
+      description: New tasks added to front, processed from front
+      implementation: |
+        - Queue.AddFront(task)
+        - task = Queue.PopFront()
+      rationale: Prioritize recent tasks (intentional design)
+    
+    unbounded_capacity:
+      description: No limit on queue size
+      constraints:
+        - No maximum queue length
+        - Memory only constraint
+        - No task rejection due to capacity
+    
+    no_priority_system:
+      description: All tasks have equal priority
+      implementation: |
+        - No priority field
+        - LIFO order only
+        - Escalation doesn't change position
+  
+  escalation_rules:
+    timer_based:
+      description: Escalate after exactly 14 days
+      trigger: Task.Age >= P14D
+      actions:
+        - Set escalated flag
+        - Record escalation timestamp
+        - Notify stakeholders
+      constraints:
+        - Does not change queue position
+        - Does not force processing
+        - Permanent flag once set
+  
+  operator_workflow:
+    single_operator:
+      description: One operator handles all tasks
+      constraints:
+        - No parallel processing
+        - No task reassignment
+        - Sequential task handling
+    
+    polling_based:
+      description: Operator polls for next task
+      implementation: |
+        - Operator requests next task
+        - System returns front of queue
+        - Task locked to operator
+    
+    clarification_cycles:
+      description: Unlimited clarification rounds allowed
+      constraints:
+        - No limit on clarification count
+        - Each cycle increments counter
+        - Task returns to same operator
+  
+  proof_validation:
+    ai_validation:
+      description: AI validates proof sufficiency
+      process:
+        - Operator provides proof
+        - AI analyzes proof content
+        - Validation result stored
+      requirements:
+        - Proof must be non-empty
+        - AI decision is final
+        - Result stored with task
+    
+    proof_types:
+      description: Accepted proof formats
+      examples:
+        - Pull request URLs
+        - Documentation links
+        - Screenshot evidence
+        - Completion certificates
+
+# Interface Contracts
+interfaces:
+  TaskQueue:
+    description: Main queue management interface
+    package: internal/temporal/humantask
+    methods:
+      - name: CreateTask
+        description: Add new task to queue
+        signature: |
+          func (q *TaskQueue) CreateTask(ctx context.Context, req CreateTaskRequest) (*TaskRecord, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation
+          - name: req
+            type: CreateTaskRequest
+            description: Task creation request
+        returns:
+          - type: "*TaskRecord"
+            description: Created task record
+          - type: error
+            description: Error if creation fails
+        errors:
+          - ErrInvalidTaskType
+          - ErrContextMissing
+      
+      - name: GetNextTask
+        description: Get next task for operator (LIFO)
+        signature: |
+          func (q *TaskQueue) GetNextTask(ctx context.Context, operatorID string) (*TaskRecord, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation
+          - name: operatorID
+            type: string
+            description: Operator requesting task
+        returns:
+          - type: "*TaskRecord"
+            description: Next task or nil if queue empty
+          - type: error
+            description: Error if retrieval fails
+      
+      - name: SubmitDecision
+        description: Submit operator decision on task
+        signature: |
+          func (q *TaskQueue) SubmitDecision(ctx context.Context, decision OperatorDecision) (*TaskResponse, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation
+          - name: decision
+            type: OperatorDecision
+            description: Operator's decision
+        returns:
+          - type: "*TaskResponse"
+            description: Response with outcome
+          - type: error
+            description: Error if submission fails
+        errors:
+          - ErrTaskNotFound
+          - ErrInvalidState
+          - ErrProofRequired
+          - ErrValidationFailed
+      
+      - name: RequestClarification
+        description: Request clarification on task
+        signature: |
+          func (q *TaskQueue) RequestClarification(ctx context.Context, taskID string, question string) error
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation
+          - name: taskID
+            type: string
+            description: Task requiring clarification
+          - name: question
+            type: string
+            description: Clarification question
+        returns:
+          - type: error
+            description: Error if request fails
+      
+      - name: GetQueueState
+        description: Get current queue state and statistics
+        signature: |
+          func (q *TaskQueue) GetQueueState(ctx context.Context) (*QueueState, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation
+        returns:
+          - type: "*QueueState"
+            description: Current queue state
+          - type: error
+            description: Error if retrieval fails
+  
+  ProofValidator:
+    description: AI-powered proof validation interface
+    package: internal/temporal/humantask
+    methods:
+      - name: ValidateProof
+        description: Validate proof sufficiency using AI
+        signature: |
+          func (v *ProofValidator) ValidateProof(ctx context.Context, taskType string, proof string) (*AIValidation, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation
+          - name: taskType
+            type: string
+            description: Type of task
+          - name: proof
+            type: string
+            description: Proof content to validate
+        returns:
+          - type: "*AIValidation"
+            description: Validation result
+          - type: error
+            description: Error if validation fails
+  
+  EscalationManager:
+    description: Manages task escalation based on age
+    package: internal/temporal/humantask
+    methods:
+      - name: CheckEscalations
+        description: Check and mark tasks for escalation
+        signature: |
+          func (m *EscalationManager) CheckEscalations(ctx context.Context) ([]string, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation
+        returns:
+          - type: "[]string"
+            description: IDs of newly escalated tasks
+          - type: error
+            description: Error if check fails
+
+# Data Types
+types:
+  TaskRecord:
+    description: Complete task record with all metadata
+    fields:
+      - name: ID
+        type: string
+        required: true
+        validation: uuid
+        description: Unique task identifier
+      
+      - name: Type
+        type: string
+        required: true
+        validation: oneof=approval review data_entry decision other
+        description: Task type category
+      
+      - name: Status
+        type: TaskStatus
+        required: true
+        description: Current task status
+      
+      - name: Context
+        type: map[string]interface{}
+        required: true
+        description: Task-specific context data
+      
+      - name: Proof
+        type: "*ProofRecord"
+        required: false
+        description: Proof of completion if provided
+      
+      - name: CreatedAt
+        type: time.Time
+        required: true
+        description: Task creation timestamp
+      
+      - name: Escalated
+        type: bool
+        required: true
+        default: false
+        description: Whether task is escalated
+      
+      - name: EscalatedAt
+        type: "*time.Time"
+        required: false
+        description: Escalation timestamp if escalated
+      
+      - name: ReviewingOperator
+        type: "*string"
+        required: false
+        description: Currently reviewing operator
+      
+      - name: ClarificationCount
+        type: int
+        required: true
+        default: 0
+        validation: min=0
+        description: Number of clarification cycles
+      
+      - name: History
+        type: "[]HistoryEntry"
+        required: true
+        description: Immutable history of all state changes
+  
+  TaskStatus:
+    description: Enumeration of task states
+    type: string
+    enum:
+      - pending
+      - in_review
+      - awaiting_clarification
+      - completed
+      - approved
+      - rejected
+      - cancelled
+  
+  ProofRecord:
+    description: Proof submission with validation
+    fields:
+      - name: Content
+        type: string
+        required: true
+        validation: min=1
+        description: Proof content (URL, text, etc.)
+      
+      - name: ValidationResult
+        type: "*AIValidation"
+        required: false
+        description: AI validation result
+      
+      - name: SubmittedAt
+        type: time.Time
+        required: true
+        description: Proof submission timestamp
+  
+  AIValidation:
+    description: AI validation result for proof
+    fields:
+      - name: Valid
+        type: bool
+        required: true
+        description: Whether proof is sufficient
+      
+      - name: Confidence
+        type: float64
+        required: true
+        validation: min=0,max=1
+        description: Confidence score (0-1)
+      
+      - name: Reasoning
+        type: string
+        required: false
+        description: AI's reasoning for decision
+      
+      - name: ValidatedAt
+        type: time.Time
+        required: true
+        description: Validation timestamp
+  
+  QueueState:
+    description: Current state of the task queue
+    fields:
+      - name: Tasks
+        type: "[]TaskRecord"
+        required: true
+        description: All tasks in queue (LIFO order)
+      
+      - name: OperatorStatus
+        type: string
+        required: true
+        validation: oneof=available busy offline
+        description: Current operator status
+      
+      - name: Stats
+        type: QueueStats
+        required: true
+        description: Queue statistics
+  
+  QueueStats:
+    description: Statistics about the queue
+    fields:
+      - name: TotalTasks
+        type: int
+        required: true
+        description: Total tasks in queue
+      
+      - name: PendingTasks
+        type: int
+        required: true
+        description: Tasks awaiting review
+      
+      - name: EscalatedTasks
+        type: int
+        required: true
+        description: Number of escalated tasks
+      
+      - name: AverageAge
+        type: time.Duration
+        required: true
+        description: Average task age
+      
+      - name: OldestTask
+        type: "*time.Time"
+        required: false
+        description: Creation time of oldest task
+  
+  CreateTaskRequest:
+    description: Request to create a new task
+    fields:
+      - name: Type
+        type: string
+        required: true
+        validation: oneof=approval review data_entry decision other
+        description: Task type
+      
+      - name: Context
+        type: map[string]interface{}
+        required: true
+        description: Task-specific data
+      
+      - name: RequesterID
+        type: string
+        required: false
+        description: ID of task requester
+      
+      - name: Deadline
+        type: "*time.Time"
+        required: false
+        description: Optional deadline (for tracking only)
+  
+  TaskResponse:
+    description: Response after task decision
+    fields:
+      - name: TaskID
+        type: string
+        required: true
+        validation: uuid
+        description: Task identifier
+      
+      - name: Outcome
+        type: TaskStatus
+        required: true
+        description: Final task status
+      
+      - name: Proof
+        type: "*string"
+        required: false
+        description: Proof if provided
+      
+      - name: Timestamp
+        type: time.Time
+        required: true
+        description: Decision timestamp
+  
+  OperatorDecision:
+    description: Operator's decision on a task
+    fields:
+      - name: TaskID
+        type: string
+        required: true
+        validation: uuid
+        description: Task to decide on
+      
+      - name: Decision
+        type: string
+        required: true
+        validation: oneof=complete approve reject return cancel
+        description: Decision type
+      
+      - name: Proof
+        type: string
+        required: false
+        description: Proof for completion
+      
+      - name: Reason
+        type: string
+        required: false
+        description: Reason for decision
+      
+      - name: OperatorID
+        type: string
+        required: true
+        description: Deciding operator
+  
+  HistoryEntry:
+    description: Immutable history record
+    fields:
+      - name: Timestamp
+        type: time.Time
+        required: true
+        description: When the event occurred
+      
+      - name: FromState
+        type: TaskStatus
+        required: true
+        description: Previous state
+      
+      - name: ToState
+        type: TaskStatus
+        required: true
+        description: New state
+      
+      - name: Actor
+        type: string
+        required: false
+        description: Who triggered the change
+      
+      - name: Reason
+        type: string
+        required: false
+        description: Why the change occurred
+      
+      - name: Details
+        type: map[string]interface{}
+        required: false
+        description: Additional event details
+
+# Error Definitions
+errors:
+  - code: ERR_INVALID_TASK_TYPE
+    description: Task type not recognized
+    fields:
+      - Type: string
+      - ValidTypes: []string
+  
+  - code: ERR_CONTEXT_MISSING
+    description: Required context fields missing
+    fields:
+      - MissingFields: []string
+  
+  - code: ERR_TASK_NOT_FOUND
+    description: Task does not exist
+    fields:
+      - TaskID: string
+  
+  - code: ERR_INVALID_STATE
+    description: Invalid state transition attempted
+    fields:
+      - TaskID: string
+      - CurrentState: string
+      - AttemptedTransition: string
+  
+  - code: ERR_PROOF_REQUIRED
+    description: Proof required for completion
+    fields:
+      - TaskID: string
+      - TaskType: string
+  
+  - code: ERR_VALIDATION_FAILED
+    description: AI validation of proof failed
+    fields:
+      - TaskID: string
+      - ValidationReason: string
+  
+  - code: ERR_OPERATOR_BUSY
+    description: Operator already reviewing another task
+    fields:
+      - OperatorID: string
+      - CurrentTaskID: string
+  
+  - code: ERR_QUEUE_EMPTY
+    description: No tasks available in queue
+    fields:
+      - OperatorID: string
+
+# Performance Characteristics
+performance:
+  queue_operations:
+    metric: operations_per_second
+    enqueue: ">= 1000"
+    dequeue: ">= 1000"
+    description: Queue operation throughput
+  
+  escalation_check:
+    metric: tasks_per_second
+    target: ">= 10000"
+    description: Escalation checking speed
+  
+  proof_validation:
+    metric: average_latency_ms
+    target: "< 500"
+    description: AI validation response time
+  
+  state_transitions:
+    metric: transitions_per_second
+    target: ">= 100"
+    description: State machine transition rate
+
+# Integration Points
+integrations:
+  temporal_workflow:
+    description: Integration with Temporal workflows
+    package: go.temporal.io/sdk
+    interfaces:
+      - workflow.Context
+      - activity.Context
+      - workflow.Signal
+      - workflow.Query
+  
+  ai_service:
+    description: AI service for proof validation
+    package: internal/ai
+    interfaces:
+      - Validator
+      - ProofAnalyzer
+  
+  notification_system:
+    description: Notification service for escalations
+    package: internal/notifications
+    interfaces:
+      - Notifier
+      - EscalationHandler
+
+# Versioning
+versioning:
+  current: "1.0.0"
+  compatibility: "Temporal SDK 1.20+"
+  breaking_changes: []
+  deprecations: []

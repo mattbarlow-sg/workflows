@@ -1,0 +1,331 @@
+# Human Task System - State Machine Documentation
+# Node: human-task-system
+# Implementation: 1754471482-temporal-workflow-implementation
+
+metadata:
+  node_id: human-task-system
+  category: state_machine
+  version: 1.0
+  generated: 2025-08-15
+
+state_machine:
+  initial_state: pending
+  terminal_states:
+    - completed
+    - rejected
+    - cancelled
+
+states:
+  - id: STATE-HTS-001
+    name: pending
+    description: Task waiting in queue for operator review
+    entry_conditions:
+      - Task created with valid request
+      - Required context provided
+      - Task type specified
+    entry_actions:
+      - Set creation timestamp
+      - Add to queue front (LIFO)
+      - Initialize escalation timer
+      - Create initial history entry
+    invariants:
+      - No operator assigned
+      - Task in queue for processing
+      - Escalation timer running
+    exit_conditions:
+      - Operator available and requests task
+    exit_actions:
+      - Assign operator
+      - Lock task for exclusive access
+    allowed_transitions:
+      - target: in_review
+        guard: Operator available
+        action: Assign to operator
+    data_requirements:
+      - Task type
+      - Context map
+      - Requester ID (optional)
+    test_scenarios:
+      - Create task and verify pending state
+      - Check queue position
+      - Verify escalation timer started
+
+  - id: STATE-HTS-002
+    name: in_review
+    description: Task being actively reviewed by operator
+    entry_conditions:
+      - Task was in pending state
+      - Operator available
+      - No other task in review
+    entry_actions:
+      - Assign reviewing operator
+      - Lock task exclusively
+      - Start review timer
+      - Update history
+    invariants:
+      - Exactly one operator assigned
+      - Task locked from other operators
+      - Can transition to multiple states
+    exit_conditions:
+      - Operator makes decision
+      - Clarification needed
+    exit_actions:
+      - Record decision
+      - Release lock if not completing
+    allowed_transitions:
+      - target: completed
+        guard: Proof provided and validated
+        action: Complete with proof
+      - target: approved
+        guard: Operator approves
+        action: Record approval
+      - target: rejected
+        guard: Operator rejects
+        action: Record rejection reason
+      - target: cancelled
+        guard: Cancellation requested
+        action: Cancel with reason
+      - target: awaiting_clarification
+        guard: Clarification needed
+        action: Request clarification
+    data_requirements:
+      - Operator ID
+      - Decision type
+      - Proof (for completion)
+      - Reason (for rejection/cancellation)
+    test_scenarios:
+      - Assign task to operator
+      - Verify exclusive lock
+      - Test all transition paths
+
+  - id: STATE-HTS-003
+    name: awaiting_clarification
+    description: Task requires additional information from requester
+    entry_conditions:
+      - Task was in_review
+      - Operator requested clarification
+      - Question provided
+    entry_actions:
+      - Increment clarification counter
+      - Send clarification request
+      - Release operator lock
+      - Store clarification details
+      - Update history
+    invariants:
+      - No active operator assigned
+      - Waiting for external input
+      - Can return to in_review multiple times
+      - Clarification request stored
+    exit_conditions:
+      - Clarification response received
+    exit_actions:
+      - Store response
+      - Mark for re-review
+    allowed_transitions:
+      - target: in_review
+        guard: Clarification received
+        action: Resume review with same operator
+    data_requirements:
+      - Clarification question
+      - Requesting operator ID
+      - Round number
+    test_scenarios:
+      - Request clarification
+      - Verify operator lock released
+      - Provide response and return to review
+      - Test multiple clarification cycles
+
+  - id: STATE-HTS-004
+    name: completed
+    description: Task successfully completed with validated proof
+    entry_conditions:
+      - Task was in_review
+      - Proof provided
+      - AI validation passed
+    entry_actions:
+      - Validate proof via AI
+      - Record completion timestamp
+      - Archive task
+      - Release all locks
+      - Update statistics
+    invariants:
+      - Has validated proof
+      - Terminal state
+      - No further transitions allowed
+      - Immutable record
+    exit_conditions: []  # Terminal state
+    exit_actions: []
+    allowed_transitions: []  # No transitions from terminal state
+    data_requirements:
+      - Valid proof content
+      - AI validation result
+      - Completion timestamp
+    test_scenarios:
+      - Complete task with valid proof
+      - Verify AI validation
+      - Attempt state change (should fail)
+      - Verify task archived
+
+  - id: STATE-HTS-005
+    name: approved
+    description: Task approved by operator
+    entry_conditions:
+      - Task was in_review
+      - Operator approved
+      - Approval reason provided (optional)
+    entry_actions:
+      - Record approval
+      - Validate any proof if provided
+      - Notify stakeholders
+      - Update history
+    invariants:
+      - Has approval record
+      - Can only transition to cancelled
+      - Operator decision recorded
+    exit_conditions:
+      - Cancellation requested with valid reason
+    exit_actions:
+      - Record cancellation after approval
+    allowed_transitions:
+      - target: cancelled
+        guard: Valid cancellation reason
+        action: Cancel approved task
+    forbidden_transitions:
+      - target: rejected
+        reason: Approved tasks cannot be rejected
+      - target: completed
+        reason: Already finalized
+    data_requirements:
+      - Approving operator ID
+      - Approval timestamp
+      - Optional approval notes
+    test_scenarios:
+      - Approve task
+      - Attempt rejection (should fail)
+      - Cancel approved task
+      - Verify notification sent
+
+  - id: STATE-HTS-006
+    name: rejected
+    description: Task rejected by operator
+    entry_conditions:
+      - Task was in_review
+      - Operator rejected
+      - Rejection reason provided
+    entry_actions:
+      - Record rejection reason
+      - Archive task
+      - Notify stakeholders
+      - Release all locks
+      - Update history
+    invariants:
+      - Terminal state
+      - Has rejection reason
+      - No resurrection allowed
+    exit_conditions: []  # Terminal state
+    exit_actions: []
+    allowed_transitions: []  # No transitions from terminal state
+    data_requirements:
+      - Rejection reason (required)
+      - Rejecting operator ID
+      - Rejection timestamp
+    test_scenarios:
+      - Reject task with reason
+      - Verify reason recorded
+      - Attempt to reopen (should fail)
+      - Verify notification sent
+
+  - id: STATE-HTS-007
+    name: cancelled
+    description: Task cancelled
+    entry_conditions:
+      - Valid cancellation reason
+      - Authorized actor
+    entry_actions:
+      - Record cancellation reason
+      - Archive task
+      - Clean up resources
+      - Release all locks
+      - Update history
+    invariants:
+      - Terminal state
+      - No resurrection allowed
+      - Cancellation reason recorded
+    exit_conditions: []  # Terminal state
+    exit_actions: []
+    allowed_transitions: []  # No transitions from terminal state
+    source_states:
+      - in_review
+      - approved
+    data_requirements:
+      - Cancellation reason (required)
+      - Cancelling actor ID
+      - Cancellation timestamp
+    test_scenarios:
+      - Cancel from in_review
+      - Cancel from approved
+      - Attempt to reopen (should fail)
+      - Verify cleanup performed
+
+transition_matrix:
+  pending:
+    - in_review
+  in_review:
+    - completed
+    - approved
+    - rejected
+    - cancelled
+    - awaiting_clarification
+  awaiting_clarification:
+    - in_review
+  approved:
+    - cancelled
+  completed: []  # Terminal
+  rejected: []   # Terminal
+  cancelled: []  # Terminal
+
+forbidden_transitions:
+  - from: cancelled
+    to: "*"
+    reason: Cancelled tasks cannot be reopened
+  - from: completed
+    to: "*"
+    reason: Completed tasks are terminal
+  - from: rejected
+    to: "*"
+    reason: Rejected tasks are terminal
+  - from: approved
+    to: rejected
+    reason: Approved tasks cannot be rejected
+  - from: approved
+    to: completed
+    reason: Approved is already a final state
+  - from: approved
+    to: pending
+    reason: Cannot return to pending from approved
+
+validation:
+  pre_transition:
+    - Validate current state
+    - Check transition allowed
+    - Verify guard conditions
+    - Validate required data
+  
+  post_transition:
+    - Verify new state set
+    - Check invariants hold
+    - Validate history updated
+    - Confirm actions completed
+
+monitoring:
+  metrics:
+    - Time in each state
+    - Transition frequency
+    - Failed transition attempts
+    - State distribution
+  
+  alerts:
+    - Invalid transition attempted
+    - State invariant violated
+    - Transition guard failed
+    - Missing required data

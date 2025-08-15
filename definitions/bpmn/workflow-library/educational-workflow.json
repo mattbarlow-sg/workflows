@@ -1,0 +1,986 @@
+{
+  "$schema": "../../../schemas/bpmn-process.json",
+  "process": {
+    "id": "educational-workflow-pattern",
+    "name": "Long-Running Educational Workflow Pattern",
+    "processType": "private",
+    "isExecutable": true,
+    "documentation": {
+      "text": "A reusable workflow pattern for managing long-running educational processes over weeks or months. Supports lesson generation, quiz administration, progress tracking, and handles interruptions with durable state management.",
+      "format": "text/plain"
+    },
+    "elements": {
+      "events": [
+        {
+          "id": "start-education",
+          "name": "Start Educational Process",
+          "type": "startEvent",
+          "eventDefinition": {
+            "type": "message",
+            "messageRef": "education-request"
+          }
+        },
+        {
+          "id": "end-completed",
+          "name": "Education Completed",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "signal",
+            "signalRef": "education-complete"
+          }
+        },
+        {
+          "id": "end-abandoned",
+          "name": "Education Abandoned",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "terminate"
+          }
+        },
+        {
+          "id": "timer-lesson-schedule",
+          "name": "Lesson Schedule Timer",
+          "type": "intermediateCatchEvent",
+          "eventDefinition": {
+            "type": "timer",
+            "timeCycle": "${lessonSchedule}"
+          }
+        },
+        {
+          "id": "message-resume",
+          "name": "Resume Learning",
+          "type": "intermediateCatchEvent",
+          "eventDefinition": {
+            "type": "message",
+            "messageRef": "resume-learning"
+          }
+        },
+        {
+          "id": "signal-pause",
+          "name": "Pause Learning",
+          "type": "intermediateCatchEvent",
+          "eventDefinition": {
+            "type": "signal",
+            "signalRef": "pause-learning"
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "ingest-topic",
+          "name": "Ingest Educational Topic",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "ai",
+            "assignmentStrategy": "static",
+            "model": "claude-3-opus",
+            "capabilities": ["content-analysis", "curriculum-design"]
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-topic",
+                "name": "Topic Details",
+                "itemSubjectRef": "topic-data"
+              },
+              {
+                "id": "input-learner-profile",
+                "name": "Learner Profile",
+                "itemSubjectRef": "learner-profile-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-curriculum",
+                "name": "Curriculum Plan",
+                "itemSubjectRef": "curriculum-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "generate-lesson-plan",
+          "name": "Generate Lesson Plan",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "ai",
+            "assignmentStrategy": "dynamic",
+            "model": "claude-3-opus",
+            "capabilities": ["content-generation", "pedagogy"]
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-curriculum",
+                "name": "Curriculum",
+                "itemSubjectRef": "curriculum-data"
+              },
+              {
+                "id": "input-progress",
+                "name": "Learning Progress",
+                "itemSubjectRef": "progress-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-lesson-plan",
+                "name": "Lesson Plan",
+                "itemSubjectRef": "lesson-plan-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "deliver-lesson",
+          "name": "Deliver Lesson Content",
+          "type": "userTask",
+          "implementation": "interactive-lesson",
+          "agent": {
+            "type": "human",
+            "assignmentStrategy": "static",
+            "assignee": "${learnerId}"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-lesson",
+                "name": "Lesson Content",
+                "itemSubjectRef": "lesson-content-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-lesson-completion",
+                "name": "Lesson Completion",
+                "itemSubjectRef": "completion-data"
+              }
+            ]
+          },
+          "resources": {
+            "estimatedDuration": "PT1H",
+            "requiredTools": ["learning-platform", "content-viewer"]
+          }
+        },
+        {
+          "id": "generate-quiz",
+          "name": "Generate Quiz Questions",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "ai",
+            "assignmentStrategy": "static",
+            "model": "claude-3-haiku",
+            "capabilities": ["assessment-generation"]
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-lesson-content",
+                "name": "Lesson Content",
+                "itemSubjectRef": "lesson-content-data"
+              },
+              {
+                "id": "input-difficulty",
+                "name": "Difficulty Level",
+                "itemSubjectRef": "difficulty-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-quiz",
+                "name": "Quiz Questions",
+                "itemSubjectRef": "quiz-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "administer-quiz",
+          "name": "Administer Quiz",
+          "type": "userTask",
+          "implementation": "quiz-interface",
+          "agent": {
+            "type": "human",
+            "assignmentStrategy": "static",
+            "assignee": "${learnerId}"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-quiz",
+                "name": "Quiz",
+                "itemSubjectRef": "quiz-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-answers",
+                "name": "Quiz Answers",
+                "itemSubjectRef": "answer-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "evaluate-quiz",
+          "name": "Evaluate Quiz Results",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-answers",
+                "name": "Answers",
+                "itemSubjectRef": "answer-data"
+              },
+              {
+                "id": "input-quiz-key",
+                "name": "Answer Key",
+                "itemSubjectRef": "quiz-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-score",
+                "name": "Quiz Score",
+                "itemSubjectRef": "score-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "update-progress",
+          "name": "Update Learning Progress",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-score",
+                "name": "Assessment Score",
+                "itemSubjectRef": "score-data"
+              },
+              {
+                "id": "input-current-progress",
+                "name": "Current Progress",
+                "itemSubjectRef": "progress-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-updated-progress",
+                "name": "Updated Progress",
+                "itemSubjectRef": "progress-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "checkpoint-state",
+          "name": "Checkpoint Learning State",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-state",
+                "name": "Current State",
+                "itemSubjectRef": "state-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-checkpoint",
+                "name": "State Checkpoint",
+                "itemSubjectRef": "checkpoint-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "restore-state",
+          "name": "Restore Learning State",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-checkpoint",
+                "name": "Checkpoint",
+                "itemSubjectRef": "checkpoint-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-restored-state",
+                "name": "Restored State",
+                "itemSubjectRef": "state-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "provide-feedback",
+          "name": "Provide Learning Feedback",
+          "type": "sendTask",
+          "implementation": "notification-service",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-feedback-data",
+                "name": "Feedback Data",
+                "itemSubjectRef": "feedback-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "adapt-curriculum",
+          "name": "Adapt Curriculum Based on Progress",
+          "type": "businessRuleTask",
+          "implementation": "dmn",
+          "agent": {
+            "type": "ai",
+            "assignmentStrategy": "static",
+            "model": "claude-3-opus"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-performance",
+                "name": "Performance Metrics",
+                "itemSubjectRef": "performance-data"
+              },
+              {
+                "id": "input-original-curriculum",
+                "name": "Original Curriculum",
+                "itemSubjectRef": "curriculum-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-adapted-curriculum",
+                "name": "Adapted Curriculum",
+                "itemSubjectRef": "curriculum-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "generate-certificate",
+          "name": "Generate Completion Certificate",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-completion-data",
+                "name": "Completion Data",
+                "itemSubjectRef": "completion-record-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-certificate",
+                "name": "Certificate",
+                "itemSubjectRef": "certificate-data"
+              }
+            ]
+          }
+        }
+      ],
+      "gateways": [
+        {
+          "id": "quiz-decision",
+          "name": "Quiz Required?",
+          "type": "exclusiveGateway",
+          "default": "flow-no-quiz"
+        },
+        {
+          "id": "score-evaluation",
+          "name": "Evaluate Score",
+          "type": "exclusiveGateway"
+        },
+        {
+          "id": "progress-check",
+          "name": "Check Progress",
+          "type": "exclusiveGateway"
+        },
+        {
+          "id": "interruption-handler",
+          "name": "Handle Interruption",
+          "type": "eventBasedGateway"
+        },
+        {
+          "id": "curriculum-complete",
+          "name": "Curriculum Complete?",
+          "type": "exclusiveGateway",
+          "default": "flow-continue-learning"
+        },
+        {
+          "id": "adaptation-needed",
+          "name": "Adaptation Needed?",
+          "type": "exclusiveGateway",
+          "default": "flow-no-adaptation"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow-1",
+          "sourceRef": "start-education",
+          "targetRef": "ingest-topic"
+        },
+        {
+          "id": "flow-2",
+          "sourceRef": "ingest-topic",
+          "targetRef": "generate-lesson-plan"
+        },
+        {
+          "id": "flow-3",
+          "sourceRef": "generate-lesson-plan",
+          "targetRef": "deliver-lesson"
+        },
+        {
+          "id": "flow-4",
+          "sourceRef": "deliver-lesson",
+          "targetRef": "quiz-decision"
+        },
+        {
+          "id": "flow-quiz-yes",
+          "sourceRef": "quiz-decision",
+          "targetRef": "generate-quiz",
+          "condition": {
+            "type": "expression",
+            "body": "lessonNumber % quizFrequency === 0"
+          }
+        },
+        {
+          "id": "flow-no-quiz",
+          "sourceRef": "quiz-decision",
+          "targetRef": "update-progress"
+        },
+        {
+          "id": "flow-5",
+          "sourceRef": "generate-quiz",
+          "targetRef": "administer-quiz"
+        },
+        {
+          "id": "flow-6",
+          "sourceRef": "administer-quiz",
+          "targetRef": "evaluate-quiz"
+        },
+        {
+          "id": "flow-7",
+          "sourceRef": "evaluate-quiz",
+          "targetRef": "score-evaluation"
+        },
+        {
+          "id": "flow-pass",
+          "sourceRef": "score-evaluation",
+          "targetRef": "update-progress",
+          "condition": {
+            "type": "expression",
+            "body": "score >= passingScore"
+          }
+        },
+        {
+          "id": "flow-fail",
+          "sourceRef": "score-evaluation",
+          "targetRef": "provide-feedback",
+          "condition": {
+            "type": "expression",
+            "body": "score < passingScore"
+          }
+        },
+        {
+          "id": "flow-8",
+          "sourceRef": "provide-feedback",
+          "targetRef": "generate-lesson-plan"
+        },
+        {
+          "id": "flow-9",
+          "sourceRef": "update-progress",
+          "targetRef": "checkpoint-state"
+        },
+        {
+          "id": "flow-10",
+          "sourceRef": "checkpoint-state",
+          "targetRef": "progress-check"
+        },
+        {
+          "id": "flow-11",
+          "sourceRef": "progress-check",
+          "targetRef": "adaptation-needed",
+          "condition": {
+            "type": "expression",
+            "body": "performanceMetrics.needsAdaptation === true"
+          }
+        },
+        {
+          "id": "flow-needs-adaptation",
+          "sourceRef": "adaptation-needed",
+          "targetRef": "adapt-curriculum",
+          "condition": {
+            "type": "expression",
+            "body": "adaptationThresholdMet === true"
+          }
+        },
+        {
+          "id": "flow-no-adaptation",
+          "sourceRef": "adaptation-needed",
+          "targetRef": "curriculum-complete"
+        },
+        {
+          "id": "flow-12",
+          "sourceRef": "adapt-curriculum",
+          "targetRef": "curriculum-complete"
+        },
+        {
+          "id": "flow-continue-learning",
+          "sourceRef": "curriculum-complete",
+          "targetRef": "interruption-handler",
+          "condition": {
+            "type": "expression",
+            "body": "remainingLessons > 0"
+          }
+        },
+        {
+          "id": "flow-complete",
+          "sourceRef": "curriculum-complete",
+          "targetRef": "generate-certificate",
+          "condition": {
+            "type": "expression",
+            "body": "remainingLessons === 0"
+          }
+        },
+        {
+          "id": "flow-13",
+          "sourceRef": "generate-certificate",
+          "targetRef": "end-completed"
+        },
+        {
+          "id": "flow-interruption-pause",
+          "sourceRef": "interruption-handler",
+          "targetRef": "signal-pause"
+        },
+        {
+          "id": "flow-interruption-timer",
+          "sourceRef": "interruption-handler",
+          "targetRef": "timer-lesson-schedule"
+        },
+        {
+          "id": "flow-14",
+          "sourceRef": "timer-lesson-schedule",
+          "targetRef": "generate-lesson-plan"
+        },
+        {
+          "id": "flow-15",
+          "sourceRef": "signal-pause",
+          "targetRef": "checkpoint-state"
+        },
+        {
+          "id": "flow-16",
+          "sourceRef": "message-resume",
+          "targetRef": "restore-state"
+        },
+        {
+          "id": "flow-17",
+          "sourceRef": "restore-state",
+          "targetRef": "generate-lesson-plan"
+        },
+        {
+          "id": "flow-abandon",
+          "sourceRef": "progress-check",
+          "targetRef": "end-abandoned",
+          "condition": {
+            "type": "expression",
+            "body": "learnerAbandoned === true"
+          }
+        }
+      ]
+    },
+    "agents": {
+      "definitions": [
+        {
+          "id": "ai-instructor",
+          "name": "AI Instructor",
+          "type": "ai",
+          "capabilities": ["content-generation", "assessment", "adaptation"],
+          "model": "claude-3-opus"
+        },
+        {
+          "id": "human-learner",
+          "name": "Human Learner",
+          "type": "human",
+          "capabilities": ["learning", "assessment-taking"],
+          "availability": {
+            "schedule": "flexible",
+            "sessionDuration": "PT1H"
+          }
+        },
+        {
+          "id": "system-tracker",
+          "name": "Progress Tracking System",
+          "type": "system",
+          "capabilities": ["state-management", "progress-tracking", "analytics"]
+        }
+      ],
+      "defaultAssignmentStrategy": "static",
+      "performanceTracking": true
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "curriculum",
+          "name": "Educational Curriculum",
+          "itemSubjectRef": "curriculum-data",
+          "isCollection": false
+        },
+        {
+          "id": "progress-record",
+          "name": "Learning Progress Record",
+          "itemSubjectRef": "progress-data",
+          "isCollection": false
+        },
+        {
+          "id": "lesson-history",
+          "name": "Lesson History",
+          "itemSubjectRef": "lesson-history-data",
+          "isCollection": true
+        }
+      ],
+      "dataStores": [
+        {
+          "id": "learning-state-store",
+          "name": "Durable Learning State",
+          "capacity": 100000,
+          "isUnlimited": false
+        },
+        {
+          "id": "content-repository",
+          "name": "Educational Content Repository",
+          "capacity": 500000,
+          "isUnlimited": false
+        }
+      ]
+    },
+    "monitoring": {
+      "enabled": true,
+      "metrics": ["completion-rate", "average-score", "time-to-complete", "engagement-level"],
+      "alerting": {
+        "enabled": true,
+        "rules": [
+          {
+            "id": "inactivity-alert",
+            "name": "Learner Inactivity",
+            "condition": {
+              "type": "expression",
+              "body": "daysSinceLastActivity > 7"
+            },
+            "severity": "warning",
+            "notification": {
+              "type": "email",
+              "recipients": ["${learnerEmail}", "instructor@example.com"]
+            }
+          },
+          {
+            "id": "low-performance",
+            "name": "Low Performance Alert",
+            "condition": {
+              "type": "expression",
+              "body": "averageScore < 0.6"
+            },
+            "severity": "warning",
+            "notification": {
+              "type": "in-app",
+              "target": "learner-dashboard"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "itemDefinitions": [
+      {
+        "id": "topic-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "topicId": { "type": "string" },
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "learningObjectives": { "type": "array" },
+            "prerequisites": { "type": "array" },
+            "estimatedDuration": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "learner-profile-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "learnerId": { "type": "string" },
+            "learningStyle": { "type": "string" },
+            "priorKnowledge": { "type": "array" },
+            "preferences": { "type": "object" },
+            "availability": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "curriculum-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "curriculumId": { "type": "string" },
+            "modules": { "type": "array" },
+            "sequencing": { "type": "object" },
+            "assessmentStrategy": { "type": "object" },
+            "adaptationRules": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "lesson-plan-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "lessonId": { "type": "string" },
+            "objectives": { "type": "array" },
+            "content": { "type": "object" },
+            "activities": { "type": "array" },
+            "resources": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "lesson-content-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "contentId": { "type": "string" },
+            "type": { "type": "string" },
+            "material": { "type": "object" },
+            "interactiveElements": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "quiz-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "quizId": { "type": "string" },
+            "questions": { "type": "array" },
+            "answerKey": { "type": "array" },
+            "timeLimit": { "type": "number" },
+            "passingScore": { "type": "number" }
+          }
+        }
+      },
+      {
+        "id": "answer-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "quizId": { "type": "string" },
+            "learnerId": { "type": "string" },
+            "answers": { "type": "array" },
+            "timestamp": { "type": "string" },
+            "timeSpent": { "type": "number" }
+          }
+        }
+      },
+      {
+        "id": "score-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "score": { "type": "number" },
+            "maxScore": { "type": "number" },
+            "percentage": { "type": "number" },
+            "feedback": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "progress-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "learnerId": { "type": "string" },
+            "completedLessons": { "type": "array" },
+            "currentLesson": { "type": "string" },
+            "overallProgress": { "type": "number" },
+            "scores": { "type": "array" },
+            "strengths": { "type": "array" },
+            "weaknesses": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "state-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "workflowId": { "type": "string" },
+            "currentActivity": { "type": "string" },
+            "variables": { "type": "object" },
+            "timestamp": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "checkpoint-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "checkpointId": { "type": "string" },
+            "state": { "type": "object" },
+            "timestamp": { "type": "string" },
+            "version": { "type": "number" }
+          }
+        }
+      },
+      {
+        "id": "performance-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "averageScore": { "type": "number" },
+            "completionRate": { "type": "number" },
+            "engagementLevel": { "type": "number" },
+            "strugglingAreas": { "type": "array" },
+            "needsAdaptation": { "type": "boolean" }
+          }
+        }
+      },
+      {
+        "id": "completion-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "lessonId": { "type": "string" },
+            "completedAt": { "type": "string" },
+            "timeSpent": { "type": "number" },
+            "engagement": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "completion-record-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "learnerId": { "type": "string" },
+            "topicId": { "type": "string" },
+            "startDate": { "type": "string" },
+            "endDate": { "type": "string" },
+            "totalScore": { "type": "number" },
+            "achievements": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "certificate-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "certificateId": { "type": "string" },
+            "learnerName": { "type": "string" },
+            "courseName": { "type": "string" },
+            "completionDate": { "type": "string" },
+            "grade": { "type": "string" },
+            "verificationCode": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "feedback-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" },
+            "message": { "type": "string" },
+            "suggestions": { "type": "array" },
+            "resources": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "difficulty-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "level": { "type": "string", "enum": ["beginner", "intermediate", "advanced"] },
+            "adaptToPerformance": { "type": "boolean" }
+          }
+        }
+      },
+      {
+        "id": "lesson-history-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "lessonId": { "type": "string" },
+            "attempts": { "type": "number" },
+            "scores": { "type": "array" },
+            "timeSpent": { "type": "array" }
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "id": "education-request",
+        "name": "Education Request",
+        "itemRef": "topic-data"
+      },
+      {
+        "id": "resume-learning",
+        "name": "Resume Learning",
+        "itemRef": "checkpoint-data"
+      }
+    ],
+    "signals": [
+      {
+        "id": "education-complete",
+        "name": "Education Complete",
+        "structureRef": "completion-record-data"
+      },
+      {
+        "id": "pause-learning",
+        "name": "Pause Learning",
+        "structureRef": "state-data"
+      }
+    ]
+  }
+}

@@ -1,0 +1,347 @@
+# Human Task System - Business Rules Documentation
+# Node: human-task-system
+# Implementation: 1754471482-temporal-workflow-implementation
+
+metadata:
+  node_id: human-task-system
+  category: business_rules
+  version: 1.0
+  generated: 2025-08-15
+
+business_rules:
+  queue_management:
+    - id: RULE-HTS-001
+      name: LIFO Processing Order
+      description: New tasks are added to front and processed from front (newest first)
+      category: queue_ordering
+      priority: critical
+      implementation:
+        location: src/schemas/human-task-system.transformations.go
+        function: SortTasksLIFO
+      logic: |
+        WHEN new_task_created
+        THEN add_to_queue_front(task)
+        
+        WHEN operator_requests_task
+        THEN return_queue_front()
+      rationale: Prioritize recent tasks as per intentional design decision
+      constraints:
+        - Queue maintains LIFO order at all times
+        - No reordering based on priority
+        - Escalation does not affect position
+      validation:
+        - Check queue order after each operation
+        - Verify newest task processed first
+      test_cases:
+        - Add 3 tasks, verify order [T3, T2, T1]
+        - Process task, verify T3 selected
+        - Add T4 during processing, verify order [T4, T2, T1]
+
+    - id: RULE-HTS-002
+      name: Unbounded Queue Capacity
+      description: No limit on the number of tasks in queue
+      category: queue_capacity
+      priority: high
+      implementation:
+        location: src/schemas/human-task-system.schema.go
+        type: QueueState
+      logic: |
+        WHEN task_submitted
+        THEN always_accept()
+        NEVER reject_due_to_capacity()
+      constraints:
+        - No maximum queue length
+        - Memory is only constraint
+        - No task rejection due to capacity
+        - No queue overflow handling needed
+      monitoring:
+        - Track queue size
+        - Monitor memory usage
+        - Alert on unusual growth
+      test_cases:
+        - Add 1000+ tasks
+        - Verify all accepted
+        - Monitor memory usage
+
+    - id: RULE-HTS-003
+      name: No Priority System
+      description: All tasks have equal priority, LIFO order only
+      category: task_priority
+      priority: high
+      implementation:
+        notes: Priority field removed from BPMN, not used in processing
+      logic: |
+        WHEN evaluating_task_order
+        THEN use_creation_time_only()
+        IGNORE priority_hints
+      rationale: Simplified design, LIFO provides implicit prioritization
+      constraints:
+        - No priority field in task
+        - Priority hints are informational only
+        - Cannot jump queue based on importance
+      test_cases:
+        - Add high-priority hint task after low
+        - Verify LIFO order maintained
+        - Confirm priority hint ignored for ordering
+
+  escalation_rules:
+    - id: RULE-HTS-004
+      name: Time-Based Escalation
+      description: Tasks escalate after exactly 14 days
+      category: escalation_trigger
+      priority: critical
+      implementation:
+        location: src/schemas/human-task-system.transformations.go
+        function: EscalateTask
+      logic: |
+        WHEN task_age >= P14D
+        THEN set_escalated = true
+             set_escalated_at = now()
+             notify_stakeholders()
+      parameters:
+        escalation_threshold: P14D (14 days)
+        check_frequency: hourly
+      constraints:
+        - Exactly 14 days, not configurable
+        - Escalation is permanent
+        - Timestamp recorded once
+      actions:
+        - Set escalated flag
+        - Record escalation timestamp
+        - Send notifications
+        - Add history entry
+      test_cases:
+        - Create task, advance 13 days (not escalated)
+        - Advance to 14 days (escalated)
+        - Verify permanent escalation
+
+    - id: RULE-HTS-005
+      name: Escalation Queue Position
+      description: Escalated tasks do not change position in queue
+      category: escalation_behavior
+      priority: high
+      logic: |
+        WHEN task_escalated
+        THEN maintain_current_position()
+        NO queue_jumping()
+      rationale: Maintain LIFO order even for escalated tasks
+      constraints:
+        - Escalation is informational
+        - Does not force immediate processing
+        - Position unchanged in queue
+      test_cases:
+        - Escalate middle task in queue
+        - Verify position unchanged
+        - Process tasks in LIFO order
+
+  operator_workflow:
+    - id: RULE-HTS-006
+      name: Single Operator Model
+      description: One operator handles all tasks sequentially
+      category: operator_assignment
+      priority: critical
+      implementation:
+        location: src/schemas/human-task-system.contracts.go
+        function: ValidateSingleOperatorInvariant
+      logic: |
+        WHEN operator_requests_task
+        IF no_task_in_review
+        THEN assign_next_task()
+        ELSE return_operator_busy()
+      constraints:
+        - Maximum one task in_review
+        - No parallel processing
+        - No task reassignment
+        - Sequential task handling only
+      validation:
+        - Check single task in review
+        - Verify operator lock
+      test_cases:
+        - Operator1 gets task
+        - Operator2 requests (busy response)
+        - Operator1 completes, Operator2 gets next
+
+    - id: RULE-HTS-007
+      name: Polling-Based Task Retrieval
+      description: Operators poll for tasks rather than push assignment
+      category: task_assignment
+      priority: high
+      logic: |
+        WHEN operator_ready
+        THEN operator_polls_queue()
+        SYSTEM returns_next_available()
+        LOCK task_to_operator()
+      implementation_notes:
+        - No automatic assignment
+        - Operator initiates retrieval
+        - System responds with next LIFO task
+      test_cases:
+        - Operator polls empty queue
+        - Operator polls with tasks available
+        - Verify LIFO selection
+
+    - id: RULE-HTS-008
+      name: Unlimited Clarification Cycles
+      description: No limit on clarification request rounds
+      category: clarification_process
+      priority: medium
+      implementation:
+        location: src/schemas/human-task-system.transformations.go
+        function: AddClarificationRequest
+      logic: |
+        WHEN clarification_needed
+        THEN request_clarification()
+             increment_counter()
+             release_operator_lock()
+        
+        WHEN clarification_received
+        THEN return_to_same_operator()
+             continue_review()
+      constraints:
+        - No maximum clarification count
+        - Each cycle increments counter
+        - Task returns to same operator
+        - Operator lock released during clarification
+      test_cases:
+        - Request 5+ clarifications
+        - Verify counter increments
+        - Confirm same operator resumes
+
+  proof_validation:
+    - id: RULE-HTS-009
+      name: AI-Powered Proof Validation
+      description: AI validates proof sufficiency for task completion
+      category: validation_process
+      priority: critical
+      implementation:
+        location: src/schemas/human-task-system.contracts.go
+        interface: ProofValidatorContract
+      logic: |
+        WHEN proof_submitted
+        THEN ai_analyzes_content()
+             IF confidence >= threshold
+             THEN mark_valid()
+             ELSE mark_invalid()
+      parameters:
+        confidence_threshold: 0.7
+        validation_timeout: 500ms
+      validation_criteria:
+        - Proof relevance to task
+        - Completeness of evidence
+        - Authenticity indicators
+      proof_types:
+        - Pull request URLs
+        - Documentation links
+        - Screenshot evidence
+        - Completion certificates
+      test_cases:
+        - Submit valid PR URL
+        - Submit invalid proof
+        - Test confidence threshold
+
+    - id: RULE-HTS-010
+      name: Proof Requirement for Completion
+      description: Proof is mandatory for task completion
+      category: completion_requirements
+      priority: critical
+      logic: |
+        WHEN decision = 'complete'
+        THEN require_proof()
+             validate_proof()
+             IF valid THEN allow_completion()
+             ELSE reject_completion()
+      constraints:
+        - No completion without proof
+        - Proof must be non-empty
+        - AI validation required
+        - Validation result stored
+      test_cases:
+        - Complete without proof (fail)
+        - Complete with empty proof (fail)
+        - Complete with valid proof (success)
+
+  state_transitions:
+    - id: RULE-HTS-011
+      name: Terminal State Finality
+      description: Terminal states cannot transition to any other state
+      category: state_management
+      priority: critical
+      terminal_states:
+        - completed
+        - rejected
+        - cancelled
+      logic: |
+        WHEN state IN terminal_states
+        THEN block_all_transitions()
+        RAISE error_on_attempt()
+      test_cases:
+        - Complete task, attempt reopen
+        - Cancel task, attempt resume
+        - Reject task, attempt approve
+
+    - id: RULE-HTS-012
+      name: Approved Task Cancellation
+      description: Approved tasks can be cancelled but not rejected
+      category: state_transitions
+      priority: high
+      logic: |
+        WHEN state = 'approved'
+        ALLOW transition_to('cancelled')
+        BLOCK transition_to('rejected')
+        BLOCK all_other_transitions()
+      rationale: Business requirement for post-approval cancellation
+      test_cases:
+        - Approve then cancel (success)
+        - Approve then reject (fail)
+
+  data_management:
+    - id: RULE-HTS-013
+      name: Immutable History
+      description: All state changes are recorded permanently
+      category: audit_trail
+      priority: critical
+      implementation:
+        location: src/schemas/human-task-system.schema.go
+        type: HistoryEntry
+      logic: |
+        WHEN state_changes
+        THEN append_history_entry()
+        NEVER modify_existing_entries()
+        NEVER delete_entries()
+      recorded_data:
+        - Timestamp
+        - From state
+        - To state
+        - Actor
+        - Reason
+        - Additional details
+      test_cases:
+        - Verify append-only
+        - Attempt modification (fail)
+        - Check chronological order
+
+validation:
+  rule_engine:
+    - Validate on every operation
+    - Check rule compliance
+    - Log violations
+    - Prevent invalid actions
+  
+  monitoring:
+    - Rule violation frequency
+    - Compliance percentage
+    - Performance impact
+    - Alert on violations
+
+exceptions:
+  handling:
+    - Log all exceptions
+    - Maintain system stability
+    - Graceful degradation
+    - User notification
+  
+  recovery:
+    - Rollback invalid operations
+    - Restore consistent state
+    - Retry with corrections
+    - Manual intervention if needed

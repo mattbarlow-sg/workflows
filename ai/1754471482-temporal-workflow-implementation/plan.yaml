@@ -43,7 +43,7 @@ entry_node: "validation-framework"
 
 nodes:
   - id: "validation-framework"
-    status: "Specified"
+    status: "Completed"
     materialization: 1.0
     description: "Create comprehensive validation framework for Temporal workflows"
     detailed_description: "Build a validation framework that performs static analysis, determinism checks, and pre-deployment validation of all Temporal workflows before they can be registered or deployed"
@@ -76,14 +76,8 @@ nodes:
       - "internal/temporal/validation_rules.go"
     artifacts:
       bpmn: "definitions/bpmn/temporal-validation-framework.json"
-      invariants: "docs/properties/validation-framework-invariants.yaml"
-      states: "docs/properties/validation-framework-states.yaml"
-      rules: "docs/properties/validation-framework-rules.yaml"
-      test_specs: "docs/properties/validation-framework-test-specs.yaml"
-      interface_spec: "docs/specs/validation-framework.yaml"
-      schema: "src/schemas/validation-framework.schema.go"
-      contracts: "src/schemas/validation-framework.contracts.go"
-      transformations: "src/schemas/validation-framework.transformations.go"
+      formal_spec: "docs/specs/validation-framework.yaml"
+      schemas: "src/schemas/validation-framework.schema.go"
     acceptance_criteria:
       - "All validation functions have >90% test coverage"
       - "Determinism checker correctly identifies non-deterministic code"
@@ -99,27 +93,27 @@ nodes:
       - "bpmn-adapter"
 
   - id: "testing-framework"
-    status: "Ready"
-    materialization: 0.1
+    status: "Completed"
+    materialization: 1.0
     description: "Implement comprehensive testing framework for Temporal workflows"
     detailed_description: "Create testing infrastructure using Temporal's test suite that enables unit, integration, and end-to-end testing of workflows with time skipping and mocked activities"
     subtasks:
       - description: "Set up Temporal test environment configuration"
-        completed: false
+        completed: true
       - description: "Create test workflow factory and builders"
-        completed: false
+        completed: true
       - description: "Implement activity mocking framework"
-        completed: false
+        completed: true
       - description: "Build signal and query test helpers"
-        completed: false
+        completed: true
       - description: "Create human task simulation utilities"
-        completed: false
+        completed: true
       - description: "Implement time-skipping test scenarios"
-        completed: false
+        completed: true
       - description: "Add test coverage reporting"
-        completed: false
+        completed: true
       - description: "Create integration test suite"
-        completed: false
+        completed: true
     outputs:
       - "internal/temporal/testing/test_env.go"
       - "internal/temporal/testing/mocks.go"
@@ -137,29 +131,36 @@ nodes:
       - "Mock generation techniques"
     downstream:
       - "temporal-client"
+    artifacts:
+      bpmn: null
+      formal_spec: null
 
   - id: "bpmn-adapter"
-    status: "Ready"
-    materialization: 0.1
+    status: "Completed"
+    materialization: 1.0
     description: "Create BPMN to Temporal workflow adapter"
     detailed_description: "Build adapter layer that converts existing BPMN workflow definitions to Temporal workflow code, mapping BPMN elements to Temporal patterns"
     subtasks:
+      - description: "Generate formal property specifications"
+        completed: true
+      - description: "Create Go schema definitions and contracts"
+        completed: true
       - description: "Create BPMN element to Temporal pattern mapping"
-        completed: false
+        completed: true
       - description: "Implement BPMN process to workflow converter"
-        completed: false
+        completed: true
       - description: "Build activity generator from BPMN tasks"
-        completed: false
+        completed: true
       - description: "Convert BPMN gateways to workflow logic"
-        completed: false
+        completed: true
       - description: "Map BPMN events to signals and timers"
-        completed: false
+        completed: true
       - description: "Handle BPMN data objects and properties"
-        completed: false
+        completed: true
       - description: "Create migration utility CLI command"
-        completed: false
+        completed: true
       - description: "Write adapter tests with sample BPMN files"
-        completed: false
+        completed: true
     outputs:
       - "internal/temporal/bpmn_adapter.go"
       - "internal/temporal/bpmn_converter.go"
@@ -177,29 +178,33 @@ nodes:
       - "Code generation techniques"
     downstream:
       - "workflow-generator"
+    artifacts:
+      bpmn: null
+      formal_spec: "docs/specs/bpmn-adapter.yaml"
+      schemas: "src/schemas/bpmn-adapter.schema.go"
 
   - id: "temporal-client"
-    status: "Ready"
-    materialization: 0.1
+    status: "Completed"
+    materialization: 1.0
     description: "Implement Temporal client and worker infrastructure"
     detailed_description: "Create Temporal client setup, worker configuration, and workflow registration system with proper connection management and error handling"
     subtasks:
       - description: "Create Temporal client configuration and setup"
-        completed: false
+        completed: true
       - description: "Implement worker pool management"
-        completed: false
+        completed: true
       - description: "Build workflow and activity registration system"
-        completed: false
+        completed: true
       - description: "Add connection retry and error handling"
-        completed: false
+        completed: true
       - description: "Implement namespace and task queue management"
-        completed: false
+        completed: true
       - description: "Create client metrics and monitoring"
-        completed: false
+        completed: true
       - description: "Add graceful shutdown handling"
-        completed: false
+        completed: true
       - description: "Write client integration tests"
-        completed: false
+        completed: true
     outputs:
       - "internal/temporal/client.go"
       - "internal/temporal/worker.go"
@@ -217,29 +222,33 @@ nodes:
       - "Go concurrency patterns"
     downstream:
       - "workflow-library"
+    artifacts:
+      bpmn: null
+      formal_spec: null
+      schemas: null
 
   - id: "workflow-generator"
-    status: "Ready"
-    materialization: 0.1
+    status: "Completed"
+    materialization: 1.0
     description: "Build workflow generator for creating new Temporal workflows"
     detailed_description: "Create code generation system that produces validated Temporal workflow code from templates and specifications, ensuring all generated code is deterministic and follows best practices"
     subtasks:
       - description: "Design workflow template system"
-        completed: false
+        completed: true
       - description: "Create base workflow templates"
-        completed: false
+        completed: true
       - description: "Implement activity template generator"
-        completed: false
+        completed: true
       - description: "Build signal and query handler generators"
-        completed: false
+        completed: true
       - description: "Add human task pattern templates"
-        completed: false
+        completed: true
       - description: "Create workflow composition utilities"
-        completed: false
+        completed: true
       - description: "Implement validation of generated code"
-        completed: false
+        completed: true
       - description: "Write generator tests"
-        completed: false
+        completed: true
     outputs:
       - "internal/temporal/generator.go"
       - "internal/temporal/templates/"
@@ -256,29 +265,33 @@ nodes:
       - "Temporal best practices"
     downstream:
       - "workflow-library"
+    artifacts:
+      bpmn: null
+      formal_spec: null
+      schemas: null
 
   - id: "workflow-library"
-    status: "Blocked"
-    materialization: 0.1
+    status: "Completed"
+    materialization: 1.0
     description: "Create library of reusable Temporal workflows"
     detailed_description: "Build comprehensive workflow library with common patterns including approval workflows, scheduled tasks, human-in-the-loop processes, and long-running educational workflows"
     subtasks:
       - description: "Create base workflow interfaces"
-        completed: false
+        completed: true
       - description: "Implement approval workflow pattern"
-        completed: false
+        completed: true
       - description: "Build scheduled task workflow"
-        completed: false
+        completed: true
       - description: "Create human task workflow with escalation"
-        completed: false
+        completed: true
       - description: "Implement long-running educational workflow"
-        completed: false
+        completed: true
       - description: "Add workflow composition patterns"
-        completed: false
+        completed: true
       - description: "Create workflow versioning strategy"
-        completed: false
+        completed: true
       - description: "Write workflow library tests"
-        completed: false
+        completed: true
     outputs:
       - "internal/temporal/workflows/base.go"
       - "internal/temporal/workflows/approval.go"
@@ -297,28 +310,32 @@ nodes:
       - "Domain-specific requirements"
     downstream:
       - "human-task-system"
+    artifacts:
+      bpmn: "definitions/bpmn/workflow-library/"
+      formal_spec: null
+      schemas: null
 
   - id: "human-task-system"
-    status: "Blocked"
-    materialization: 0.1
+    status: "Specified"
+    materialization: 1.0
     description: "Implement human-in-the-loop task management system"
-    detailed_description: "Create comprehensive system for managing human tasks including assignment, queuing, escalation, and completion with proper UI integration"
+    detailed_description: "Create comprehensive system for managing human tasks including LIFO queue processing, single operator model, AI-validated proof requirements, and time-based escalation after 14 days"
     subtasks:
-      - description: "Design human task data model"
+      - description: "Design human task data model with LIFO queue"
         completed: false
-      - description: "Implement task assignment logic"
+      - description: "Implement single operator assignment logic"
         completed: false
-      - description: "Create task queue management"
+      - description: "Create LIFO task queue management"
         completed: false
-      - description: "Build escalation system with timers"
+      - description: "Build escalation system with 14-day timer"
         completed: false
-      - description: "Implement task completion signals"
+      - description: "Implement AI proof validation integration"
         completed: false
-      - description: "Add task query handlers"
+      - description: "Add task query handlers and state machine"
         completed: false
-      - description: "Create task notification system"
+      - description: "Create unlimited clarification cycle support"
         completed: false
-      - description: "Write human task system tests"
+      - description: "Write comprehensive human task system tests"
         completed: false
     outputs:
       - "internal/temporal/human_tasks/task_manager.go"
@@ -326,17 +343,27 @@ nodes:
       - "internal/temporal/human_tasks/escalation.go"
       - "internal/temporal/human_tasks/notifications.go"
     acceptance_criteria:
-      - "Tasks can be assigned and reassigned"
-      - "Escalation happens automatically on timeout"
-      - "Queue provides fair task distribution"
-      - "Notifications are sent reliably"
-    definition_of_done: "Human task system handles all aspects of human-in-the-loop workflows with proper escalation"
+      - "LIFO queue ordering maintained at all times"
+      - "Single operator constraint enforced"
+      - "Escalation triggers at exactly 14 days"
+      - "AI validates all proof submissions"
+      - "Unlimited clarification cycles supported"
+      - "Terminal states are immutable"
+      - "History provides complete audit trail"
+    definition_of_done: "Human task system implements all specified invariants, state transitions, and business rules with comprehensive test coverage"
     required_knowledge:
-      - "Task queue algorithms"
-      - "Notification systems"
+      - "LIFO queue algorithms"
+      - "State machine patterns"
+      - "AI integration for validation"
       - "Temporal signal patterns"
     downstream:
       - "cli-integration"
+    artifacts:
+      bpmn: "definitions/bpmn/human-task-system.json"
+      formal_spec: "docs/specs/human-task-system.yaml"
+      schemas: "src/schemas/human-task-system.schema.go"
+      test_generators: "docs/properties/human-task-system-test-specs.yaml"
+      model_checking: null
 
   - id: "cli-integration"
     status: "Blocked"

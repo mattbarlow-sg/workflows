@@ -1,0 +1,488 @@
+{
+  "$schema": "../../../schemas/bpmn-process.json",
+  "process": {
+    "id": "approval-workflow-pattern",
+    "name": "Approval Workflow Pattern",
+    "processType": "private",
+    "isExecutable": true,
+    "documentation": {
+      "text": "A reusable workflow pattern for human approval of AI-generated work. Supports approve/reject decisions with automatic retry on rejection after fixes.",
+      "format": "text/plain"
+    },
+    "elements": {
+      "events": [
+        {
+          "id": "start-approval",
+          "name": "AI Work Completed",
+          "type": "startEvent",
+          "eventDefinition": {
+            "type": "message",
+            "messageRef": "ai-work-complete"
+          }
+        },
+        {
+          "id": "end-approved",
+          "name": "Work Approved",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "signal",
+            "signalRef": "approval-granted"
+          }
+        },
+        {
+          "id": "end-cancelled",
+          "name": "Approval Cancelled",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "terminate"
+          }
+        },
+        {
+          "id": "timer-review-timeout",
+          "name": "Review Timeout",
+          "type": "intermediateCatchEvent",
+          "attachedToRef": "review-work",
+          "eventDefinition": {
+            "type": "timer",
+            "timeDuration": "PT24H"
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "prepare-review-context",
+          "name": "Prepare Review Context",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-work",
+                "name": "Work Output",
+                "itemSubjectRef": "work-data"
+              },
+              {
+                "id": "input-metadata",
+                "name": "Task Metadata",
+                "itemSubjectRef": "metadata-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-review",
+                "name": "Review Package",
+                "itemSubjectRef": "review-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "review-work",
+          "name": "Review Generated Work",
+          "type": "userTask",
+          "implementation": "human-review",
+          "agent": {
+            "type": "human",
+            "assignmentStrategy": "static",
+            "assignee": "${approver}"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-review-package",
+                "name": "Review Package",
+                "itemSubjectRef": "review-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-decision",
+                "name": "Approval Decision",
+                "itemSubjectRef": "decision-data"
+              },
+              {
+                "id": "output-feedback",
+                "name": "Feedback",
+                "itemSubjectRef": "feedback-data"
+              }
+            ]
+          },
+          "resources": {
+            "requiredCapabilities": ["review", "domain-expertise"]
+          }
+        },
+        {
+          "id": "fix-issues",
+          "name": "Fix Identified Issues",
+          "type": "subProcess",
+          "implementation": "temporal-child-workflow",
+          "agent": {
+            "type": "ai",
+            "assignmentStrategy": "dynamic",
+            "model": "claude-3-opus"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-feedback",
+                "name": "Feedback",
+                "itemSubjectRef": "feedback-data"
+              },
+              {
+                "id": "input-original",
+                "name": "Original Work",
+                "itemSubjectRef": "work-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-revised",
+                "name": "Revised Work",
+                "itemSubjectRef": "work-data"
+              }
+            ]
+          },
+          "elements": {
+            "events": [
+              {
+                "id": "fix-start",
+                "type": "startEvent"
+              },
+              {
+                "id": "fix-end",
+                "type": "endEvent"
+              }
+            ],
+            "activities": [
+              {
+                "id": "analyze-feedback",
+                "name": "Analyze Feedback",
+                "type": "serviceTask",
+                "agent": {
+                  "type": "ai"
+                }
+              },
+              {
+                "id": "apply-fixes",
+                "name": "Apply Fixes",
+                "type": "serviceTask",
+                "agent": {
+                  "type": "ai"
+                }
+              },
+              {
+                "id": "validate-fixes",
+                "name": "Validate Fixes",
+                "type": "serviceTask",
+                "agent": {
+                  "type": "system"
+                }
+              }
+            ],
+            "sequenceFlows": [
+              {
+                "id": "fix-flow-1",
+                "sourceRef": "fix-start",
+                "targetRef": "analyze-feedback"
+              },
+              {
+                "id": "fix-flow-2",
+                "sourceRef": "analyze-feedback",
+                "targetRef": "apply-fixes"
+              },
+              {
+                "id": "fix-flow-3",
+                "sourceRef": "apply-fixes",
+                "targetRef": "validate-fixes"
+              },
+              {
+                "id": "fix-flow-4",
+                "sourceRef": "validate-fixes",
+                "targetRef": "fix-end"
+              }
+            ]
+          }
+        },
+        {
+          "id": "notify-approval",
+          "name": "Notify Approval",
+          "type": "sendTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-approval",
+                "name": "Approval Decision",
+                "itemSubjectRef": "decision-data"
+              },
+              {
+                "id": "input-work-id",
+                "name": "Work ID",
+                "itemSubjectRef": "work-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "handle-timeout",
+          "name": "Handle Review Timeout",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system"
+          }
+        }
+      ],
+      "gateways": [
+        {
+          "id": "decision-gateway",
+          "name": "Approval Decision",
+          "type": "exclusiveGateway",
+          "default": "flow-to-cancel"
+        },
+        {
+          "id": "retry-limit-gateway",
+          "name": "Check Retry Limit",
+          "type": "exclusiveGateway",
+          "default": "flow-to-cancelled"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow-1",
+          "sourceRef": "start-approval",
+          "targetRef": "prepare-review-context"
+        },
+        {
+          "id": "flow-2",
+          "sourceRef": "prepare-review-context",
+          "targetRef": "review-work"
+        },
+        {
+          "id": "flow-3",
+          "sourceRef": "review-work",
+          "targetRef": "decision-gateway"
+        },
+        {
+          "id": "flow-approved",
+          "sourceRef": "decision-gateway",
+          "targetRef": "notify-approval",
+          "condition": {
+            "type": "expression",
+            "language": "javascript",
+            "body": "approval_decision === 'approved'"
+          }
+        },
+        {
+          "id": "flow-rejected",
+          "sourceRef": "decision-gateway",
+          "targetRef": "retry-limit-gateway",
+          "condition": {
+            "type": "expression",
+            "language": "javascript",
+            "body": "approval_decision === 'rejected'"
+          }
+        },
+        {
+          "id": "flow-to-fix",
+          "sourceRef": "retry-limit-gateway",
+          "targetRef": "fix-issues",
+          "condition": {
+            "type": "expression",
+            "language": "javascript",
+            "body": "retry_count < max_retries"
+          }
+        },
+        {
+          "id": "flow-from-fix",
+          "sourceRef": "fix-issues",
+          "targetRef": "prepare-review-context"
+        },
+        {
+          "id": "flow-to-approved-end",
+          "sourceRef": "notify-approval",
+          "targetRef": "end-approved"
+        },
+        {
+          "id": "flow-to-cancelled",
+          "sourceRef": "retry-limit-gateway",
+          "targetRef": "end-cancelled"
+        },
+        {
+          "id": "flow-to-cancel",
+          "sourceRef": "decision-gateway",
+          "targetRef": "end-cancelled"
+        },
+        {
+          "id": "flow-timeout",
+          "sourceRef": "timer-review-timeout",
+          "targetRef": "handle-timeout"
+        },
+        {
+          "id": "flow-timeout-end",
+          "sourceRef": "handle-timeout",
+          "targetRef": "end-cancelled"
+        }
+      ]
+    },
+    "agents": {
+      "definitions": [
+        {
+          "id": "ai-generator",
+          "name": "AI Content Generator",
+          "type": "ai",
+          "capabilities": ["code-generation", "content-creation", "analysis"],
+          "model": "claude-3-opus"
+        },
+        {
+          "id": "human-approver",
+          "name": "Human Approver",
+          "type": "human",
+          "capabilities": ["review", "approval", "feedback"],
+          "availability": {
+            "schedule": "business-hours"
+          }
+        },
+        {
+          "id": "system-orchestrator",
+          "name": "System Orchestrator",
+          "type": "system",
+          "capabilities": ["notification", "data-preparation", "validation"]
+        }
+      ],
+      "defaultAssignmentStrategy": "static",
+      "performanceTracking": true
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "work-output",
+          "name": "AI Generated Work",
+          "itemSubjectRef": "work-data",
+          "isCollection": false
+        },
+        {
+          "id": "review-package",
+          "name": "Review Package",
+          "itemSubjectRef": "review-data",
+          "isCollection": false
+        },
+        {
+          "id": "approval-decision",
+          "name": "Approval Decision",
+          "itemSubjectRef": "decision-data",
+          "isCollection": false
+        },
+        {
+          "id": "feedback",
+          "name": "Reviewer Feedback",
+          "itemSubjectRef": "feedback-data",
+          "isCollection": false
+        }
+      ]
+    },
+    "monitoring": {
+      "enabled": true,
+      "metrics": ["execution-time", "error-rate", "agent-performance"],
+      "alerting": {
+        "enabled": true,
+        "rules": [
+          {
+            "id": "timeout-alert",
+            "name": "Review Timeout Alert",
+            "condition": {
+              "type": "expression",
+              "body": "review_duration > 24h"
+            },
+            "severity": "warning",
+            "notification": {
+              "type": "email",
+              "recipients": ["admin@example.com"]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "itemDefinitions": [
+      {
+        "id": "work-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "content": { "type": "string" },
+            "metadata": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "review-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "workId": { "type": "string" },
+            "content": { "type": "string" },
+            "context": { "type": "object" },
+            "reviewCriteria": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "decision-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "decision": { "type": "string", "enum": ["approved", "rejected", "cancelled"] },
+            "timestamp": { "type": "string" },
+            "approver": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "feedback-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "issues": { "type": "array" },
+            "suggestions": { "type": "string" },
+            "severity": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "metadata-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "taskId": { "type": "string" },
+            "timestamp": { "type": "string" },
+            "context": { "type": "object" }
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "id": "ai-work-complete",
+        "name": "AI Work Complete",
+        "itemRef": "work-data"
+      }
+    ],
+    "signals": [
+      {
+        "id": "approval-granted",
+        "name": "Approval Granted",
+        "structureRef": "decision-data"
+      }
+    ]
+  }
+}

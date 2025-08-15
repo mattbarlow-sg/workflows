@@ -1,0 +1,927 @@
+{
+  "$schema": "../../../schemas/bpmn-process.json",
+  "process": {
+    "id": "workflow-composition-patterns",
+    "name": "Workflow Composition Patterns",
+    "processType": "private",
+    "isExecutable": true,
+    "documentation": {
+      "text": "A collection of reusable patterns for composing workflows including parent-child spawning, inter-workflow signaling, workflow chains, and both synchronous and asynchronous composition options.",
+      "format": "text/plain"
+    },
+    "elements": {
+      "events": [
+        {
+          "id": "start-composition",
+          "name": "Start Composition",
+          "type": "startEvent",
+          "eventDefinition": {
+            "type": "message",
+            "messageRef": "composition-request"
+          }
+        },
+        {
+          "id": "end-success",
+          "name": "Composition Complete",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "signal",
+            "signalRef": "composition-complete"
+          }
+        },
+        {
+          "id": "end-failed",
+          "name": "Composition Failed",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "error",
+            "errorRef": "composition-error"
+          }
+        },
+        {
+          "id": "child-complete-event",
+          "name": "Child Workflow Complete",
+          "type": "intermediateCatchEvent",
+          "eventDefinition": {
+            "type": "signal",
+            "signalRef": "child-complete"
+          }
+        },
+        {
+          "id": "inter-workflow-signal",
+          "name": "Inter-Workflow Signal",
+          "type": "intermediateCatchEvent",
+          "eventDefinition": {
+            "type": "message",
+            "messageRef": "workflow-message"
+          }
+        },
+        {
+          "id": "chain-trigger",
+          "name": "Chain Trigger Event",
+          "type": "intermediateThrowEvent",
+          "eventDefinition": {
+            "type": "signal",
+            "signalRef": "trigger-next-workflow"
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "spawn-child-workflow",
+          "name": "Spawn Child Workflow",
+          "type": "callActivity",
+          "calledElement": "${childWorkflowId}",
+          "implementation": "temporal-child-workflow",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-child-params",
+                "name": "Child Parameters",
+                "itemSubjectRef": "workflow-params-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-child-result",
+                "name": "Child Result",
+                "itemSubjectRef": "workflow-result-data"
+              }
+            ]
+          },
+          "extensionElements": {
+            "properties": [
+              {
+                "name": "parentChildOptions",
+                "value": {
+                  "inheritContext": true,
+                  "propagateCancel": true,
+                  "detached": false
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "spawn-multiple-children",
+          "name": "Spawn Multiple Child Workflows",
+          "type": "subProcess",
+          "implementation": "parallel-execution",
+          "multiInstanceLoopCharacteristics": {
+            "isSequential": false,
+            "loopCardinality": "${childCount}",
+            "completionCondition": {
+              "type": "expression",
+              "body": "completedInstances >= requiredCompletions"
+            }
+          },
+          "elements": {
+            "events": [
+              {
+                "id": "multi-start",
+                "type": "startEvent"
+              },
+              {
+                "id": "multi-end",
+                "type": "endEvent"
+              }
+            ],
+            "activities": [
+              {
+                "id": "create-child",
+                "name": "Create Child Instance",
+                "type": "callActivity",
+                "calledElement": "${childWorkflowId}",
+                "agent": {
+                  "type": "system"
+                }
+              }
+            ],
+            "sequenceFlows": [
+              {
+                "id": "multi-flow-1",
+                "sourceRef": "multi-start",
+                "targetRef": "create-child"
+              },
+              {
+                "id": "multi-flow-2",
+                "sourceRef": "create-child",
+                "targetRef": "multi-end"
+              }
+            ]
+          }
+        },
+        {
+          "id": "send-workflow-signal",
+          "name": "Send Signal to Workflow",
+          "type": "sendTask",
+          "implementation": "temporal-signal",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-signal-data",
+                "name": "Signal Data",
+                "itemSubjectRef": "signal-data"
+              },
+              {
+                "id": "input-target-workflow",
+                "name": "Target Workflow ID",
+                "itemSubjectRef": "workflow-id-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "receive-workflow-signal",
+          "name": "Receive Workflow Signal",
+          "type": "receiveTask",
+          "implementation": "temporal-signal-handler",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataOutputs": [
+              {
+                "id": "output-signal-received",
+                "name": "Received Signal",
+                "itemSubjectRef": "signal-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "query-workflow-state",
+          "name": "Query Workflow State",
+          "type": "serviceTask",
+          "implementation": "temporal-query",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-query-params",
+                "name": "Query Parameters",
+                "itemSubjectRef": "query-params-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-query-result",
+                "name": "Query Result",
+                "itemSubjectRef": "query-result-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "coordinate-workflows",
+          "name": "Coordinate Multiple Workflows",
+          "type": "serviceTask",
+          "implementation": "temporal-coordinator",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-workflow-list",
+                "name": "Workflow List",
+                "itemSubjectRef": "workflow-list-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-coordination-result",
+                "name": "Coordination Result",
+                "itemSubjectRef": "coordination-result-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "chain-next-workflow",
+          "name": "Chain to Next Workflow",
+          "type": "callActivity",
+          "calledElement": "${nextWorkflowInChain}",
+          "implementation": "temporal-continue-as-new",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-chain-data",
+                "name": "Chain Data",
+                "itemSubjectRef": "chain-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-chain-result",
+                "name": "Chain Result",
+                "itemSubjectRef": "workflow-result-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "async-workflow-spawn",
+          "name": "Async Workflow Spawn",
+          "type": "serviceTask",
+          "implementation": "temporal-async-execution",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-async-params",
+                "name": "Async Parameters",
+                "itemSubjectRef": "async-params-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-workflow-handle",
+                "name": "Workflow Handle",
+                "itemSubjectRef": "workflow-handle-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sync-workflow-call",
+          "name": "Synchronous Workflow Call",
+          "type": "callActivity",
+          "calledElement": "${syncWorkflowId}",
+          "implementation": "temporal-sync-execution",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-sync-params",
+                "name": "Sync Parameters",
+                "itemSubjectRef": "workflow-params-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-sync-result",
+                "name": "Sync Result",
+                "itemSubjectRef": "workflow-result-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "aggregate-results",
+          "name": "Aggregate Workflow Results",
+          "type": "serviceTask",
+          "implementation": "temporal-aggregator",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-results-list",
+                "name": "Results List",
+                "itemSubjectRef": "results-list-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-aggregated",
+                "name": "Aggregated Result",
+                "itemSubjectRef": "aggregated-result-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "handle-composition-error",
+          "name": "Handle Composition Error",
+          "type": "serviceTask",
+          "implementation": "temporal-error-handler",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-error-details",
+                "name": "Error Details",
+                "itemSubjectRef": "error-details-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-error-resolution",
+                "name": "Error Resolution",
+                "itemSubjectRef": "error-resolution-data"
+              }
+            ]
+          }
+        }
+      ],
+      "gateways": [
+        {
+          "id": "composition-type",
+          "name": "Composition Type",
+          "type": "exclusiveGateway"
+        },
+        {
+          "id": "parallel-spawn",
+          "name": "Parallel Spawn",
+          "type": "parallelGateway"
+        },
+        {
+          "id": "sync-async-decision",
+          "name": "Sync/Async Decision",
+          "type": "exclusiveGateway"
+        },
+        {
+          "id": "aggregation-needed",
+          "name": "Aggregation Needed?",
+          "type": "exclusiveGateway",
+          "default": "flow-no-aggregation"
+        },
+        {
+          "id": "chain-decision",
+          "name": "Continue Chain?",
+          "type": "exclusiveGateway",
+          "default": "flow-chain-end"
+        },
+        {
+          "id": "error-check",
+          "name": "Check for Errors",
+          "type": "exclusiveGateway",
+          "default": "flow-no-error"
+        },
+        {
+          "id": "join-parallel",
+          "name": "Join Parallel",
+          "type": "parallelGateway"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow-1",
+          "sourceRef": "start-composition",
+          "targetRef": "composition-type"
+        },
+        {
+          "id": "flow-parent-child",
+          "sourceRef": "composition-type",
+          "targetRef": "spawn-child-workflow",
+          "condition": {
+            "type": "expression",
+            "body": "compositionType === 'parent-child' && !multipleChildren"
+          }
+        },
+        {
+          "id": "flow-parent-child-multi",
+          "sourceRef": "composition-type",
+          "targetRef": "sync-async-decision",
+          "condition": {
+            "type": "expression",
+            "body": "compositionType === 'parent-child' && multipleChildren"
+          }
+        },
+        {
+          "id": "flow-parallel",
+          "sourceRef": "composition-type",
+          "targetRef": "parallel-spawn",
+          "condition": {
+            "type": "expression",
+            "body": "compositionType === 'parallel'"
+          }
+        },
+        {
+          "id": "flow-chain",
+          "sourceRef": "composition-type",
+          "targetRef": "chain-next-workflow",
+          "condition": {
+            "type": "expression",
+            "body": "compositionType === 'chain'"
+          }
+        },
+        {
+          "id": "flow-signaling",
+          "sourceRef": "composition-type",
+          "targetRef": "send-workflow-signal",
+          "condition": {
+            "type": "expression",
+            "body": "compositionType === 'signaling'"
+          }
+        },
+        {
+          "id": "flow-sync",
+          "sourceRef": "sync-async-decision",
+          "targetRef": "sync-workflow-call",
+          "condition": {
+            "type": "expression",
+            "body": "executionMode === 'synchronous'"
+          }
+        },
+        {
+          "id": "flow-async",
+          "sourceRef": "sync-async-decision",
+          "targetRef": "async-workflow-spawn",
+          "condition": {
+            "type": "expression",
+            "body": "executionMode === 'asynchronous'"
+          }
+        },
+        {
+          "id": "flow-parallel-1",
+          "sourceRef": "parallel-spawn",
+          "targetRef": "spawn-multiple-children"
+        },
+        {
+          "id": "flow-parallel-2",
+          "sourceRef": "parallel-spawn",
+          "targetRef": "coordinate-workflows"
+        },
+        {
+          "id": "flow-2",
+          "sourceRef": "spawn-multiple-children",
+          "targetRef": "join-parallel"
+        },
+        {
+          "id": "flow-3",
+          "sourceRef": "coordinate-workflows",
+          "targetRef": "join-parallel"
+        },
+        {
+          "id": "flow-4",
+          "sourceRef": "join-parallel",
+          "targetRef": "aggregation-needed"
+        },
+        {
+          "id": "flow-needs-aggregation",
+          "sourceRef": "aggregation-needed",
+          "targetRef": "aggregate-results",
+          "condition": {
+            "type": "expression",
+            "body": "requiresAggregation === true"
+          }
+        },
+        {
+          "id": "flow-no-aggregation",
+          "sourceRef": "aggregation-needed",
+          "targetRef": "error-check"
+        },
+        {
+          "id": "flow-5",
+          "sourceRef": "aggregate-results",
+          "targetRef": "error-check"
+        },
+        {
+          "id": "flow-6",
+          "sourceRef": "sync-workflow-call",
+          "targetRef": "error-check"
+        },
+        {
+          "id": "flow-7",
+          "sourceRef": "async-workflow-spawn",
+          "targetRef": "child-complete-event"
+        },
+        {
+          "id": "flow-8",
+          "sourceRef": "child-complete-event",
+          "targetRef": "error-check"
+        },
+        {
+          "id": "flow-9",
+          "sourceRef": "chain-next-workflow",
+          "targetRef": "chain-decision"
+        },
+        {
+          "id": "flow-continue-chain",
+          "sourceRef": "chain-decision",
+          "targetRef": "chain-trigger",
+          "condition": {
+            "type": "expression",
+            "body": "hasNextInChain === true"
+          }
+        },
+        {
+          "id": "flow-10",
+          "sourceRef": "chain-trigger",
+          "targetRef": "chain-next-workflow"
+        },
+        {
+          "id": "flow-chain-end",
+          "sourceRef": "chain-decision",
+          "targetRef": "error-check"
+        },
+        {
+          "id": "flow-11",
+          "sourceRef": "send-workflow-signal",
+          "targetRef": "receive-workflow-signal"
+        },
+        {
+          "id": "flow-12",
+          "sourceRef": "receive-workflow-signal",
+          "targetRef": "query-workflow-state"
+        },
+        {
+          "id": "flow-13",
+          "sourceRef": "query-workflow-state",
+          "targetRef": "error-check"
+        },
+        {
+          "id": "flow-has-error",
+          "sourceRef": "error-check",
+          "targetRef": "handle-composition-error",
+          "condition": {
+            "type": "expression",
+            "body": "hasError === true"
+          }
+        },
+        {
+          "id": "flow-no-error",
+          "sourceRef": "error-check",
+          "targetRef": "end-success"
+        },
+        {
+          "id": "flow-14",
+          "sourceRef": "handle-composition-error",
+          "targetRef": "end-failed"
+        },
+        {
+          "id": "flow-15",
+          "sourceRef": "spawn-child-workflow",
+          "targetRef": "error-check"
+        }
+      ]
+    },
+    "agents": {
+      "definitions": [
+        {
+          "id": "system-orchestrator",
+          "name": "System Orchestrator",
+          "type": "system",
+          "capabilities": ["workflow-management", "signal-handling", "state-management"]
+        }
+      ],
+      "defaultAssignmentStrategy": "static",
+      "performanceTracking": true
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "workflow-registry",
+          "name": "Workflow Registry",
+          "itemSubjectRef": "workflow-registry-data",
+          "isCollection": true
+        },
+        {
+          "id": "composition-context",
+          "name": "Composition Context",
+          "itemSubjectRef": "composition-context-data",
+          "isCollection": false
+        },
+        {
+          "id": "workflow-handles",
+          "name": "Active Workflow Handles",
+          "itemSubjectRef": "workflow-handle-data",
+          "isCollection": true
+        }
+      ],
+      "dataStores": [
+        {
+          "id": "workflow-state-store",
+          "name": "Workflow State Store",
+          "capacity": 100000,
+          "isUnlimited": false
+        }
+      ]
+    },
+    "monitoring": {
+      "enabled": true,
+      "metrics": ["workflow-spawn-rate", "composition-depth", "signal-latency", "chain-length"],
+      "alerting": {
+        "enabled": true,
+        "rules": [
+          {
+            "id": "deep-composition",
+            "name": "Deep Composition Warning",
+            "condition": {
+              "type": "expression",
+              "body": "compositionDepth > 10"
+            },
+            "severity": "warning",
+            "notification": {
+              "type": "slack",
+              "channel": "#workflow-alerts"
+            }
+          },
+          {
+            "id": "orphaned-workflows",
+            "name": "Orphaned Workflows",
+            "condition": {
+              "type": "expression",
+              "body": "orphanedCount > 0"
+            },
+            "severity": "error",
+            "notification": {
+              "type": "pagerduty",
+              "service": "workflow-management"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "itemDefinitions": [
+      {
+        "id": "workflow-params-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "workflowId": { "type": "string" },
+            "parameters": { "type": "object" },
+            "options": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "workflow-result-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "workflowId": { "type": "string" },
+            "status": { "type": "string" },
+            "result": { "type": "object" },
+            "executionTime": { "type": "number" }
+          }
+        }
+      },
+      {
+        "id": "signal-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "signalName": { "type": "string" },
+            "payload": { "type": "object" },
+            "timestamp": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "workflow-id-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "workflowId": { "type": "string" },
+            "runId": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "query-params-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "queryName": { "type": "string" },
+            "parameters": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "query-result-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "queryName": { "type": "string" },
+            "result": { "type": "object" },
+            "timestamp": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "workflow-list-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "workflows": { "type": "array" },
+            "coordinationType": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "coordination-result-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "successful": { "type": "array" },
+            "failed": { "type": "array" },
+            "coordinationMetrics": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "chain-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "chainId": { "type": "string" },
+            "currentStep": { "type": "number" },
+            "totalSteps": { "type": "number" },
+            "chainState": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "async-params-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "workflowId": { "type": "string" },
+            "parameters": { "type": "object" },
+            "callback": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "workflow-handle-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "handle": { "type": "string" },
+            "workflowId": { "type": "string" },
+            "runId": { "type": "string" },
+            "status": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "results-list-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "results": { "type": "array" },
+            "aggregationType": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "aggregated-result-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "aggregatedValue": { "type": "object" },
+            "aggregationMethod": { "type": "string" },
+            "inputCount": { "type": "number" }
+          }
+        }
+      },
+      {
+        "id": "error-details-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "errorCode": { "type": "string" },
+            "errorMessage": { "type": "string" },
+            "workflowId": { "type": "string" },
+            "timestamp": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "error-resolution-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "resolution": { "type": "string" },
+            "retryable": { "type": "boolean" },
+            "fallbackAction": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "workflow-registry-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "registryId": { "type": "string" },
+            "workflows": { "type": "array" },
+            "relationships": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "composition-context-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "compositionId": { "type": "string" },
+            "type": { "type": "string" },
+            "parentWorkflow": { "type": "string" },
+            "childWorkflows": { "type": "array" },
+            "sharedContext": { "type": "object" }
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "id": "composition-request",
+        "name": "Composition Request",
+        "itemRef": "composition-context-data"
+      },
+      {
+        "id": "workflow-message",
+        "name": "Inter-Workflow Message",
+        "itemRef": "signal-data"
+      }
+    ],
+    "signals": [
+      {
+        "id": "composition-complete",
+        "name": "Composition Complete",
+        "structureRef": "coordination-result-data"
+      },
+      {
+        "id": "child-complete",
+        "name": "Child Workflow Complete",
+        "structureRef": "workflow-result-data"
+      },
+      {
+        "id": "trigger-next-workflow",
+        "name": "Trigger Next in Chain",
+        "structureRef": "chain-data"
+      }
+    ],
+    "errors": [
+      {
+        "id": "composition-error",
+        "name": "Composition Error",
+        "errorCode": "COMPOSITION_FAILED",
+        "structureRef": "error-details-data"
+      }
+    ]
+  }
+}

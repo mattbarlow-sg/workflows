@@ -1,0 +1,214 @@
+# BPMN Adapter Mathematical Invariants
+# Generated for: 1754471482-temporal-workflow-implementation
+# Node: bpmn-adapter
+# Version: 1.0
+# Description: Mathematical properties that must always hold during BPMN to Temporal conversion
+
+metadata:
+  node_id: bpmn-adapter
+  domain: workflow-conversion
+  generated: 2025-08-12
+  implementation_id: 1754471482-temporal-workflow-implementation
+
+invariants:
+  - id: INV-001
+    name: Sequence Flow Preservation
+    description: All BPMN sequence flows must be preserved in Temporal workflow
+    category: structural
+    formula: |
+      ∀ sf ∈ SequenceFlows:
+        ∃ t ∈ TemporalTransitions:
+          source(sf) ↦ source(t) ∧ target(sf) ↦ target(t)
+    verification:
+      - method: graph_isomorphism_check
+      - test_type: unit
+    critical: true
+
+  - id: INV-002
+    name: Start and End Event Connectivity
+    description: Every BPMN process must have connected start and end events
+    category: structural
+    formula: |
+      ∀ p ∈ Process:
+        ∃ start ∈ Events: type(start) = "startEvent" ∧
+        ∃ end ∈ Events: type(end) = "endEvent" ∧
+        connected(start, end)
+    verification:
+      - method: path_existence_check
+      - test_type: unit
+    critical: true
+
+  - id: INV-003
+    name: Compensation Order LIFO
+    description: Compensation activities must execute in reverse order
+    category: behavioral
+    formula: |
+      ∀ [a₁, a₂, ..., aₙ] ∈ ExecutedActivities:
+        compensation_order = [aₙ, aₙ₋₁, ..., a₁]
+    verification:
+      - method: temporal_ordering_check
+      - test_type: integration
+    critical: true
+
+  - id: INV-004
+    name: Data Loss Prevention
+    description: No data from BPMN process can be lost during transformation
+    category: data
+    formula: |
+      ∀ d ∈ BPMNData:
+        ∃ d' ∈ TemporalData:
+          content(d) ⊆ content(d') ∧ accessible(d')
+    verification:
+      - method: data_mapping_validation
+      - test_type: unit
+    critical: true
+
+  - id: INV-005
+    name: Error Event Mapping Completeness
+    description: All BPMN error events must map to Temporal error handlers
+    category: error_handling
+    formula: |
+      ∀ e ∈ ErrorEvents:
+        ∃ h ∈ ErrorHandlers:
+          catches(h, errorType(e))
+    verification:
+      - method: error_coverage_analysis
+      - test_type: unit
+    critical: true
+
+  - id: INV-006
+    name: No Infinite Loops
+    description: Workflow must not contain infinite loops without exit conditions
+    category: behavioral
+    formula: |
+      ∀ cycle ∈ DetectedCycles:
+        ∃ exitCondition ∈ cycle:
+          reachable(exitCondition) ∧ deterministic(exitCondition)
+    verification:
+      - method: cycle_detection_algorithm
+      - test_type: static_analysis
+    critical: true
+
+  - id: INV-007
+    name: Timer Event Bounds
+    description: Timer events must respect Temporal duration limits
+    category: temporal
+    formula: |
+      ∀ t ∈ TimerEvents:
+        duration(t) ≤ 30_days ∨
+        (isCompliance(t) ∧ duration(t) ≤ 90_days)
+    verification:
+      - method: duration_validation
+      - test_type: unit
+    critical: false
+
+  - id: INV-008
+    name: Workflow History Size Limit
+    description: Generated workflow must not exceed Temporal history limits
+    category: performance
+    formula: |
+      ∀ w ∈ GeneratedWorkflows:
+        estimatedHistorySize(w) < 50_MB ∧
+        estimatedEventCount(w) < 50_000
+    verification:
+      - method: history_size_estimation
+      - test_type: static_analysis
+    critical: true
+
+  - id: INV-009
+    name: Signal Name Uniqueness
+    description: Signal names must be unique within workflow scope
+    category: naming
+    formula: |
+      ∀ s₁, s₂ ∈ Signals:
+        name(s₁) = name(s₂) → s₁ = s₂
+    verification:
+      - method: uniqueness_check
+      - test_type: unit
+    critical: true
+
+  - id: INV-010
+    name: Compensation Idempotency
+    description: All compensation activities must be idempotent
+    category: behavioral
+    formula: |
+      ∀ c ∈ CompensationActivities:
+        execute(c) ∘ execute(c) = execute(c)
+    verification:
+      - method: idempotency_analysis
+      - test_type: integration
+    critical: true
+
+  - id: INV-011
+    name: Gateway Decision Determinism
+    description: Gateway decisions must be deterministic in Temporal context
+    category: behavioral
+    formula: |
+      ∀ g ∈ Gateways, ∀ state ∈ WorkflowStates:
+        decision(g, state) = decision(g, state)
+    verification:
+      - method: determinism_checker
+      - test_type: static_analysis
+    critical: true
+
+  - id: INV-012
+    name: Activity Isolation
+    description: Activities must not share mutable state
+    category: concurrency
+    formula: |
+      ∀ a₁, a₂ ∈ Activities:
+        a₁ ≠ a₂ → mutableState(a₁) ∩ mutableState(a₂) = ∅
+    verification:
+      - method: state_isolation_check
+      - test_type: static_analysis
+    critical: true
+
+  - id: INV-013
+    name: Compensation Depth Limit
+    description: Compensation chains must not exceed depth limit
+    category: behavioral
+    formula: |
+      ∀ c ∈ CompensationChains:
+        depth(c) ≤ 3
+    verification:
+      - method: depth_traversal_check
+      - test_type: unit
+    critical: false
+
+  - id: INV-014
+    name: ID Preservation with Aliasing
+    description: Original BPMN IDs must be preserved with Go-friendly aliases
+    category: naming
+    formula: |
+      ∀ element ∈ BPMNElements:
+        ∃ mapping ∈ IDMappings:
+          original(mapping) = id(element) ∧
+          isValidGoIdentifier(alias(mapping))
+    verification:
+      - method: id_mapping_validation
+      - test_type: unit
+    critical: false
+
+  - id: INV-015
+    name: Subprocess Expansion Correctness
+    description: Subprocess expansion must preserve execution semantics
+    category: structural
+    formula: |
+      ∀ sp ∈ Subprocesses:
+        semantics(sp) = semantics(expand(sp))
+    verification:
+      - method: semantic_equivalence_check
+      - test_type: integration
+    critical: true
+
+validation_rules:
+  - All critical invariants must pass before transformation proceeds
+  - Non-critical invariants generate warnings but don't block
+  - Invariants are checked in dependency order
+  - Failed invariants must provide actionable error messages
+
+dependencies:
+  INV-002: [INV-001]  # Connectivity depends on flow preservation
+  INV-003: [INV-010]  # Compensation order requires idempotency
+  INV-006: [INV-011]  # Loop detection requires determinism
+  INV-015: [INV-001, INV-004]  # Subprocess expansion requires flow and data preservation

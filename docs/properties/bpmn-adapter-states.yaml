@@ -1,0 +1,407 @@
+# BPMN Adapter State Machine Specification
+# Generated for: 1754471482-temporal-workflow-implementation
+# Node: bpmn-adapter
+# Version: 1.0
+# Description: State machine defining the BPMN to Temporal conversion process
+
+metadata:
+  node_id: bpmn-adapter
+  domain: workflow-conversion
+  generated: 2025-08-12
+  implementation_id: 1754471482-temporal-workflow-implementation
+
+state_machine:
+  name: BPMN to Temporal Conversion State Machine
+  initial_state: INITIALIZED
+  terminal_states: [COMPLETE, FAILED]
+  
+states:
+  - id: INITIALIZED
+    name: Initialized
+    description: Converter created but no BPMN loaded
+    type: initial
+    properties:
+      - No BPMN process loaded
+      - Configuration initialized
+      - Output directory prepared
+    allowed_transitions:
+      - target: BPMN_LOADED
+        trigger: loadBPMN
+      - target: FAILED
+        trigger: error
+
+  - id: BPMN_LOADED
+    name: BPMN Loaded
+    description: Valid BPMN process definition loaded
+    type: intermediate
+    properties:
+      - BPMN file parsed successfully
+      - Process structure in memory
+      - Element registry populated
+    allowed_transitions:
+      - target: VALIDATED
+        trigger: validate
+      - target: FAILED
+        trigger: error
+      - target: INITIALIZED
+        trigger: reset
+
+  - id: VALIDATED
+    name: Validated
+    description: BPMN validated for conversion compatibility
+    type: intermediate
+    properties:
+      - All elements checked for support
+      - References validated
+      - No cycles detected
+      - Data flows verified
+    allowed_transitions:
+      - target: ANALYZING
+        trigger: startAnalysis
+      - target: FAILED
+        trigger: error
+      - target: BPMN_LOADED
+        trigger: revalidate
+
+  - id: ANALYZING
+    name: Analyzing
+    description: Analyzing BPMN structure for optimal conversion
+    type: intermediate
+    properties:
+      - Element dependencies mapped
+      - Conversion strategy determined
+      - Resource requirements calculated
+      - Patterns identified
+    allowed_transitions:
+      - target: MAPPING
+        trigger: startMapping
+      - target: FAILED
+        trigger: error
+      - target: VALIDATED
+        trigger: reanalyze
+
+  - id: MAPPING
+    name: Mapping Elements
+    description: Converting BPMN elements to Temporal constructs
+    type: intermediate
+    properties:
+      - Elements being mapped iteratively
+      - Temporal constructs generated
+      - Type mappings created
+      - References resolved
+    progress_tracking:
+      - total_elements: int
+      - mapped_elements: int
+      - failed_elements: int
+      - warning_count: int
+    allowed_transitions:
+      - target: CODE_GENERATING
+        trigger: generateCode
+      - target: FAILED
+        trigger: error
+      - target: PARTIAL_COMPLETE
+        trigger: partialSuccess
+
+  - id: CODE_GENERATING
+    name: Generating Code
+    description: Generating Go code from mapped constructs
+    type: intermediate
+    properties:
+      - Workflow code generation
+      - Activity code generation
+      - Type definitions generation
+      - Test generation (if enabled)
+    allowed_transitions:
+      - target: CODE_GENERATED
+        trigger: codeGenerated
+      - target: FAILED
+        trigger: error
+      - target: MAPPING
+        trigger: regenerate
+
+  - id: CODE_GENERATED
+    name: Code Generated
+    description: Go code successfully generated
+    type: intermediate
+    properties:
+      - All files written to disk
+      - Package structure created
+      - Imports resolved
+      - TODOs added for unsupported features
+    allowed_transitions:
+      - target: VERIFYING
+        trigger: startVerification
+      - target: FAILED
+        trigger: error
+      - target: CODE_GENERATING
+        trigger: regenerate
+
+  - id: VERIFYING
+    name: Verifying
+    description: Verifying generated code correctness
+    type: intermediate
+    properties:
+      - Running go fmt
+      - Running go vet
+      - Running determinism checker
+      - Running Temporal validator
+    verification_steps:
+      - syntax_check: bool
+      - format_check: bool
+      - determinism_check: bool
+      - temporal_validation: bool
+    allowed_transitions:
+      - target: VERIFIED
+        trigger: verificationPassed
+      - target: FAILED
+        trigger: verificationFailed
+      - target: CODE_GENERATED
+        trigger: fixAndRetry
+
+  - id: VERIFIED
+    name: Verified
+    description: Generated code passed all verification checks
+    type: intermediate
+    properties:
+      - All validation checks passed
+      - Code compiles successfully
+      - Determinism verified
+      - Ready for deployment
+    allowed_transitions:
+      - target: COMPLETE
+        trigger: finalize
+      - target: FAILED
+        trigger: error
+
+  - id: PARTIAL_COMPLETE
+    name: Partially Complete
+    description: Conversion completed with warnings or skipped elements
+    type: intermediate
+    properties:
+      - Some elements not converted
+      - Warnings present
+      - Manual intervention needed
+      - Report generated
+    allowed_transitions:
+      - target: COMPLETE
+        trigger: acceptPartial
+      - target: MAPPING
+        trigger: retryMapping
+      - target: FAILED
+        trigger: reject
+
+  - id: COMPLETE
+    name: Complete
+    description: Conversion successfully completed
+    type: terminal
+    properties:
+      - All supported elements converted
+      - Code verified and ready
+      - Report generated
+      - Artifacts created
+    outputs:
+      - workflow_files: string[]
+      - activity_files: string[]
+      - type_files: string[]
+      - test_files: string[]
+      - conversion_report: string
+
+  - id: FAILED
+    name: Failed
+    description: Conversion failed with errors
+    type: terminal
+    properties:
+      - Error details captured
+      - Partial results saved (if any)
+      - Rollback performed (if needed)
+      - Error report generated
+    error_info:
+      - error_code: string
+      - error_message: string
+      - failed_element: string
+      - stack_trace: string
+
+transitions:
+  - from: INITIALIZED
+    to: BPMN_LOADED
+    trigger: loadBPMN
+    guard: "validFile && readable"
+    action: "parseBPMN"
+
+  - from: BPMN_LOADED
+    to: VALIDATED
+    trigger: validate
+    guard: "hasProcess && wellFormed"
+    action: "runValidation"
+
+  - from: VALIDATED
+    to: ANALYZING
+    trigger: startAnalysis
+    guard: "validationPassed"
+    action: "analyzeStructure"
+
+  - from: ANALYZING
+    to: MAPPING
+    trigger: startMapping
+    guard: "analysisComplete"
+    action: "initializeMapping"
+
+  - from: MAPPING
+    to: CODE_GENERATING
+    trigger: generateCode
+    guard: "allElementsMapped || acceptPartial"
+    action: "startCodeGeneration"
+
+  - from: CODE_GENERATING
+    to: CODE_GENERATED
+    trigger: codeGenerated
+    guard: "filesWritten"
+    action: "finalizeGeneration"
+
+  - from: CODE_GENERATED
+    to: VERIFYING
+    trigger: startVerification
+    guard: "codeExists"
+    action: "runVerificationSuite"
+
+  - from: VERIFYING
+    to: VERIFIED
+    trigger: verificationPassed
+    guard: "allChecksPassed"
+    action: "markVerified"
+
+  - from: VERIFIED
+    to: COMPLETE
+    trigger: finalize
+    guard: "readyForDeployment"
+    action: "generateReport"
+
+  - from: "*"
+    to: FAILED
+    trigger: error
+    guard: "unrecoverableError"
+    action: "captureError"
+
+guards:
+  validFile: "file != nil && file.extension in ['.bpmn', '.xml', '.json']"
+  readable: "file.canRead() && file.size > 0"
+  hasProcess: "process.id != nil && len(process.elements) > 0"
+  wellFormed: "validateSchema(process) && checkReferences(process)"
+  validationPassed: "len(errors) == 0 && len(criticalWarnings) == 0"
+  analysisComplete: "dependencies.resolved && patterns.identified"
+  allElementsMapped: "mappedCount == totalCount"
+  acceptPartial: "config.allowPartial && mappedCount > 0"
+  filesWritten: "len(generatedFiles) > 0 && allFilesExist()"
+  codeExists: "workflowFile.exists() && activitiesFile.exists()"
+  allChecksPassed: "syntaxOK && formattedOK && deterministicOK"
+  readyForDeployment: "verified && report.generated"
+  unrecoverableError: "error.severity == CRITICAL"
+
+actions:
+  parseBPMN:
+    description: Parse BPMN file into internal representation
+    implementation: "bpmn.Parse(file)"
+    
+  runValidation:
+    description: Validate BPMN for conversion compatibility
+    implementation: "validator.Validate(process)"
+    
+  analyzeStructure:
+    description: Analyze BPMN structure and patterns
+    implementation: "analyzer.Analyze(process)"
+    
+  initializeMapping:
+    description: Start element-by-element mapping
+    implementation: "mapper.Initialize(process, config)"
+    
+  startCodeGeneration:
+    description: Generate Go code from mappings
+    implementation: "generator.Generate(mappings)"
+    
+  runVerificationSuite:
+    description: Run all verification checks
+    implementation: "verifier.VerifyAll(generatedCode)"
+    
+  generateReport:
+    description: Generate conversion report
+    implementation: "reporter.Generate(results)"
+    
+  captureError:
+    description: Capture and log error details
+    implementation: "errorHandler.Handle(error)"
+
+events:
+  - name: ConversionStarted
+    emitted_on: [INITIALIZED -> BPMN_LOADED]
+    payload: {file: string, timestamp: time}
+    
+  - name: ValidationCompleted
+    emitted_on: [BPMN_LOADED -> VALIDATED]
+    payload: {elementCount: int, warnings: string[]}
+    
+  - name: MappingProgress
+    emitted_on: [MAPPING]
+    payload: {current: int, total: int, percentage: float}
+    
+  - name: CodeGenerated
+    emitted_on: [CODE_GENERATING -> CODE_GENERATED]
+    payload: {files: string[], lineCount: int}
+    
+  - name: VerificationResult
+    emitted_on: [VERIFYING -> VERIFIED, VERIFYING -> FAILED]
+    payload: {passed: bool, checks: map[string]bool}
+    
+  - name: ConversionCompleted
+    emitted_on: [VERIFIED -> COMPLETE]
+    payload: {duration: duration, stats: ConversionStats}
+    
+  - name: ConversionFailed
+    emitted_on: [* -> FAILED]
+    payload: {error: string, state: string, timestamp: time}
+
+recovery_strategies:
+  - state: MAPPING
+    error_type: UnsupportedElement
+    strategy: SkipAndContinue
+    action: "Add TODO comment and continue"
+    
+  - state: CODE_GENERATING
+    error_type: NameConflict
+    strategy: AutoResolve
+    action: "Add suffix to conflicting names"
+    
+  - state: VERIFYING
+    error_type: FormattingError
+    strategy: AutoFix
+    action: "Run go fmt and retry"
+    
+  - state: VERIFYING
+    error_type: DeterminismViolation
+    strategy: GenerateWarning
+    action: "Add warning comment and manual fix instructions"
+
+performance_metrics:
+  - metric: ConversionTime
+    measurement: "Duration from INITIALIZED to COMPLETE"
+    threshold: "< 30 seconds for typical workflows"
+    
+  - metric: MemoryUsage
+    measurement: "Peak memory during conversion"
+    threshold: "< 500MB for workflows with < 1000 elements"
+    
+  - metric: ElementThroughput
+    measurement: "Elements converted per second"
+    threshold: "> 100 elements/second"
+
+validation_checkpoints:
+  - checkpoint: PreConversion
+    state: VALIDATED
+    checks: ["Schema valid", "References resolved", "No cycles"]
+    
+  - checkpoint: MidConversion
+    state: MAPPING
+    checks: ["Progress > 0", "No critical errors", "Memory within limits"]
+    
+  - checkpoint: PostConversion
+    state: VERIFIED
+    checks: ["Code compiles", "Deterministic", "Tests pass"]

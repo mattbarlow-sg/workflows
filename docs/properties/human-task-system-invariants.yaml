@@ -1,0 +1,195 @@
+# Human Task System - Invariants Documentation
+# Node: human-task-system
+# Implementation: 1754471482-temporal-workflow-implementation
+
+metadata:
+  node_id: human-task-system
+  category: invariants
+  version: 1.0
+  generated: 2025-08-15
+
+invariants:
+  - id: INV-HTS-001
+    name: LIFO Queue Ordering
+    description: Tasks are always processed in Last-In-First-Out order
+    mathematical_formula: |
+      ∀ t1, t2 ∈ Queue: 
+        CreatedAt(t1) < CreatedAt(t2) ⟹ ProcessOrder(t2) < ProcessOrder(t1)
+    implementation:
+      location: src/schemas/human-task-system.contracts.go
+      function: ValidateQueueInvariant
+    properties:
+      - New tasks added to front of queue
+      - Processing always from front (newest first)
+      - Escalation does not change queue position
+      - Order preserved during all operations
+    test_scenarios:
+      - Add multiple tasks and verify LIFO order
+      - Process tasks and confirm newest processed first
+      - Escalate task and verify position unchanged
+      - Concurrent additions maintain order
+
+  - id: INV-HTS-002
+    name: Single State Constraint
+    description: Each task has exactly one state at any given time
+    mathematical_formula: |
+      ∀ t ∈ Tasks, ∀ time: 
+        |{s ∈ States : HasState(t, s, time)}| = 1
+    implementation:
+      location: src/schemas/human-task-system.schema.go
+      type: TaskStatus
+    valid_states:
+      - pending
+      - in_review
+      - awaiting_clarification
+      - completed
+      - approved
+      - rejected
+      - cancelled
+    test_scenarios:
+      - Verify single state per task
+      - Attempt concurrent state changes
+      - Validate state history consistency
+
+  - id: INV-HTS-003
+    name: Single Operator Lock
+    description: Only one operator can review tasks at a time
+    mathematical_formula: |
+      ∀ t1, t2 ∈ Tasks:
+        InReview(t1) ∧ InReview(t2) ⟹ t1 = t2
+    implementation:
+      location: src/schemas/human-task-system.contracts.go
+      function: ValidateSingleOperatorInvariant
+    constraints:
+      - At most one task in_review at any time
+      - No reassignment between operators
+      - Operator lock prevents concurrent access
+      - Lock released on state transition
+    test_scenarios:
+      - Multiple operators request tasks
+      - Verify only one task in review
+      - Test lock release on completion
+      - Concurrent access attempts
+
+  - id: INV-HTS-004
+    name: Escalation Persistence
+    description: Once escalated, a task remains escalated forever
+    mathematical_formula: |
+      ∀ t ∈ Tasks, ∀ t1, t2 ∈ Time:
+        t1 < t2 ∧ Escalated(t, t1) ⟹ Escalated(t, t2)
+    implementation:
+      location: src/schemas/human-task-system.contracts.go
+      function: ValidateEscalationInvariant
+    properties:
+      - Escalation triggered after 14 days (P14D)
+      - Escalated flag is immutable once set
+      - Escalation timestamp recorded
+      - No de-escalation possible
+    test_scenarios:
+      - Task reaches 14 days and escalates
+      - Verify escalation persists through transitions
+      - Attempt to clear escalation flag
+      - Check escalation timestamp immutability
+
+  - id: INV-HTS-005
+    name: History Immutability
+    description: All state transitions are recorded and immutable
+    mathematical_formula: |
+      ∀ h ∈ History:
+        Created(h) ⟹ ∀ t > CreatedAt(h): Unchanged(h, t)
+    implementation:
+      location: src/schemas/human-task-system.contracts.go
+      function: ValidateHistoryImmutability
+    properties:
+      - Append-only history log
+      - No deletion of history entries
+      - No modification of existing entries
+      - Chronological ordering maintained
+      - Complete audit trail preserved
+    test_scenarios:
+      - Add history entries and verify immutability
+      - Attempt to modify existing entry
+      - Verify chronological order
+      - Test history consistency across transitions
+
+  - id: INV-HTS-006
+    name: Proof Requirement for Completion
+    description: Completed/approved tasks must have AI-validated proof
+    mathematical_formula: |
+      ∀ t ∈ Tasks:
+        Status(t) ∈ {completed, approved} ⟹ 
+          ∃ p ∈ Proofs: Valid(p) ∧ BelongsTo(p, t)
+    implementation:
+      location: src/schemas/human-task-system.contracts.go
+      function: ValidateTaskRecord
+    validation_rules:
+      - Proof required for completion
+      - AI validates proof sufficiency
+      - Validation result stored
+      - Proof cannot be empty
+    test_scenarios:
+      - Complete task without proof (should fail)
+      - Complete task with invalid proof
+      - Complete task with valid proof
+      - Verify proof validation storage
+
+  - id: INV-HTS-007
+    name: Terminal State Finality
+    description: Terminal states cannot transition to any other state
+    mathematical_formula: |
+      ∀ t ∈ Tasks, s ∈ TerminalStates:
+        Status(t) = s ⟹ ∀ s' ∈ States: ¬CanTransition(t, s')
+    implementation:
+      location: src/schemas/human-task-system.contracts.go
+      function: IsTerminalState
+    terminal_states:
+      - completed
+      - rejected
+      - cancelled
+    test_scenarios:
+      - Attempt to reopen cancelled task
+      - Try to modify completed task
+      - Verify terminal state enforcement
+
+  - id: INV-HTS-008
+    name: Approved Task Constraints
+    description: Approved tasks cannot be rejected but can be cancelled
+    mathematical_formula: |
+      ∀ t ∈ Tasks:
+        Status(t) = approved ⟹ 
+          CanTransition(t, cancelled) ∧ ¬CanTransition(t, rejected)
+    implementation:
+      location: src/schemas/human-task-system.contracts.go
+      function: ValidateStateTransition
+    allowed_transitions:
+      - approved → cancelled
+    forbidden_transitions:
+      - approved → rejected
+      - approved → completed
+      - approved → pending
+    test_scenarios:
+      - Approve task then attempt rejection
+      - Approve task then cancel
+      - Verify transition constraints
+
+validation:
+  frequency: continuous
+  methods:
+    - Runtime validation on every state change
+    - Periodic batch validation of queue
+    - Pre-commit validation hooks
+    - Integration test suites
+  
+monitoring:
+  metrics:
+    - Invariant violation count
+    - Validation failure rate
+    - Queue consistency checks
+    - State transition errors
+  
+  alerts:
+    - Multiple tasks in review detected
+    - Queue order violation
+    - History modification attempt
+    - Invalid state transition
+    - Missing proof on completion

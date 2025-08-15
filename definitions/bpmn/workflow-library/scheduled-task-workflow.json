@@ -1,0 +1,649 @@
+{
+  "$schema": "../../../schemas/bpmn-process.json",
+  "process": {
+    "id": "scheduled-task-pattern",
+    "name": "Scheduled Task Workflow Pattern",
+    "processType": "private",
+    "isExecutable": true,
+    "documentation": {
+      "text": "A reusable workflow pattern for executing tasks on schedule or event triggers. Supports cron schedules, event-driven starts, and configurable retry logic.",
+      "format": "text/plain"
+    },
+    "elements": {
+      "events": [
+        {
+          "id": "start-schedule",
+          "name": "Schedule Trigger",
+          "type": "startEvent",
+          "eventDefinition": {
+            "type": "timer",
+            "timeCycle": "${cronExpression}"
+          }
+        },
+        {
+          "id": "start-event",
+          "name": "Event Trigger",
+          "type": "startEvent",
+          "eventDefinition": {
+            "type": "message",
+            "messageRef": "trigger-event"
+          }
+        },
+        {
+          "id": "end-success",
+          "name": "Task Completed",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "signal",
+            "signalRef": "task-complete"
+          }
+        },
+        {
+          "id": "end-failed",
+          "name": "Task Failed",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "error",
+            "errorRef": "task-failure"
+          }
+        },
+        {
+          "id": "timer-next-schedule",
+          "name": "Wait for Next Schedule",
+          "type": "intermediateCatchEvent",
+          "eventDefinition": {
+            "type": "timer",
+            "timeDuration": "${scheduleInterval}"
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "check-missed-schedule",
+          "name": "Check for Missed Schedules",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-last-run",
+                "name": "Last Run Time",
+                "itemSubjectRef": "schedule-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-missed",
+                "name": "Missed Schedules",
+                "itemSubjectRef": "schedule-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "execute-task",
+          "name": "Execute Scheduled Task",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "${taskAgentType}",
+            "assignmentStrategy": "dynamic"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-task-config",
+                "name": "Task Configuration",
+                "itemSubjectRef": "task-config-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-task-result",
+                "name": "Task Result",
+                "itemSubjectRef": "task-result-data"
+              }
+            ]
+          },
+          "multiInstanceLoopCharacteristics": {
+            "isSequential": false,
+            "loopCardinality": "${parallelExecutions}",
+            "completionCondition": {
+              "type": "expression",
+              "body": "completedInstances >= requiredCompletions"
+            }
+          }
+        },
+        {
+          "id": "handle-error",
+          "name": "Handle Execution Error",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-error",
+                "name": "Error Details",
+                "itemSubjectRef": "error-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-error-response",
+                "name": "Error Response",
+                "itemSubjectRef": "error-response-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "retry-task",
+          "name": "Retry Task Execution",
+          "type": "callActivity",
+          "calledElement": "execute-task",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-retry-config",
+                "name": "Retry Configuration",
+                "itemSubjectRef": "retry-config-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "log-execution",
+          "name": "Log Execution Details",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-execution-data",
+                "name": "Execution Data",
+                "itemSubjectRef": "execution-log-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "handle-missed-schedule",
+          "name": "Handle Missed Schedule",
+          "type": "subProcess",
+          "triggeredByEvent": false,
+          "elements": {
+            "events": [
+              {
+                "id": "missed-start",
+                "type": "startEvent"
+              },
+              {
+                "id": "missed-end",
+                "type": "endEvent"
+              }
+            ],
+            "activities": [
+              {
+                "id": "evaluate-catch-up",
+                "name": "Evaluate Catch-up Strategy",
+                "type": "businessRuleTask",
+                "implementation": "dmn",
+                "agent": {
+                  "type": "system"
+                }
+              },
+              {
+                "id": "execute-catch-up",
+                "name": "Execute Catch-up Tasks",
+                "type": "serviceTask",
+                "agent": {
+                  "type": "system"
+                }
+              }
+            ],
+            "gateways": [
+              {
+                "id": "catch-up-decision",
+                "name": "Catch-up Required?",
+                "type": "exclusiveGateway"
+              }
+            ],
+            "sequenceFlows": [
+              {
+                "id": "missed-flow-1",
+                "sourceRef": "missed-start",
+                "targetRef": "evaluate-catch-up"
+              },
+              {
+                "id": "missed-flow-2",
+                "sourceRef": "evaluate-catch-up",
+                "targetRef": "catch-up-decision"
+              },
+              {
+                "id": "missed-flow-3",
+                "sourceRef": "catch-up-decision",
+                "targetRef": "execute-catch-up",
+                "condition": {
+                  "type": "expression",
+                  "body": "catchUpRequired === true"
+                }
+              },
+              {
+                "id": "missed-flow-4",
+                "sourceRef": "catch-up-decision",
+                "targetRef": "missed-end",
+                "condition": {
+                  "type": "expression",
+                  "body": "catchUpRequired === false"
+                }
+              },
+              {
+                "id": "missed-flow-5",
+                "sourceRef": "execute-catch-up",
+                "targetRef": "missed-end"
+              }
+            ]
+          }
+        }
+      ],
+      "gateways": [
+        {
+          "id": "merge-triggers",
+          "name": "Merge Triggers",
+          "type": "exclusiveGateway"
+        },
+        {
+          "id": "check-missed",
+          "name": "Missed Schedules?",
+          "type": "exclusiveGateway",
+          "default": "flow-no-missed"
+        },
+        {
+          "id": "error-gateway",
+          "name": "Execution Error?",
+          "type": "exclusiveGateway",
+          "default": "flow-success"
+        },
+        {
+          "id": "retry-gateway",
+          "name": "Retry Decision",
+          "type": "exclusiveGateway",
+          "default": "flow-no-retry"
+        },
+        {
+          "id": "error-type-gateway",
+          "name": "Error Type",
+          "type": "exclusiveGateway"
+        },
+        {
+          "id": "continue-gateway",
+          "name": "Continue Scheduling?",
+          "type": "exclusiveGateway",
+          "default": "flow-stop"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow-schedule-start",
+          "sourceRef": "start-schedule",
+          "targetRef": "merge-triggers"
+        },
+        {
+          "id": "flow-event-start",
+          "sourceRef": "start-event",
+          "targetRef": "merge-triggers"
+        },
+        {
+          "id": "flow-check-missed",
+          "sourceRef": "merge-triggers",
+          "targetRef": "check-missed-schedule"
+        },
+        {
+          "id": "flow-missed-check",
+          "sourceRef": "check-missed-schedule",
+          "targetRef": "check-missed"
+        },
+        {
+          "id": "flow-has-missed",
+          "sourceRef": "check-missed",
+          "targetRef": "handle-missed-schedule",
+          "condition": {
+            "type": "expression",
+            "body": "missedSchedules.length > 0"
+          }
+        },
+        {
+          "id": "flow-no-missed",
+          "sourceRef": "check-missed",
+          "targetRef": "execute-task"
+        },
+        {
+          "id": "flow-after-catch-up",
+          "sourceRef": "handle-missed-schedule",
+          "targetRef": "execute-task"
+        },
+        {
+          "id": "flow-task-done",
+          "sourceRef": "execute-task",
+          "targetRef": "error-gateway"
+        },
+        {
+          "id": "flow-has-error",
+          "sourceRef": "error-gateway",
+          "targetRef": "error-type-gateway",
+          "condition": {
+            "type": "expression",
+            "body": "taskResult.status === 'error'"
+          }
+        },
+        {
+          "id": "flow-success",
+          "sourceRef": "error-gateway",
+          "targetRef": "log-execution"
+        },
+        {
+          "id": "flow-client-error",
+          "sourceRef": "error-type-gateway",
+          "targetRef": "handle-error",
+          "condition": {
+            "type": "expression",
+            "body": "errorCode >= 400 && errorCode < 500"
+          }
+        },
+        {
+          "id": "flow-server-error",
+          "sourceRef": "error-type-gateway",
+          "targetRef": "retry-gateway",
+          "condition": {
+            "type": "expression",
+            "body": "errorCode >= 500"
+          }
+        },
+        {
+          "id": "flow-should-retry",
+          "sourceRef": "retry-gateway",
+          "targetRef": "retry-task",
+          "condition": {
+            "type": "expression",
+            "body": "retryCount < maxRetries"
+          }
+        },
+        {
+          "id": "flow-no-retry",
+          "sourceRef": "retry-gateway",
+          "targetRef": "handle-error"
+        },
+        {
+          "id": "flow-retry-done",
+          "sourceRef": "retry-task",
+          "targetRef": "error-gateway"
+        },
+        {
+          "id": "flow-error-handled",
+          "sourceRef": "handle-error",
+          "targetRef": "log-execution",
+          "condition": {
+            "type": "expression",
+            "body": "errorResponse.handled === true"
+          }
+        },
+        {
+          "id": "flow-logged",
+          "sourceRef": "log-execution",
+          "targetRef": "continue-gateway"
+        },
+        {
+          "id": "flow-continue",
+          "sourceRef": "continue-gateway",
+          "targetRef": "timer-next-schedule",
+          "condition": {
+            "type": "expression",
+            "body": "continueScheduling === true"
+          }
+        },
+        {
+          "id": "flow-wait-done",
+          "sourceRef": "timer-next-schedule",
+          "targetRef": "merge-triggers"
+        },
+        {
+          "id": "flow-stop",
+          "sourceRef": "continue-gateway",
+          "targetRef": "end-success"
+        },
+        {
+          "id": "flow-failed",
+          "sourceRef": "handle-error",
+          "targetRef": "end-failed",
+          "condition": {
+            "type": "expression",
+            "body": "errorResponse.handled === false"
+          }
+        }
+      ]
+    },
+    "agents": {
+      "definitions": [
+        {
+          "id": "system-scheduler",
+          "name": "System Scheduler",
+          "type": "system",
+          "capabilities": ["scheduling", "monitoring", "retry-management"]
+        },
+        {
+          "id": "ai-executor",
+          "name": "AI Task Executor",
+          "type": "ai",
+          "capabilities": ["task-execution", "content-generation"],
+          "model": "claude-3-haiku"
+        },
+        {
+          "id": "human-executor",
+          "name": "Human Task Executor",
+          "type": "human",
+          "capabilities": ["manual-tasks", "verification"]
+        }
+      ],
+      "pools": [
+        {
+          "id": "executor-pool",
+          "name": "Task Executor Pool",
+          "agents": ["ai-executor", "human-executor", "system-scheduler"],
+          "selectionStrategy": "load-balanced"
+        }
+      ],
+      "defaultAssignmentStrategy": "dynamic",
+      "performanceTracking": true
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "schedule-config",
+          "name": "Schedule Configuration",
+          "itemSubjectRef": "schedule-data",
+          "isCollection": false
+        },
+        {
+          "id": "task-config",
+          "name": "Task Configuration",
+          "itemSubjectRef": "task-config-data",
+          "isCollection": false
+        },
+        {
+          "id": "execution-log",
+          "name": "Execution Log",
+          "itemSubjectRef": "execution-log-data",
+          "isCollection": true
+        }
+      ],
+      "dataStores": [
+        {
+          "id": "schedule-history",
+          "name": "Schedule History",
+          "capacity": 10000,
+          "isUnlimited": false
+        }
+      ]
+    },
+    "monitoring": {
+      "enabled": true,
+      "metrics": ["execution-time", "error-rate", "throughput", "resource-usage"],
+      "alerting": {
+        "enabled": true,
+        "rules": [
+          {
+            "id": "high-error-rate",
+            "name": "High Error Rate Alert",
+            "condition": {
+              "type": "expression",
+              "body": "errorRate > 0.1"
+            },
+            "severity": "error",
+            "notification": {
+              "type": "slack",
+              "channel": "#alerts"
+            }
+          },
+          {
+            "id": "missed-schedule-alert",
+            "name": "Missed Schedule Alert",
+            "condition": {
+              "type": "expression",
+              "body": "missedSchedules > 3"
+            },
+            "severity": "warning",
+            "notification": {
+              "type": "email",
+              "recipients": ["ops@example.com"]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "itemDefinitions": [
+      {
+        "id": "schedule-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "cronExpression": { "type": "string" },
+            "lastRun": { "type": "string" },
+            "nextRun": { "type": "string" },
+            "missedRuns": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "task-config-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "taskId": { "type": "string" },
+            "taskType": { "type": "string" },
+            "parameters": { "type": "object" },
+            "timeout": { "type": "number" }
+          }
+        }
+      },
+      {
+        "id": "task-result-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["success", "error", "timeout"] },
+            "result": { "type": "object" },
+            "errorCode": { "type": "number" },
+            "errorMessage": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "error-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "code": { "type": "number" },
+            "message": { "type": "string" },
+            "stack": { "type": "string" },
+            "timestamp": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "error-response-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "handled": { "type": "boolean" },
+            "action": { "type": "string" },
+            "notification": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "retry-config-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "maxRetries": { "type": "number" },
+            "retryDelay": { "type": "number" },
+            "backoffMultiplier": { "type": "number" }
+          }
+        }
+      },
+      {
+        "id": "execution-log-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "executionId": { "type": "string" },
+            "timestamp": { "type": "string" },
+            "status": { "type": "string" },
+            "duration": { "type": "number" },
+            "details": { "type": "object" }
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "id": "trigger-event",
+        "name": "External Trigger Event",
+        "itemRef": "task-config-data"
+      }
+    ],
+    "signals": [
+      {
+        "id": "task-complete",
+        "name": "Task Complete Signal",
+        "structureRef": "task-result-data"
+      }
+    ],
+    "errors": [
+      {
+        "id": "task-failure",
+        "name": "Task Execution Failure",
+        "errorCode": "TASK_FAILED",
+        "structureRef": "error-data"
+      }
+    ]
+  }
+}

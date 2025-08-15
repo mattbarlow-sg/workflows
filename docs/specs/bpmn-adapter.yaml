@@ -1,0 +1,532 @@
+# BPMN Adapter Interface Specification
+# Generated for: 1754471482-temporal-workflow-implementation
+# Node: bpmn-adapter
+# Version: 1.0
+# Description: Interface contracts for BPMN to Temporal conversion
+
+metadata:
+  node_id: bpmn-adapter
+  domain: workflow-conversion
+  generated: 2025-08-12
+  implementation_id: 1754471482-temporal-workflow-implementation
+  specification_type: module_interface
+
+# Core Module Interfaces
+interfaces:
+  BPMNAdapter:
+    description: Main adapter interface for BPMN to Temporal conversion
+    package: internal/temporal
+    methods:
+      - name: Convert
+        description: Convert BPMN process to Temporal workflow
+        signature: |
+          func (a *BPMNAdapter) Convert(ctx context.Context, process *bpmn.Process, config ConversionConfig) (*ConversionResult, error)
+        parameters:
+          - name: ctx
+            type: context.Context
+            description: Context for cancellation and timeout
+          - name: process
+            type: "*bpmn.Process"
+            description: BPMN process to convert
+          - name: config
+            type: ConversionConfig
+            description: Conversion configuration options
+        returns:
+          - type: "*ConversionResult"
+            description: Result containing generated code and metadata
+          - type: error
+            description: Error if conversion fails
+        errors:
+          - ErrInvalidProcess
+          - ErrUnsupportedElement
+          - ErrConversionFailed
+
+      - name: ValidateProcess
+        description: Validate BPMN process for conversion compatibility
+        signature: |
+          func (a *BPMNAdapter) ValidateProcess(process *bpmn.Process) (*ValidationResult, error)
+        parameters:
+          - name: process
+            type: "*bpmn.Process"
+            description: BPMN process to validate
+        returns:
+          - type: "*ValidationResult"
+            description: Validation results with warnings and errors
+          - type: error
+            description: Error if validation fails
+
+      - name: GenerateCode
+        description: Generate Go code from conversion mappings
+        signature: |
+          func (a *BPMNAdapter) GenerateCode(mappings []ElementMapping, config GenerationConfig) (*GeneratedCode, error)
+        parameters:
+          - name: mappings
+            type: "[]ElementMapping"
+            description: Element mappings to generate code from
+          - name: config
+            type: GenerationConfig
+            description: Code generation configuration
+        returns:
+          - type: "*GeneratedCode"
+            description: Generated Go source code files
+          - type: error
+            description: Error if generation fails
+
+  ElementMapper:
+    description: Interface for mapping BPMN elements to Temporal constructs
+    package: internal/temporal
+    methods:
+      - name: MapActivity
+        description: Map BPMN activity to Temporal pattern
+        signature: |
+          func (m *ElementMapper) MapActivity(activity bpmn.Activity) (*ActivityMapping, error)
+        parameters:
+          - name: activity
+            type: bpmn.Activity
+            description: BPMN activity to map
+        returns:
+          - type: "*ActivityMapping"
+            description: Temporal activity mapping
+          - type: error
+            description: Error if mapping fails
+
+      - name: MapGateway
+        description: Map BPMN gateway to Temporal control flow
+        signature: |
+          func (m *ElementMapper) MapGateway(gateway bpmn.Gateway) (*GatewayMapping, error)
+        parameters:
+          - name: gateway
+            type: bpmn.Gateway
+            description: BPMN gateway to map
+        returns:
+          - type: "*GatewayMapping"
+            description: Temporal control flow mapping
+          - type: error
+            description: Error if mapping fails
+
+      - name: MapEvent
+        description: Map BPMN event to Temporal event handler
+        signature: |
+          func (m *ElementMapper) MapEvent(event bpmn.Event) (*EventMapping, error)
+        parameters:
+          - name: event
+            type: bpmn.Event
+            description: BPMN event to map
+        returns:
+          - type: "*EventMapping"
+            description: Temporal event handler mapping
+          - type: error
+            description: Error if mapping fails
+
+  CodeGenerator:
+    description: Interface for generating Go code from mappings
+    package: internal/temporal
+    methods:
+      - name: GenerateWorkflow
+        description: Generate workflow Go code
+        signature: |
+          func (g *CodeGenerator) GenerateWorkflow(name string, mappings []ElementMapping) (string, error)
+        parameters:
+          - name: name
+            type: string
+            description: Workflow name
+          - name: mappings
+            type: "[]ElementMapping"
+            description: Element mappings for workflow
+        returns:
+          - type: string
+            description: Generated workflow Go code
+          - type: error
+            description: Error if generation fails
+
+      - name: GenerateActivities
+        description: Generate activities Go code
+        signature: |
+          func (g *CodeGenerator) GenerateActivities(activities []ActivityMapping) (string, error)
+        parameters:
+          - name: activities
+            type: "[]ActivityMapping"
+            description: Activity mappings
+        returns:
+          - type: string
+            description: Generated activities Go code
+          - type: error
+            description: Error if generation fails
+
+      - name: GenerateTypes
+        description: Generate type definitions Go code
+        signature: |
+          func (g *CodeGenerator) GenerateTypes(dataObjects []bpmn.DataObject, properties []bpmn.Property) (string, error)
+        parameters:
+          - name: dataObjects
+            type: "[]bpmn.DataObject"
+            description: BPMN data objects
+          - name: properties
+            type: "[]bpmn.Property"
+            description: BPMN properties
+        returns:
+          - type: string
+            description: Generated types Go code
+          - type: error
+            description: Error if generation fails
+
+# Data Types
+types:
+  ConversionConfig:
+    description: Configuration for BPMN to Temporal conversion
+    fields:
+      - name: PackageName
+        type: string
+        required: true
+        description: Target Go package name
+        validation: "^[a-z][a-z0-9_]*$"
+      
+      - name: OutputDir
+        type: string
+        required: true
+        description: Output directory for generated files
+        validation: "valid directory path"
+      
+      - name: GenerateTests
+        type: bool
+        required: false
+        default: false
+        description: Generate unit tests
+      
+      - name: InlineScripts
+        type: bool
+        required: false
+        default: true
+        description: Inline simple scripts in workflow
+      
+      - name: MaxInlineLines
+        type: int
+        required: false
+        default: 50
+        description: Maximum lines for inline scripts
+        validation: "10 <= value <= 100"
+      
+      - name: GenerateTODOs
+        type: bool
+        required: false
+        default: true
+        description: Generate TODOs for unsupported features
+      
+      - name: PreserveDocs
+        type: bool
+        required: false
+        default: true
+        description: Preserve BPMN documentation as comments
+      
+      - name: StrictMode
+        type: bool
+        required: false
+        default: false
+        description: Fail on any unsupported element
+
+  ConversionResult:
+    description: Result of BPMN to Temporal conversion
+    fields:
+      - name: Success
+        type: bool
+        required: true
+        description: Whether conversion succeeded
+      
+      - name: GeneratedFiles
+        type: "[]GeneratedFile"
+        required: true
+        description: List of generated files
+      
+      - name: Mappings
+        type: "[]ElementMapping"
+        required: true
+        description: Element mappings created
+      
+      - name: Warnings
+        type: "[]Warning"
+        required: false
+        description: Non-fatal warnings
+      
+      - name: Errors
+        type: "[]Error"
+        required: false
+        description: Errors encountered
+      
+      - name: Statistics
+        type: ConversionStatistics
+        required: true
+        description: Conversion statistics
+
+  ElementMapping:
+    description: Mapping from BPMN element to Temporal construct
+    fields:
+      - name: BPMNElement
+        type: BPMNElementRef
+        required: true
+        description: Reference to BPMN element
+      
+      - name: TemporalConstruct
+        type: string
+        required: true
+        description: Type of Temporal construct
+        enum: ["activity", "workflow", "signal", "timer", "selector", "childWorkflow"]
+      
+      - name: GeneratedCode
+        type: string
+        required: false
+        description: Generated Go code snippet
+      
+      - name: Status
+        type: string
+        required: true
+        description: Mapping status
+        enum: ["complete", "partial", "failed", "skipped"]
+      
+      - name: Issues
+        type: "[]Issue"
+        required: false
+        description: Issues encountered during mapping
+
+  GeneratedFile:
+    description: Generated Go source file
+    fields:
+      - name: Path
+        type: string
+        required: true
+        description: File path relative to output directory
+      
+      - name: Content
+        type: string
+        required: true
+        description: File content
+      
+      - name: Type
+        type: string
+        required: true
+        description: File type
+        enum: ["workflow", "activities", "types", "tests", "mapper"]
+
+  ValidationResult:
+    description: BPMN validation result
+    fields:
+      - name: Valid
+        type: bool
+        required: true
+        description: Whether process is valid for conversion
+      
+      - name: Errors
+        type: "[]ValidationError"
+        required: false
+        description: Validation errors found
+      
+      - name: Warnings
+        type: "[]ValidationWarning"
+        required: false
+        description: Validation warnings
+      
+      - name: SupportedElements
+        type: int
+        required: true
+        description: Count of supported elements
+      
+      - name: UnsupportedElements
+        type: int
+        required: true
+        description: Count of unsupported elements
+
+  ConversionStatistics:
+    description: Statistics about the conversion
+    fields:
+      - name: TotalElements
+        type: int
+        required: true
+        description: Total BPMN elements processed
+      
+      - name: ConvertedElements
+        type: int
+        required: true
+        description: Successfully converted elements
+      
+      - name: PartialElements
+        type: int
+        required: true
+        description: Partially converted elements
+      
+      - name: FailedElements
+        type: int
+        required: true
+        description: Failed element conversions
+      
+      - name: GeneratedWorkflows
+        type: int
+        required: true
+        description: Number of workflows generated
+      
+      - name: GeneratedActivities
+        type: int
+        required: true
+        description: Number of activities generated
+      
+      - name: GeneratedTypes
+        type: int
+        required: true
+        description: Number of types generated
+      
+      - name: ConversionDuration
+        type: duration
+        required: true
+        description: Time taken for conversion
+
+# Error Definitions
+errors:
+  - code: ERR_INVALID_PROCESS
+    description: BPMN process is invalid or malformed
+    fields:
+      - ProcessID: string
+      - Reason: string
+    
+  - code: ERR_UNSUPPORTED_ELEMENT
+    description: BPMN element type not supported
+    fields:
+      - ElementID: string
+      - ElementType: string
+      - Suggestion: string
+    
+  - code: ERR_CONVERSION_FAILED
+    description: General conversion failure
+    fields:
+      - Stage: string
+      - Details: string
+    
+  - code: ERR_INVALID_REFERENCE
+    description: Reference to non-existent element
+    fields:
+      - SourceID: string
+      - TargetID: string
+      - ReferenceType: string
+    
+  - code: ERR_NON_DETERMINISTIC
+    description: Generated code is non-deterministic
+    fields:
+      - Location: string
+      - Pattern: string
+      - Fix: string
+    
+  - code: ERR_NAME_CONFLICT
+    description: Name collision in generated code
+    fields:
+      - OriginalName: string
+      - ConflictingName: string
+      - Resolution: string
+
+# CLI Interface
+cli_commands:
+  bpmn_migrate:
+    description: Migrate BPMN workflow to Temporal
+    package: cmd/workflows/commands
+    usage: "workflows bpmn migrate [options] <bpmn-file>"
+    flags:
+      - name: --output
+        type: string
+        short: -o
+        description: Output directory for generated files
+        default: "./generated"
+      
+      - name: --package
+        type: string
+        short: -p
+        description: Go package name
+        default: "workflows"
+      
+      - name: --tests
+        type: bool
+        short: -t
+        description: Generate unit tests
+        default: false
+      
+      - name: --strict
+        type: bool
+        short: -s
+        description: Strict mode - fail on any unsupported element
+        default: false
+      
+      - name: --dry-run
+        type: bool
+        description: Validate without generating files
+        default: false
+      
+      - name: --verbose
+        type: bool
+        short: -v
+        description: Verbose output
+        default: false
+    
+    examples:
+      - description: Basic migration
+        command: "workflows bpmn migrate process.bpmn"
+      
+      - description: With custom output and package
+        command: "workflows bpmn migrate -o ./temporal -p myworkflows process.bpmn"
+      
+      - description: Generate with tests
+        command: "workflows bpmn migrate --tests process.bpmn"
+      
+      - description: Validate only
+        command: "workflows bpmn migrate --dry-run process.bpmn"
+
+# Integration Points
+integrations:
+  temporal_sdk:
+    description: Integration with Temporal Go SDK
+    package: go.temporal.io/sdk
+    version: ">=1.20.0"
+    interfaces:
+      - workflow.Context
+      - workflow.Activity
+      - workflow.ChildWorkflow
+      - workflow.Signal
+      - workflow.Timer
+    
+  bpmn_parser:
+    description: Integration with internal BPMN parser
+    package: internal/bpmn
+    interfaces:
+      - Process
+      - Activity
+      - Gateway
+      - Event
+      - SequenceFlow
+    
+  validation_framework:
+    description: Integration with Temporal validation framework
+    package: internal/temporal
+    interfaces:
+      - ValidatorInterface
+      - DeterminismChecker
+      - ActivitySignatureValidator
+
+# Performance Characteristics
+performance:
+  conversion_throughput:
+    metric: elements_per_second
+    target: ">= 100"
+    description: Conversion speed for typical workflows
+    
+  memory_usage:
+    metric: peak_memory_mb
+    small_workflow: "< 50"
+    medium_workflow: "< 200"
+    large_workflow: "< 500"
+    description: Memory usage during conversion
+    
+  file_generation:
+    metric: lines_per_second
+    target: ">= 1000"
+    description: Code generation speed
+
+# Versioning
+versioning:
+  current: "1.0.0"
+  compatibility: "BPMN 2.0"
+  breaking_changes: []
+  deprecations: []

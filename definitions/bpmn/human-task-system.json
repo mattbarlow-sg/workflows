@@ -1,0 +1,527 @@
+{
+  "$schema": "../../../schemas/bpmn-process.json",
+  "process": {
+    "id": "human-task-system-process",
+    "name": "Human Task Lifecycle Management System",
+    "processType": "private",
+    "isExecutable": true,
+    "elements": {
+      "events": [
+        {
+          "id": "start-task-creation",
+          "name": "Task Creation Request",
+          "type": "startEvent",
+          "eventDefinition": {
+            "type": "message",
+            "messageRef": "task-creation-message"
+          },
+          "documentation": "Triggered by workflow, schedule, or error condition"
+        },
+        {
+          "id": "end-task-processed",
+          "name": "Task Processed",
+          "type": "endEvent",
+          "documentation": "Task has been successfully processed"
+        },
+        {
+          "id": "timer-escalation",
+          "name": "Escalation Timer",
+          "type": "boundaryEvent",
+          "attachedToRef": "user-task-review",
+          "cancelActivity": false,
+          "eventDefinition": {
+            "type": "timer",
+            "timeDuration": "P14D",
+            "documentation": "2 weeks timeout before escalation"
+          }
+        },
+        {
+          "id": "start-cli-query",
+          "name": "CLI Query Request",
+          "type": "startEvent",
+          "eventDefinition": {
+            "type": "message",
+            "messageRef": "cli-query-message"
+          },
+          "documentation": "Query initiated from CLI"
+        },
+        {
+          "id": "end-query-complete",
+          "name": "Query Complete",
+          "type": "endEvent",
+          "documentation": "Query results returned"
+        }
+      ],
+      "activities": [
+        {
+          "id": "service-create-task",
+          "name": "Create Task Record",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.createTaskRecord",
+          "documentation": "Generate unique task ID, set metadata (type, creation time), store task context"
+        },
+        {
+          "id": "service-add-to-queue",
+          "name": "Add to LIFO Queue",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.addToLIFOQueue",
+          "documentation": "Add task to last-in-first-out processing queue"
+        },
+        {
+          "id": "user-task-review",
+          "name": "Operator Reviews Task",
+          "type": "userTask",
+          "agent": {
+            "type": "human",
+            "strategy": "static",
+            "constraints": [
+              {
+                "type": "role",
+                "value": "operator"
+              }
+            ]
+          },
+          "documentation": "Single operator role reviews task via CLI (future UI), views task details and context"
+        },
+        {
+          "id": "service-capture-proof",
+          "name": "Capture Proof",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.captureProof",
+          "documentation": "Capture and store proof of completion (free text)"
+        },
+        {
+          "id": "service-signal-completion",
+          "name": "Signal Completion",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.signalCompletion",
+          "documentation": "Signal task completion with proof"
+        },
+        {
+          "id": "service-signal-approval",
+          "name": "Signal Approval",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.signalApproval",
+          "documentation": "Signal task approval"
+        },
+        {
+          "id": "service-signal-rejection",
+          "name": "Signal Rejection",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.signalRejection",
+          "documentation": "Signal task rejection"
+        },
+        {
+          "id": "service-send-clarification",
+          "name": "Send to Requester",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.sendClarificationRequest",
+          "documentation": "Send task back to requester for clarification"
+        },
+        {
+          "id": "service-signal-cancellation",
+          "name": "Signal Cancellation",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.signalCancellation",
+          "documentation": "Signal task cancellation"
+        },
+        {
+          "id": "service-update-status",
+          "name": "Update Task Status",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.updateTaskStatus",
+          "documentation": "Update task status in the system"
+        },
+        {
+          "id": "service-send-response",
+          "name": "Send Response to Workflow",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.sendWorkflowResponse",
+          "documentation": "Send task processing response back to the requesting workflow"
+        },
+        {
+          "id": "service-mark-escalated",
+          "name": "Mark Task as Escalated",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.markEscalated",
+          "documentation": "Mark task as escalated but maintain LIFO order"
+        },
+        {
+          "id": "service-update-queue",
+          "name": "Update Task in Queue",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.updateQueueTask",
+          "documentation": "Update task in queue maintaining LIFO order, doesn't jump queue"
+        },
+        {
+          "id": "service-fetch-queue",
+          "name": "Fetch Queue State",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.fetchQueueState",
+          "documentation": "Retrieve current queue state for CLI query"
+        },
+        {
+          "id": "service-format-display",
+          "name": "Format Task List for Display",
+          "type": "serviceTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "implementation": "temporal.formatTaskList",
+          "documentation": "Format task list for CLI display"
+        },
+        {
+          "id": "service-wait-clarification",
+          "name": "Wait for Clarification",
+          "type": "receiveTask",
+          "agent": {
+            "type": "system",
+            "strategy": "static"
+          },
+          "documentation": "Wait for clarification from requester"
+        }
+      ],
+      "gateways": [
+        {
+          "id": "gateway-operator-decision",
+          "name": "Operator Decision",
+          "type": "exclusiveGateway",
+          "gatewayDirection": "diverging",
+          "documentation": "Route based on operator's decision"
+        },
+        {
+          "id": "gateway-merge-after-action",
+          "name": "Merge After Action",
+          "type": "exclusiveGateway",
+          "gatewayDirection": "converging",
+          "documentation": "Merge paths after action processing"
+        },
+        {
+          "id": "gateway-clarification-loop",
+          "name": "Clarification Loop",
+          "type": "exclusiveGateway",
+          "gatewayDirection": "converging",
+          "documentation": "Merge clarification loop back to queue"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow-start-to-create",
+          "sourceRef": "start-task-creation",
+          "targetRef": "service-create-task"
+        },
+        {
+          "id": "flow-create-to-queue",
+          "sourceRef": "service-create-task",
+          "targetRef": "service-add-to-queue"
+        },
+        {
+          "id": "flow-queue-to-loop",
+          "sourceRef": "service-add-to-queue",
+          "targetRef": "gateway-clarification-loop"
+        },
+        {
+          "id": "flow-loop-to-review",
+          "sourceRef": "gateway-clarification-loop",
+          "targetRef": "user-task-review"
+        },
+        {
+          "id": "flow-review-to-decision",
+          "sourceRef": "user-task-review",
+          "targetRef": "gateway-operator-decision"
+        },
+        {
+          "id": "flow-decision-complete",
+          "name": "Complete",
+          "sourceRef": "gateway-operator-decision",
+          "targetRef": "service-capture-proof",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "decision === 'complete'"
+          }
+        },
+        {
+          "id": "flow-capture-to-signal",
+          "sourceRef": "service-capture-proof",
+          "targetRef": "service-signal-completion"
+        },
+        {
+          "id": "flow-signal-to-merge",
+          "sourceRef": "service-signal-completion",
+          "targetRef": "gateway-merge-after-action"
+        },
+        {
+          "id": "flow-decision-approve",
+          "name": "Approve",
+          "sourceRef": "gateway-operator-decision",
+          "targetRef": "service-signal-approval",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "decision === 'approve'"
+          }
+        },
+        {
+          "id": "flow-approve-to-merge",
+          "sourceRef": "service-signal-approval",
+          "targetRef": "gateway-merge-after-action"
+        },
+        {
+          "id": "flow-decision-reject",
+          "name": "Reject",
+          "sourceRef": "gateway-operator-decision",
+          "targetRef": "service-signal-rejection",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "decision === 'reject'"
+          }
+        },
+        {
+          "id": "flow-reject-to-merge",
+          "sourceRef": "service-signal-rejection",
+          "targetRef": "gateway-merge-after-action"
+        },
+        {
+          "id": "flow-decision-return",
+          "name": "Return for Clarification",
+          "sourceRef": "gateway-operator-decision",
+          "targetRef": "service-send-clarification",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "decision === 'return'"
+          }
+        },
+        {
+          "id": "flow-clarification-to-wait",
+          "sourceRef": "service-send-clarification",
+          "targetRef": "service-wait-clarification"
+        },
+        {
+          "id": "flow-wait-to-loop",
+          "sourceRef": "service-wait-clarification",
+          "targetRef": "gateway-clarification-loop"
+        },
+        {
+          "id": "flow-decision-cancel",
+          "name": "Cancel",
+          "sourceRef": "gateway-operator-decision",
+          "targetRef": "service-signal-cancellation",
+          "conditionExpression": {
+            "language": "javascript",
+            "body": "decision === 'cancel'"
+          }
+        },
+        {
+          "id": "flow-cancel-to-merge",
+          "sourceRef": "service-signal-cancellation",
+          "targetRef": "gateway-merge-after-action"
+        },
+        {
+          "id": "flow-merge-to-update",
+          "sourceRef": "gateway-merge-after-action",
+          "targetRef": "service-update-status"
+        },
+        {
+          "id": "flow-update-to-response",
+          "sourceRef": "service-update-status",
+          "targetRef": "service-send-response"
+        },
+        {
+          "id": "flow-response-to-end",
+          "sourceRef": "service-send-response",
+          "targetRef": "end-task-processed"
+        },
+        {
+          "id": "flow-timer-to-escalate",
+          "sourceRef": "timer-escalation",
+          "targetRef": "service-mark-escalated"
+        },
+        {
+          "id": "flow-escalate-to-update-queue",
+          "sourceRef": "service-mark-escalated",
+          "targetRef": "service-update-queue"
+        },
+        {
+          "id": "flow-update-queue-continue",
+          "sourceRef": "service-update-queue",
+          "targetRef": "user-task-review",
+          "documentation": "Continue with normal operator handling after escalation"
+        },
+        {
+          "id": "flow-cli-to-fetch",
+          "sourceRef": "start-cli-query",
+          "targetRef": "service-fetch-queue"
+        },
+        {
+          "id": "flow-fetch-to-format",
+          "sourceRef": "service-fetch-queue",
+          "targetRef": "service-format-display"
+        },
+        {
+          "id": "flow-format-to-end",
+          "sourceRef": "service-format-display",
+          "targetRef": "end-query-complete"
+        }
+      ]
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "data-task-record",
+          "name": "Task Record",
+          "itemSubjectRef": "task-record-type",
+          "documentation": "Contains id, type, status, context, proof, creation_time, escalated"
+        },
+        {
+          "id": "data-queue-state",
+          "name": "Queue State",
+          "itemSubjectRef": "queue-state-type",
+          "documentation": "Contains tasks[] in LIFO order, operator_status"
+        },
+        {
+          "id": "data-task-response",
+          "name": "Task Response",
+          "itemSubjectRef": "task-response-type",
+          "documentation": "Contains task_id, outcome, proof, timestamp"
+        }
+      ],
+      "dataStores": [
+        {
+          "id": "datastore-task-queue",
+          "name": "Task Queue Store",
+          "itemSubjectRef": "queue-state-type",
+          "isUnlimited": false,
+          "documentation": "Persistent LIFO queue for all task types"
+        },
+        {
+          "id": "datastore-task-history",
+          "name": "Task History Store",
+          "itemSubjectRef": "task-record-type",
+          "isUnlimited": true,
+          "documentation": "Historical record of all processed tasks"
+        }
+      ]
+    },
+    "agents": {
+      "definitions": [
+        {
+          "id": "agent-operator",
+          "name": "Human Operator",
+          "type": "human",
+          "capabilities": [
+            "review",
+            "decision-making",
+            "task-completion",
+            "proof-generation"
+          ],
+          "availability": "manual-polling",
+          "description": "Single operator role for reviewing and processing tasks"
+        },
+        {
+          "id": "agent-temporal-system",
+          "name": "Temporal System",
+          "type": "system",
+          "capabilities": [
+            "task-creation",
+            "queue-management",
+            "signal-processing",
+            "status-tracking"
+          ],
+          "availability": "always",
+          "description": "Temporal workflow system for automated task management"
+        }
+      ],
+      "defaultAssignmentStrategy": "static",
+      "performanceTracking": true
+    },
+    "documentation": "Comprehensive human-in-the-loop task management system for Temporal workflows. Handles approvals, reviews, data entry, decisions, and tasks that AI cannot complete independently. Features LIFO queue processing, single operator interface via CLI, long timeout periods (weeks), and support for task escalation without queue jumping."
+  },
+  "definitions": {
+    "itemDefinitions": [
+      {
+        "id": "task-record-type",
+        "structureRef": "TaskRecord",
+        "itemKind": "information"
+      },
+      {
+        "id": "queue-state-type",
+        "structureRef": "QueueState",
+        "itemKind": "information"
+      },
+      {
+        "id": "task-response-type",
+        "structureRef": "TaskResponse",
+        "itemKind": "information"
+      }
+    ],
+    "messages": [
+      {
+        "id": "task-creation-message",
+        "name": "Task Creation Message",
+        "itemRef": "task-record-type"
+      },
+      {
+        "id": "cli-query-message",
+        "name": "CLI Query Message",
+        "itemRef": "queue-state-type"
+      },
+      {
+        "id": "clarification-message",
+        "name": "Clarification Message",
+        "itemRef": "task-record-type"
+      }
+    ]
+  }
+}

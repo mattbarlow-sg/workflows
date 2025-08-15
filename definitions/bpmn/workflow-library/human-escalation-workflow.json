@@ -1,0 +1,838 @@
+{
+  "$schema": "../../../schemas/bpmn-process.json",
+  "process": {
+    "id": "human-escalation-pattern",
+    "name": "Human Task with Escalation Pattern",
+    "processType": "private",
+    "isExecutable": true,
+    "documentation": {
+      "text": "A reusable workflow pattern for AI agents to escalate to human operators when encountering unknowns, errors, or decisions requiring human judgment. Includes comprehensive diagnostic information and context preservation.",
+      "format": "text/plain"
+    },
+    "elements": {
+      "events": [
+        {
+          "id": "start-task",
+          "name": "Task Initiated",
+          "type": "startEvent",
+          "eventDefinition": {
+            "type": "message",
+            "messageRef": "task-request"
+          }
+        },
+        {
+          "id": "end-success",
+          "name": "Task Completed",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "signal",
+            "signalRef": "task-success"
+          }
+        },
+        {
+          "id": "end-abandoned",
+          "name": "Task Abandoned",
+          "type": "endEvent",
+          "eventDefinition": {
+            "type": "terminate"
+          }
+        },
+        {
+          "id": "escalation-boundary",
+          "name": "Escalation Required",
+          "type": "boundaryEvent",
+          "attachedToRef": "ai-task-execution",
+          "eventDefinition": {
+            "type": "escalation",
+            "escalationRef": "ai-escalation"
+          }
+        },
+        {
+          "id": "timer-human-response",
+          "name": "Human Response Timeout",
+          "type": "boundaryEvent",
+          "attachedToRef": "human-intervention",
+          "eventDefinition": {
+            "type": "timer",
+            "timeDuration": "${escalationTimeout}"
+          },
+          "cancelActivity": false
+        }
+      ],
+      "activities": [
+        {
+          "id": "ai-task-execution",
+          "name": "AI Attempts Task",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "ai",
+            "assignmentStrategy": "dynamic",
+            "model": "${aiModel}",
+            "capabilities": ["task-execution", "error-detection", "self-assessment"]
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-task",
+                "name": "Task Details",
+                "itemSubjectRef": "task-data"
+              },
+              {
+                "id": "input-context",
+                "name": "Task Context",
+                "itemSubjectRef": "context-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-result",
+                "name": "Task Result",
+                "itemSubjectRef": "result-data"
+              },
+              {
+                "id": "output-confidence",
+                "name": "Confidence Score",
+                "itemSubjectRef": "confidence-data"
+              }
+            ]
+          },
+          "extensionElements": {
+            "properties": [
+              {
+                "name": "confidenceThreshold",
+                "value": "0.7"
+              },
+              {
+                "name": "maxAttempts",
+                "value": "3"
+              }
+            ]
+          }
+        },
+        {
+          "id": "prepare-escalation",
+          "name": "Prepare Escalation Context",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-ai-state",
+                "name": "AI State",
+                "itemSubjectRef": "ai-state-data"
+              },
+              {
+                "id": "input-issue",
+                "name": "Issue Details",
+                "itemSubjectRef": "issue-data"
+              },
+              {
+                "id": "input-diagnostics",
+                "name": "Diagnostic Info",
+                "itemSubjectRef": "diagnostic-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-escalation-package",
+                "name": "Escalation Package",
+                "itemSubjectRef": "escalation-package-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "human-intervention",
+          "name": "Human Provides Guidance",
+          "type": "userTask",
+          "implementation": "human-task",
+          "agent": {
+            "type": "human",
+            "assignmentStrategy": "pool",
+            "pool": "escalation-pool",
+            "escalationLevel": "${escalationLevel}"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-escalation",
+                "name": "Escalation Package",
+                "itemSubjectRef": "escalation-package-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-guidance",
+                "name": "Human Guidance",
+                "itemSubjectRef": "guidance-data"
+              },
+              {
+                "id": "output-action",
+                "name": "Recommended Action",
+                "itemSubjectRef": "action-data"
+              }
+            ]
+          },
+          "resources": {
+            "requiredCapabilities": ["domain-expertise", "problem-solving"],
+            "priority": "${escalationPriority}"
+          }
+        },
+        {
+          "id": "apply-human-guidance",
+          "name": "Apply Human Guidance",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "ai",
+            "assignmentStrategy": "same-as-original",
+            "model": "${aiModel}"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-guidance",
+                "name": "Human Guidance",
+                "itemSubjectRef": "guidance-data"
+              },
+              {
+                "id": "input-original-task",
+                "name": "Original Task",
+                "itemSubjectRef": "task-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-revised-result",
+                "name": "Revised Result",
+                "itemSubjectRef": "result-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "validate-resolution",
+          "name": "Validate Resolution",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-resolution",
+                "name": "Resolution",
+                "itemSubjectRef": "result-data"
+              },
+              {
+                "id": "input-criteria",
+                "name": "Validation Criteria",
+                "itemSubjectRef": "validation-criteria-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-validation",
+                "name": "Validation Result",
+                "itemSubjectRef": "validation-result-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "record-learning",
+          "name": "Record Learning for Future",
+          "type": "serviceTask",
+          "implementation": "temporal-activity",
+          "agent": {
+            "type": "system",
+            "assignmentStrategy": "static"
+          },
+          "ioSpecification": {
+            "dataInputs": [
+              {
+                "id": "input-case",
+                "name": "Case Details",
+                "itemSubjectRef": "case-data"
+              },
+              {
+                "id": "input-resolution",
+                "name": "Resolution",
+                "itemSubjectRef": "result-data"
+              },
+              {
+                "id": "input-human-guidance",
+                "name": "Human Guidance",
+                "itemSubjectRef": "guidance-data"
+              }
+            ],
+            "dataOutputs": [
+              {
+                "id": "output-learning-record",
+                "name": "Learning Record",
+                "itemSubjectRef": "learning-data"
+              }
+            ]
+          }
+        },
+        {
+          "id": "handle-timeout",
+          "name": "Handle Escalation Timeout",
+          "type": "subProcess",
+          "triggeredByEvent": false,
+          "elements": {
+            "events": [
+              {
+                "id": "timeout-start",
+                "type": "startEvent"
+              },
+              {
+                "id": "timeout-end",
+                "type": "endEvent"
+              }
+            ],
+            "activities": [
+              {
+                "id": "notify-timeout",
+                "name": "Notify Timeout",
+                "type": "sendTask",
+                "agent": {
+                  "type": "system"
+                }
+              },
+              {
+                "id": "escalate-further",
+                "name": "Escalate to Higher Level",
+                "type": "serviceTask",
+                "agent": {
+                  "type": "system"
+                }
+              }
+            ],
+            "gateways": [
+              {
+                "id": "timeout-action",
+                "name": "Timeout Action",
+                "type": "exclusiveGateway"
+              }
+            ],
+            "sequenceFlows": [
+              {
+                "id": "timeout-flow-1",
+                "sourceRef": "timeout-start",
+                "targetRef": "notify-timeout"
+              },
+              {
+                "id": "timeout-flow-2",
+                "sourceRef": "notify-timeout",
+                "targetRef": "timeout-action"
+              },
+              {
+                "id": "timeout-flow-3",
+                "sourceRef": "timeout-action",
+                "targetRef": "escalate-further",
+                "condition": {
+                  "type": "expression",
+                  "body": "escalationLevel < maxEscalationLevel"
+                }
+              },
+              {
+                "id": "timeout-flow-4",
+                "sourceRef": "timeout-action",
+                "targetRef": "timeout-end"
+              },
+              {
+                "id": "timeout-flow-5",
+                "sourceRef": "escalate-further",
+                "targetRef": "timeout-end"
+              }
+            ]
+          }
+        }
+      ],
+      "gateways": [
+        {
+          "id": "confidence-check",
+          "name": "Check AI Confidence",
+          "type": "exclusiveGateway",
+          "default": "flow-low-confidence"
+        },
+        {
+          "id": "validation-gateway",
+          "name": "Validation Passed?",
+          "type": "exclusiveGateway",
+          "default": "flow-validation-failed"
+        },
+        {
+          "id": "action-gateway",
+          "name": "Human Action",
+          "type": "exclusiveGateway",
+          "default": "flow-proceed"
+        },
+        {
+          "id": "merge-resolution",
+          "name": "Merge Resolution Paths",
+          "type": "exclusiveGateway"
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow-1",
+          "sourceRef": "start-task",
+          "targetRef": "ai-task-execution"
+        },
+        {
+          "id": "flow-2",
+          "sourceRef": "ai-task-execution",
+          "targetRef": "confidence-check"
+        },
+        {
+          "id": "flow-high-confidence",
+          "sourceRef": "confidence-check",
+          "targetRef": "validate-resolution",
+          "condition": {
+            "type": "expression",
+            "body": "confidence >= confidenceThreshold"
+          }
+        },
+        {
+          "id": "flow-low-confidence",
+          "sourceRef": "confidence-check",
+          "targetRef": "prepare-escalation"
+        },
+        {
+          "id": "flow-escalation-trigger",
+          "sourceRef": "escalation-boundary",
+          "targetRef": "prepare-escalation"
+        },
+        {
+          "id": "flow-3",
+          "sourceRef": "prepare-escalation",
+          "targetRef": "human-intervention"
+        },
+        {
+          "id": "flow-4",
+          "sourceRef": "human-intervention",
+          "targetRef": "action-gateway"
+        },
+        {
+          "id": "flow-proceed",
+          "sourceRef": "action-gateway",
+          "targetRef": "apply-human-guidance",
+          "condition": {
+            "type": "expression",
+            "body": "action === 'proceed'"
+          }
+        },
+        {
+          "id": "flow-abandon",
+          "sourceRef": "action-gateway",
+          "targetRef": "end-abandoned",
+          "condition": {
+            "type": "expression",
+            "body": "action === 'abandon'"
+          }
+        },
+        {
+          "id": "flow-override",
+          "sourceRef": "action-gateway",
+          "targetRef": "merge-resolution",
+          "condition": {
+            "type": "expression",
+            "body": "action === 'override'"
+          }
+        },
+        {
+          "id": "flow-5",
+          "sourceRef": "apply-human-guidance",
+          "targetRef": "validate-resolution"
+        },
+        {
+          "id": "flow-6",
+          "sourceRef": "validate-resolution",
+          "targetRef": "validation-gateway"
+        },
+        {
+          "id": "flow-validation-passed",
+          "sourceRef": "validation-gateway",
+          "targetRef": "merge-resolution",
+          "condition": {
+            "type": "expression",
+            "body": "validationResult.passed === true"
+          }
+        },
+        {
+          "id": "flow-validation-failed",
+          "sourceRef": "validation-gateway",
+          "targetRef": "prepare-escalation"
+        },
+        {
+          "id": "flow-7",
+          "sourceRef": "merge-resolution",
+          "targetRef": "record-learning"
+        },
+        {
+          "id": "flow-8",
+          "sourceRef": "record-learning",
+          "targetRef": "end-success"
+        },
+        {
+          "id": "flow-timeout",
+          "sourceRef": "timer-human-response",
+          "targetRef": "handle-timeout"
+        },
+        {
+          "id": "flow-timeout-handled",
+          "sourceRef": "handle-timeout",
+          "targetRef": "human-intervention"
+        }
+      ]
+    },
+    "agents": {
+      "definitions": [
+        {
+          "id": "ai-primary",
+          "name": "Primary AI Agent",
+          "type": "ai",
+          "capabilities": ["task-execution", "self-assessment", "learning"],
+          "model": "claude-3-opus",
+          "confidenceThreshold": 0.7
+        },
+        {
+          "id": "human-l1",
+          "name": "Level 1 Human Support",
+          "type": "human",
+          "capabilities": ["basic-support", "guidance"],
+          "availability": {
+            "schedule": "24/7",
+            "responseTime": "PT15M"
+          }
+        },
+        {
+          "id": "human-l2",
+          "name": "Level 2 Expert",
+          "type": "human",
+          "capabilities": ["expert-support", "complex-decisions"],
+          "availability": {
+            "schedule": "business-hours",
+            "responseTime": "PT1H"
+          }
+        },
+        {
+          "id": "human-l3",
+          "name": "Level 3 Specialist",
+          "type": "human",
+          "capabilities": ["specialist-knowledge", "critical-decisions"],
+          "availability": {
+            "schedule": "on-call",
+            "responseTime": "PT4H"
+          }
+        }
+      ],
+      "pools": [
+        {
+          "id": "escalation-pool",
+          "name": "Escalation Support Pool",
+          "agents": ["human-l1", "human-l2", "human-l3"],
+          "selectionStrategy": "escalation-based"
+        }
+      ],
+      "reviewWorkflows": [
+        {
+          "id": "escalation-review",
+          "name": "Escalation Case Review",
+          "pattern": "hierarchical",
+          "levels": [
+            {
+              "level": 1,
+              "agentRef": "human-l1",
+              "escalationCriteria": "complexity > low"
+            },
+            {
+              "level": 2,
+              "agentRef": "human-l2",
+              "escalationCriteria": "complexity > medium || timeElapsed > PT30M"
+            },
+            {
+              "level": 3,
+              "agentRef": "human-l3",
+              "escalationCriteria": "complexity > high || timeElapsed > PT2H"
+            }
+          ]
+        }
+      ],
+      "defaultAssignmentStrategy": "dynamic",
+      "performanceTracking": true
+    },
+    "artifacts": {
+      "dataObjects": [
+        {
+          "id": "escalation-context",
+          "name": "Escalation Context",
+          "itemSubjectRef": "escalation-package-data",
+          "isCollection": false
+        },
+        {
+          "id": "diagnostic-info",
+          "name": "Diagnostic Information",
+          "itemSubjectRef": "diagnostic-data",
+          "isCollection": true
+        },
+        {
+          "id": "learning-records",
+          "name": "Learning Records",
+          "itemSubjectRef": "learning-data",
+          "isCollection": true
+        }
+      ],
+      "dataStores": [
+        {
+          "id": "escalation-history",
+          "name": "Escalation History",
+          "capacity": 50000,
+          "isUnlimited": false
+        },
+        {
+          "id": "knowledge-base",
+          "name": "Learning Knowledge Base",
+          "capacity": 100000,
+          "isUnlimited": false
+        }
+      ]
+    },
+    "monitoring": {
+      "enabled": true,
+      "metrics": ["execution-time", "error-rate", "agent-performance", "escalation-rate"],
+      "alerting": {
+        "enabled": true,
+        "rules": [
+          {
+            "id": "high-escalation-rate",
+            "name": "High Escalation Rate",
+            "condition": {
+              "type": "expression",
+              "body": "escalationRate > 0.3"
+            },
+            "severity": "warning",
+            "notification": {
+              "type": "slack",
+              "channel": "#ai-ops"
+            }
+          },
+          {
+            "id": "escalation-timeout",
+            "name": "Escalation Response Timeout",
+            "condition": {
+              "type": "expression",
+              "body": "humanResponseTime > escalationTimeout"
+            },
+            "severity": "error",
+            "notification": {
+              "type": "pagerduty",
+              "service": "ai-escalations"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "itemDefinitions": [
+      {
+        "id": "task-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "taskId": { "type": "string" },
+            "type": { "type": "string" },
+            "description": { "type": "string" },
+            "parameters": { "type": "object" },
+            "constraints": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "context-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "environment": { "type": "object" },
+            "history": { "type": "array" },
+            "relatedTasks": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "result-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string" },
+            "output": { "type": "object" },
+            "metrics": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "confidence-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "score": { "type": "number" },
+            "factors": { "type": "array" },
+            "uncertainties": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "ai-state-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "attempts": { "type": "number" },
+            "lastError": { "type": "object" },
+            "reasoning": { "type": "string" },
+            "limitations": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "issue-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["error", "uncertainty", "decision-required", "knowledge-gap"] },
+            "description": { "type": "string" },
+            "severity": { "type": "string" },
+            "context": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "diagnostic-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "logs": { "type": "array" },
+            "traces": { "type": "array" },
+            "metrics": { "type": "object" },
+            "environment": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "escalation-package-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "task": { "type": "object" },
+            "issue": { "type": "object" },
+            "aiState": { "type": "object" },
+            "diagnostics": { "type": "object" },
+            "suggestedActions": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "guidance-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "instructions": { "type": "string" },
+            "examples": { "type": "array" },
+            "constraints": { "type": "array" },
+            "rationale": { "type": "string" }
+          }
+        }
+      },
+      {
+        "id": "action-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string", "enum": ["proceed", "abandon", "override", "retry"] },
+            "reason": { "type": "string" },
+            "overrideValue": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "validation-criteria-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "rules": { "type": "array" },
+            "thresholds": { "type": "object" },
+            "requiredChecks": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "validation-result-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "passed": { "type": "boolean" },
+            "failedChecks": { "type": "array" },
+            "warnings": { "type": "array" }
+          }
+        }
+      },
+      {
+        "id": "case-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "caseId": { "type": "string" },
+            "timestamp": { "type": "string" },
+            "task": { "type": "object" },
+            "issue": { "type": "object" },
+            "resolution": { "type": "object" }
+          }
+        }
+      },
+      {
+        "id": "learning-data",
+        "structure": {
+          "type": "object",
+          "properties": {
+            "caseId": { "type": "string" },
+            "pattern": { "type": "object" },
+            "solution": { "type": "object" },
+            "effectiveness": { "type": "number" },
+            "tags": { "type": "array" }
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "id": "task-request",
+        "name": "Task Request",
+        "itemRef": "task-data"
+      }
+    ],
+    "signals": [
+      {
+        "id": "task-success",
+        "name": "Task Completed Successfully",
+        "structureRef": "result-data"
+      }
+    ],
+    "escalations": [
+      {
+        "id": "ai-escalation",
+        "name": "AI Escalation",
+        "escalationCode": "AI_NEEDS_HELP",
+        "structureRef": "issue-data"
+      }
+    ]
+  }
+}

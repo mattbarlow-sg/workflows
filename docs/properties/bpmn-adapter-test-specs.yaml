@@ -1,0 +1,418 @@
+# BPMN Adapter Test Specifications
+# Generated for: 1754471482-temporal-workflow-implementation
+# Node: bpmn-adapter
+# Version: 1.0
+# Description: Comprehensive test specifications for BPMN to Temporal conversion
+
+metadata:
+  node_id: bpmn-adapter
+  domain: workflow-conversion
+  generated: 2025-08-12
+  implementation_id: 1754471482-temporal-workflow-implementation
+  coverage_target: 90%
+
+test_categories:
+  - unit_tests
+  - integration_tests
+  - property_based_tests
+  - performance_tests
+  - regression_tests
+
+# Unit Tests
+unit_tests:
+  element_mapping:
+    - id: UT-MAP-001
+      name: Activity Type Mapping
+      description: Test mapping of each BPMN activity type
+      test_cases:
+        - input: "userTask"
+          expected: "Activity with SignalChannel"
+        - input: "serviceTask"
+          expected: "Standard Activity"
+        - input: "scriptTask"
+          expected: "Inline code or Activity"
+        - input: "subProcess"
+          expected: "Child Workflow"
+      validation: "Correct Temporal construct generated"
+
+    - id: UT-MAP-002
+      name: Gateway Type Mapping
+      description: Test gateway conversion logic
+      test_cases:
+        - input: "exclusiveGateway with 3 branches"
+          expected: "if-else chain with 3 conditions"
+        - input: "parallelGateway with 4 outgoing"
+          expected: "4 workflow.Go calls"
+        - input: "inclusiveGateway with conditions"
+          expected: "Conditional workflow.Go calls"
+      validation: "Control flow correctly translated"
+
+    - id: UT-MAP-003
+      name: Event Type Mapping
+      description: Test event conversion
+      test_cases:
+        - input: "timer event with duration"
+          expected: "workflow.NewTimer"
+        - input: "message event"
+          expected: "Signal handler"
+        - input: "error boundary event"
+          expected: "Activity timeout handler"
+      validation: "Event semantics preserved"
+
+  data_conversion:
+    - id: UT-DATA-001
+      name: Type Conversion
+      description: Test BPMN to Go type conversion
+      test_cases:
+        - input: "string property"
+          expected: "string field"
+        - input: "integer property"
+          expected: "int field"
+        - input: "boolean property"
+          expected: "bool field"
+        - input: "complex object"
+          expected: "nested struct"
+      validation: "Type safety maintained"
+
+    - id: UT-DATA-002
+      name: Name Sanitization
+      description: Test name conversion to Go conventions
+      test_cases:
+        - input: "snake_case_name"
+          expected: "SnakeCaseName"
+        - input: "123-invalid-start"
+          expected: "ID123InvalidStart"
+        - input: "reserved-keyword-type"
+          expected: "TypeReserved"
+      validation: "Valid Go identifiers generated"
+
+  validation_logic:
+    - id: UT-VAL-001
+      name: Reference Validation
+      description: Test reference integrity checking
+      test_cases:
+        - input: "valid sequence flow references"
+          expected: "validation passes"
+        - input: "missing target reference"
+          expected: "error with details"
+        - input: "circular reference"
+          expected: "cycle detected error"
+      validation: "All references validated"
+
+    - id: UT-VAL-002
+      name: Determinism Checking
+      description: Test non-deterministic pattern detection
+      test_cases:
+        - input: "time.Now() in script"
+          expected: "determinism violation error"
+        - input: "random without seed"
+          expected: "determinism warning"
+        - input: "file I/O in workflow"
+          expected: "error with suggestion"
+      validation: "Non-determinism detected"
+
+# Integration Tests
+integration_tests:
+  end_to_end_conversion:
+    - id: IT-E2E-001
+      name: Simple Process Conversion
+      description: Convert simple start->task->end process
+      setup:
+        bpmn_file: "test-data/simple-process.json"
+      steps:
+        - Load BPMN file
+        - Validate structure
+        - Convert to Temporal
+        - Verify generated code
+      expected:
+        - Workflow function generated
+        - One activity generated
+        - Code compiles successfully
+      validation: "Execute workflow in test environment"
+
+    - id: IT-E2E-002
+      name: Complex Process with Gateways
+      description: Convert process with multiple gateway types
+      setup:
+        bpmn_file: "test-data/complex-gateways.json"
+      steps:
+        - Load complex BPMN
+        - Map all gateways
+        - Generate workflow code
+        - Run determinism check
+      expected:
+        - All gateway logic preserved
+        - Parallel execution works
+        - Conditions evaluated correctly
+      validation: "Trace matches BPMN execution"
+
+    - id: IT-E2E-003
+      name: Human Task Integration
+      description: Convert process with human tasks
+      setup:
+        bpmn_file: "test-data/human-tasks.json"
+      steps:
+        - Load BPMN with user tasks
+        - Generate signal handlers
+        - Create timeout logic
+        - Test escalation paths
+      expected:
+        - Signal channels created
+        - Timeouts configured
+        - Escalation works
+      validation: "Human interaction simulated successfully"
+
+  temporal_integration:
+    - id: IT-TEMP-001
+      name: Workflow Registration
+      description: Test generated workflow registration
+      steps:
+        - Generate workflow code
+        - Register with Temporal worker
+        - Start workflow execution
+        - Query workflow state
+      expected:
+        - Registration succeeds
+        - Workflow executable
+        - State queryable
+      validation: "Temporal accepts generated workflow"
+
+    - id: IT-TEMP-002
+      name: Activity Execution
+      description: Test generated activity execution
+      steps:
+        - Generate activity code
+        - Register activities
+        - Execute from workflow
+        - Handle activity results
+      expected:
+        - Activities callable
+        - Results returned correctly
+        - Errors handled properly
+      validation: "Activities execute in Temporal"
+
+# Property-Based Tests
+property_based_tests:
+  invariant_properties:
+    - id: PBT-INV-001
+      name: Semantic Preservation Property
+      description: For all valid BPMN processes, semantics are preserved
+      property: |
+        ∀ bpmn ∈ ValidBPMN:
+          executionTrace(bpmn) ≡ executionTrace(convert(bpmn))
+      generators:
+        - Random valid BPMN processes
+        - Various complexity levels
+        - Different element combinations
+      validation: "Execution traces match"
+
+    - id: PBT-INV-002
+      name: Determinism Property
+      description: All generated workflows are deterministic
+      property: |
+        ∀ workflow ∈ GeneratedWorkflows:
+          replay(workflow, history) = consistent
+      generators:
+        - Random workflow inputs
+        - Various execution paths
+        - Different timing scenarios
+      validation: "Replay always consistent"
+
+    - id: PBT-INV-003
+      name: Type Safety Property
+      description: Type conversions preserve safety
+      property: |
+        ∀ dataFlow ∈ BPMNDataFlows:
+          typeCheck(convert(dataFlow)) = success
+      generators:
+        - Random data types
+        - Complex nested structures
+        - Optional/required variations
+      validation: "Go compiler accepts all types"
+
+  boundary_conditions:
+    - id: PBT-BND-001
+      name: Scale Boundaries
+      description: Test with extreme sizes
+      test_cases:
+        - Empty process (no elements)
+        - Single element process
+        - Process with 1000+ elements
+        - Deeply nested subprocesses (10+ levels)
+      validation: "Converter handles edge cases"
+
+    - id: PBT-BND-002
+      name: Time Boundaries
+      description: Test timer edge cases
+      test_cases:
+        - Zero duration timer
+        - Maximum duration (30 days)
+        - Microsecond precision
+        - Invalid duration formats
+      validation: "Timer boundaries respected"
+
+# Performance Tests
+performance_tests:
+  conversion_performance:
+    - id: PERF-001
+      name: Conversion Speed
+      description: Measure conversion throughput
+      metrics:
+        - Elements per second
+        - Memory usage
+        - CPU utilization
+      benchmarks:
+        small: "< 100 elements in < 1 second"
+        medium: "< 500 elements in < 5 seconds"
+        large: "< 1000 elements in < 30 seconds"
+      validation: "Meets performance targets"
+
+    - id: PERF-002
+      name: Memory Efficiency
+      description: Test memory usage during conversion
+      scenarios:
+        - Baseline memory usage
+        - Peak during conversion
+        - Memory after completion
+      limits:
+        small: "< 50MB"
+        medium: "< 200MB"
+        large: "< 500MB"
+      validation: "Memory within limits"
+
+  generated_code_performance:
+    - id: PERF-003
+      name: Workflow Execution Performance
+      description: Test generated workflow performance
+      metrics:
+        - Execution time
+        - History size
+        - Event count
+      benchmarks:
+        - Simple workflow: "< 100ms"
+        - Complex workflow: "< 1 second"
+        - Long-running: "Efficient history growth"
+      validation: "Meets Temporal limits"
+
+# Regression Tests
+regression_tests:
+  - id: REG-001
+    name: Previous Bug Fixes
+    description: Ensure fixed bugs stay fixed
+    test_cases:
+      - Circular reference handling
+      - Unicode in element names
+      - Empty gateway branches
+      - Missing data object references
+    validation: "All previous fixes still work"
+
+  - id: REG-002
+    name: Backward Compatibility
+    description: Ensure compatibility with existing BPMN files
+    test_cases:
+      - BPMN 2.0 files
+      - Legacy element types
+      - Custom extensions
+    validation: "Existing files still convert"
+
+# Test Data Requirements
+test_data:
+  bpmn_samples:
+    - simple-process.json
+    - parallel-gateway.json
+    - exclusive-gateway.json
+    - subprocess.json
+    - human-tasks.json
+    - timers-and-events.json
+    - error-handling.json
+    - compensation.json
+    
+  expected_outputs:
+    - For each BPMN sample:
+      - Generated workflow.go
+      - Generated activities.go
+      - Generated types.go
+      - Conversion report
+      
+  validation_scripts:
+    - compile_check.sh
+    - determinism_check.sh
+    - temporal_deploy_test.sh
+    - execution_trace_compare.sh
+
+# Test Execution Strategy
+execution_strategy:
+  phases:
+    - name: Unit Test Phase
+      tests: [UT-*]
+      parallel: true
+      fail_fast: true
+      
+    - name: Integration Test Phase
+      tests: [IT-*]
+      parallel: false
+      requires: ["Unit Test Phase"]
+      
+    - name: Property Test Phase
+      tests: [PBT-*]
+      parallel: true
+      timeout: 5m
+      
+    - name: Performance Test Phase
+      tests: [PERF-*]
+      parallel: false
+      environment: "performance"
+      
+    - name: Regression Test Phase
+      tests: [REG-*]
+      parallel: true
+      on_schedule: "nightly"
+
+  coverage_requirements:
+    overall: 90%
+    unit_tests: 95%
+    integration_tests: 85%
+    critical_paths: 100%
+    
+  reporting:
+    formats: ["junit", "coverage", "html"]
+    metrics: ["pass/fail", "coverage", "performance"]
+    notifications: ["on_failure", "summary"]
+
+# Mock Requirements
+mocks:
+  - name: TemporalClient
+    purpose: "Test without Temporal server"
+    interface: "temporal.Client"
+    
+  - name: FileSystem
+    purpose: "Test file operations"
+    interface: "os.FileSystem"
+    
+  - name: BPMNParser
+    purpose: "Test with controlled input"
+    interface: "bpmn.Parser"
+
+# Test Helpers
+helpers:
+  - name: BPMNBuilder
+    purpose: "Programmatically create test BPMN"
+    functions:
+      - CreateSimpleProcess()
+      - AddActivity()
+      - AddGateway()
+      - AddSequenceFlow()
+      
+  - name: WorkflowValidator
+    purpose: "Validate generated workflows"
+    functions:
+      - CompileCheck()
+      - DeterminismCheck()
+      - ExecutionTest()
+      
+  - name: DiffGenerator
+    purpose: "Compare expected vs actual"
+    functions:
+      - CompareWorkflows()
+      - CompareTypes()
+      - GenerateReport()

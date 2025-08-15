@@ -1,0 +1,476 @@
+# Human Task System - Test Specifications
+# Node: human-task-system
+# Implementation: 1754471482-temporal-workflow-implementation
+
+metadata:
+  node_id: human-task-system
+  category: test_specifications
+  version: 1.0
+  generated: 2025-08-15
+  test_framework: go_testing
+
+test_suites:
+  - id: TS-HTS-001
+    name: LIFO Queue Operations
+    category: queue_management
+    priority: critical
+    setup:
+      - Initialize empty queue
+      - Create test operator
+      - Prepare sample tasks
+    test_cases:
+      - id: TC-001-01
+        name: LIFO Order Maintenance
+        description: Verify tasks are processed in LIFO order
+        steps:
+          - Create tasks T1, T2, T3 in sequence
+          - Verify queue order is [T3, T2, T1]
+          - Get next task for operator
+          - Assert task returned is T3
+          - Get next task
+          - Assert task returned is T2
+        expected_results:
+          - Queue maintains LIFO order
+          - Newest task processed first
+        validations:
+          - ValidateQueueInvariant(queue)
+          
+      - id: TC-001-02
+        name: Concurrent Task Addition
+        description: Test LIFO order with concurrent additions
+        steps:
+          - Start 10 goroutines
+          - Each adds a task concurrently
+          - Wait for all additions
+          - Verify LIFO order maintained
+        expected_results:
+          - All tasks added successfully
+          - Order based on actual creation time
+        test_type: concurrent
+        
+      - id: TC-001-03
+        name: Queue During Processing
+        description: Add tasks while one is being processed
+        steps:
+          - Add T1, T2 to queue
+          - Operator gets T2 (in_review)
+          - Add T3 to queue
+          - Verify queue is [T3, T1]
+          - Complete T2
+          - Get next task (should be T3)
+        expected_results:
+          - New tasks added to front
+          - In-review task not in queue
+
+  - id: TS-HTS-002
+    name: State Transitions
+    category: state_machine
+    priority: critical
+    test_cases:
+      - id: TC-002-01
+        name: Valid State Transitions
+        description: Test all valid state transitions
+        test_matrix:
+          - from: pending
+            to: in_review
+            action: GetNextTask
+          - from: in_review
+            to: completed
+            action: SubmitDecision(complete)
+          - from: in_review
+            to: approved
+            action: SubmitDecision(approve)
+          - from: in_review
+            to: rejected
+            action: SubmitDecision(reject)
+          - from: in_review
+            to: cancelled
+            action: SubmitDecision(cancel)
+          - from: in_review
+            to: awaiting_clarification
+            action: RequestClarification
+          - from: awaiting_clarification
+            to: in_review
+            action: ProvideClarification
+          - from: approved
+            to: cancelled
+            action: CancelTask
+        validations:
+          - ValidateStateTransition(from, to)
+          - Check history updated
+          
+      - id: TC-002-02
+        name: Forbidden State Transitions
+        description: Verify forbidden transitions are blocked
+        test_matrix:
+          - from: cancelled
+            to: pending
+            expected_error: ErrInvalidTransition
+          - from: completed
+            to: in_review
+            expected_error: ErrInvalidTransition
+          - from: approved
+            to: rejected
+            expected_error: ErrInvalidTransition
+          - from: rejected
+            to: approved
+            expected_error: ErrInvalidTransition
+        validations:
+          - Error matches expected
+          - State unchanged
+          - History shows failed attempt
+          
+      - id: TC-002-03
+        name: Terminal State Enforcement
+        description: Verify terminal states are final
+        steps:
+          - Create and complete task
+          - Attempt to transition to any state
+          - Verify all transitions fail
+          - Repeat for rejected and cancelled
+        expected_results:
+          - All transitions from terminal states fail
+          - Error indicates terminal state
+
+  - id: TS-HTS-003
+    name: Escalation Management
+    category: escalation
+    priority: high
+    test_cases:
+      - id: TC-003-01
+        name: Time-Based Escalation
+        description: Test escalation after 14 days
+        steps:
+          - Create task at time T
+          - Mock time.Now() to T + 13 days
+          - Run escalation check
+          - Verify not escalated
+          - Mock time.Now() to T + 14 days
+          - Run escalation check
+          - Verify escalated
+        expected_results:
+          - Task escalates at exactly 14 days
+          - Escalation timestamp set
+          - Escalated flag permanent
+        time_manipulation: required
+        
+      - id: TC-003-02
+        name: Escalation Persistence
+        description: Verify escalation persists through transitions
+        steps:
+          - Create and escalate task
+          - Transition through states
+          - Verify escalated flag remains true
+          - Complete task
+          - Verify escalation in history
+        expected_results:
+          - Escalation never cleared
+          - All states show escalated
+          
+      - id: TC-003-03
+        name: Escalation Queue Position
+        description: Verify escalation doesn't affect queue order
+        steps:
+          - Create tasks T1, T2, T3
+          - Escalate T2
+          - Verify queue order unchanged [T3, T2, T1]
+          - Process next task (should be T3, not T2)
+        expected_results:
+          - Queue order maintained
+          - LIFO processing continues
+
+  - id: TS-HTS-004
+    name: Proof Validation
+    category: proof_validation
+    priority: critical
+    mocks:
+      - AI validation service
+    test_cases:
+      - id: TC-004-01
+        name: Valid Proof Acceptance
+        description: Test completion with valid proof
+        steps:
+          - Create and start reviewing task
+          - Submit decision with proof "https://github.com/pr/123"
+          - Mock AI validation (valid, confidence: 0.85)
+          - Verify task completed
+        expected_results:
+          - Proof validated
+          - Task status = completed
+          - Validation result stored
+          
+      - id: TC-004-02
+        name: Invalid Proof Rejection
+        description: Test rejection of invalid proof
+        steps:
+          - Create and start reviewing task
+          - Submit decision with proof "invalid"
+          - Mock AI validation (invalid, confidence: 0.3)
+          - Verify completion rejected
+        expected_results:
+          - Validation fails
+          - Error: ErrValidationFailed
+          - Task remains in_review
+          
+      - id: TC-004-03
+        name: Missing Proof Prevention
+        description: Verify proof required for completion
+        steps:
+          - Create and start reviewing task
+          - Submit complete decision without proof
+          - Verify error returned
+        expected_results:
+          - Error: ErrProofRequired
+          - Task remains in_review
+          
+      - id: TC-004-04
+        name: Proof Types Testing
+        description: Test various proof formats
+        proof_examples:
+          - type: url
+            content: "https://github.com/org/repo/pull/456"
+            expected: valid
+          - type: screenshot
+            content: "data:image/png;base64,..."
+            expected: valid
+          - type: document
+            content: "Document completion certificate #789"
+            expected: valid
+          - type: invalid
+            content: ""
+            expected: invalid
+
+  - id: TS-HTS-005
+    name: Single Operator Constraint
+    category: operator_management
+    priority: critical
+    test_cases:
+      - id: TC-005-01
+        name: Single Task Review
+        description: Verify only one task in review
+        steps:
+          - Operator1 gets task T1
+          - Operator2 requests task
+          - Verify Operator2 gets ErrOperatorBusy
+          - Operator1 completes T1
+          - Operator2 requests task
+          - Verify Operator2 gets next task
+        expected_results:
+          - Only one task in_review
+          - Other operators blocked
+          - Lock released on completion
+          
+      - id: TC-005-02
+        name: Operator Lock Release
+        description: Test lock release on state transitions
+        test_matrix:
+          - transition: in_review → completed
+            lock_released: true
+          - transition: in_review → rejected
+            lock_released: true
+          - transition: in_review → cancelled
+            lock_released: true
+          - transition: in_review → awaiting_clarification
+            lock_released: true
+        validations:
+          - ReviewingOperator becomes nil
+          - Other operators can get tasks
+
+  - id: TS-HTS-006
+    name: Clarification Cycles
+    category: clarification_process
+    priority: medium
+    test_cases:
+      - id: TC-006-01
+        name: Multiple Clarification Rounds
+        description: Test unlimited clarification cycles
+        steps:
+          - Start review of task
+          - Request clarification 5 times
+          - Verify counter = 5
+          - Provide responses each time
+          - Complete task after clarifications
+        expected_results:
+          - All clarifications accepted
+          - Counter increments correctly
+          - Task returns to same operator
+          
+      - id: TC-006-02
+        name: Clarification State Management
+        description: Test state during clarification
+        steps:
+          - Task in_review with Operator1
+          - Request clarification
+          - Verify status = awaiting_clarification
+          - Verify ReviewingOperator = nil
+          - Provide response
+          - Verify status = in_review
+          - Verify ReviewingOperator = Operator1
+        expected_results:
+          - Correct state transitions
+          - Operator lock properly managed
+
+  - id: TS-HTS-007
+    name: History and Audit
+    category: data_integrity
+    priority: high
+    test_cases:
+      - id: TC-007-01
+        name: History Immutability
+        description: Verify history cannot be modified
+        steps:
+          - Create task with history
+          - Attempt to modify existing entry
+          - Attempt to delete entry
+          - Verify modifications fail
+        expected_results:
+          - History remains unchanged
+          - Append-only behavior enforced
+          
+      - id: TC-007-02
+        name: Complete History Trail
+        description: Verify all actions recorded
+        steps:
+          - Create task
+          - Perform multiple transitions
+          - Request clarification
+          - Complete task
+          - Verify all actions in history
+        validations:
+          - ValidateHistoryImmutability(history)
+          - Check chronological order
+          - Verify state consistency
+
+  - id: TS-HTS-008
+    name: Concurrent Operations
+    category: concurrency
+    priority: high
+    test_type: stress
+    test_cases:
+      - id: TC-008-01
+        name: Concurrent Task Creation
+        description: Test queue under concurrent load
+        steps:
+          - Launch 100 goroutines
+          - Each creates 10 tasks
+          - Verify all 1000 tasks in queue
+          - Verify LIFO order maintained
+        performance_requirements:
+          - Creation rate: >= 1000/second
+          - No race conditions
+          - Queue consistency maintained
+          
+      - id: TC-008-02
+        name: Concurrent State Access
+        description: Test state machine under concurrent access
+        steps:
+          - Create task in_review
+          - Launch 10 goroutines
+          - Each attempts different transition
+          - Verify only one succeeds
+          - Verify state consistency
+        expected_results:
+          - Single state maintained
+          - No partial updates
+          - Proper error handling
+
+performance_tests:
+  - id: PT-HTS-001
+    name: Queue Performance
+    metrics:
+      - Enqueue rate: >= 1000 ops/sec
+      - Dequeue rate: >= 1000 ops/sec
+      - Queue size: up to 10000 tasks
+    
+  - id: PT-HTS-002
+    name: Escalation Check Performance
+    metrics:
+      - Check rate: >= 10000 tasks/sec
+      - Memory usage: < 100MB for 10000 tasks
+    
+  - id: PT-HTS-003
+    name: AI Validation Latency
+    metrics:
+      - Average latency: < 500ms
+      - P99 latency: < 1000ms
+      - Timeout handling: 2 seconds
+
+integration_tests:
+  - id: IT-HTS-001
+    name: Temporal Workflow Integration
+    description: Test integration with Temporal workflows
+    components:
+      - Human task activity
+      - Temporal worker
+      - Task queue
+    scenarios:
+      - Workflow creates task
+      - Operator completes task
+      - Workflow continues
+      
+  - id: IT-HTS-002
+    name: AI Service Integration
+    description: Test AI validation service integration
+    components:
+      - Proof validator
+      - AI service client
+      - Retry logic
+    scenarios:
+      - Successful validation
+      - Service timeout
+      - Service error with retry
+
+test_data:
+  task_types:
+    - approval
+    - review
+    - data_entry
+    - decision
+    - other
+  
+  sample_contexts:
+    - type: approval
+      context:
+        document_id: "DOC-123"
+        requester: "user@example.com"
+        amount: 5000
+    
+    - type: review
+      context:
+        pr_url: "https://github.com/org/repo/pull/123"
+        author: "developer"
+        changes: 42
+  
+  sample_proofs:
+    - "https://github.com/org/repo/pull/456"
+    - "Screenshot: completion_evidence.png"
+    - "Certificate ID: CERT-789-XYZ"
+
+coverage_requirements:
+  unit_tests:
+    target: 90%
+    critical_paths: 100%
+  
+  integration_tests:
+    target: 80%
+    external_services: mocked
+  
+  performance_tests:
+    frequency: nightly
+    regression_threshold: 10%
+
+validation:
+  pre_test:
+    - Clean test database
+    - Reset queue state
+    - Initialize mocks
+  
+  post_test:
+    - Verify invariants hold
+    - Check for goroutine leaks
+    - Validate queue consistency
+  
+  continuous:
+    - Run on every commit
+    - Block merge on failure
+    - Generate coverage reports

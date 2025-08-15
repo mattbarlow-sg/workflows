@@ -25,6 +25,15 @@ Based on latest documentation:
 - **Message Passing**: https://docs.temporal.io/develop/go/message-passing
 - **Samples Repository**: https://github.com/temporalio/samples-go
 - **Workflowcheck Tool**: https://pkg.go.dev/go.temporal.io/sdk/contrib/tools/workflowcheck
+- **Go Template Package**: https://pkg.go.dev/text/template
+- **Go Format Package**: https://pkg.go.dev/go/format
+
+### Testing Framework Components
+- **Test Environment**: `internal/temporal/testing/test_env.go` - Wrapper around Temporal test suite
+- **Mock Framework**: `internal/temporal/testing/mocks.go` - Activity and workflow mocking utilities
+- **Test Helpers**: `internal/temporal/testing/helpers.go` - Common testing patterns and utilities
+- **Integration Tests**: `internal/temporal/testing/integration_test.go` - Complete testing scenarios
+- **Human Task Simulation**: Built-in support for simulating human task lifecycles with escalation
 
 ## Core Components
 
@@ -76,8 +85,20 @@ Based on latest documentation:
 ```
 /temporal-workflows/
 ├── cmd/
-│   ├── cli/              # CLI commands
-│   └── worker/           # Temporal worker
+│   ├── workflows/commands/  # CLI commands (existing)
+│   └── validate-temporal/   # Validation tool (implemented)
+├── internal/
+│   └── temporal/           # Temporal infrastructure
+│       ├── client.go       # Client with reconnection (implemented)
+│       ├── worker.go       # Worker pool management (implemented)
+│       ├── registry.go     # Workflow/activity registry (implemented)
+│       ├── config.go       # Configuration management (implemented)
+│       ├── validator.go    # Workflow validation (implemented)
+│       ├── bpmn_adapter.go # BPMN conversion (implemented)
+│       ├── generator.go    # Code generation (implemented)
+│       ├── templates.go    # Workflow templates (implemented)
+│       ├── generator_builder.go # Builder API (implemented)
+│       └── testing/        # Test framework (implemented)
 ├── pkg/
 │   ├── workflows/        # Workflow definitions
 │   │   ├── base/        # Base workflow interfaces
@@ -85,12 +106,7 @@ Based on latest documentation:
 │   │   └── generated/   # Generated workflows
 │   ├── activities/       # Activity implementations
 │   ├── signals/         # Signal handlers
-│   ├── queries/         # Query handlers
-│   ├── generator/       # Workflow generator
-│   └── validator/       # Workflow validator
-├── internal/
-│   ├── temporal/        # Temporal client setup
-│   └── config/          # Configuration
+│   └── queries/         # Query handlers
 └── ui/
     ├── full-view/       # All workflows view
     ├── graph-view/      # Network visualization
@@ -127,18 +143,67 @@ Based on latest documentation:
 - Integration tests with test server
 - End-to-end workflow simulations
 
-### 7. Generator Templates
+### 7. Workflow Generator System (Implemented)
+
+The workflow generator system provides a comprehensive code generation framework for creating validated Temporal workflows from specifications and templates.
+
+#### Core Components
+
+**Generator Engine** (`internal/temporal/generator.go`)
+- Template-based code generation using Go's text/template
+- Automatic code formatting with go/format
+- Integration with validation framework
+- Support for multiple output files (workflow, activities, tests)
+
+**Template Library** (`internal/temporal/templates.go`)
+- Basic workflow template - Simple workflow with activities
+- Approval workflow template - Human-in-the-loop approval patterns
+- Scheduled workflow template - Cron-based recurring workflows
+- Human task workflow template - Task assignment with escalation
+- Long-running workflow template - Checkpointing and continue-as-new
+
+**Builder API** (`internal/temporal/generator_builder.go`)
+- Fluent interface for workflow specification
+- Pre-configured generators for common patterns
+- Activity, signal, and query builders
+- Human task configuration with priority and deadlines
+
+#### Template System Architecture
 
 ```go
-// Base workflow template
-type {{ .WorkflowName }}Workflow struct {
-    // Workflow state
+// Workflow specification structure
+type WorkflowSpec struct {
+    Package      string
+    Name         string
+    Description  string
+    InputType    string
+    OutputType   string
+    Activities   []ActivitySpec
+    Signals      []SignalSpec
+    Queries      []QuerySpec
+    HumanTasks   []HumanTaskSpec
+    Options      WorkflowOptions
 }
 
-func (w *{{ .WorkflowName }}Workflow) Execute(ctx workflow.Context, input {{ .InputType }}) ({{ .OutputType }}, error) {
-    // Generated workflow logic
+// Generated workflow structure
+type {{ .Name }}Workflow struct {
+    State   {{ .Name }}State
+    Logger  log.Logger
+}
+
+func (w *{{ .Name }}Workflow) Execute(ctx workflow.Context, input {{ .InputType }}) ({{ .OutputType }}, error) {
+    // Generated deterministic workflow logic
+    // Includes activity invocations, signal handling, human tasks
 }
 ```
+
+#### Key Features
+
+- **Deterministic Code Generation**: All generated code is deterministic with no random values or timestamps
+- **Validation Integration**: Generated code automatically validated before saving
+- **Test Generation**: Complete test suites generated with mocks and test scenarios
+- **Human Task Patterns**: Built-in support for task assignment, escalation, and completion
+- **Composition Support**: Child workflows, continue-as-new, and workflow chaining
 
 ### 8. Human Task Interface
 
@@ -189,19 +254,25 @@ type TaskQueue interface {
 ### Import Graph
 ```
 cmd/workflows/commands/temporal.go
-├── internal/temporal/validator.go (new)
+├── internal/temporal/validator.go (implemented)
 │   ├── go.temporal.io/sdk/workflow
 │   ├── go.temporal.io/sdk/contrib/tools/workflowcheck
 │   └── internal/errors
 ├── internal/temporal/generator.go (new)
 │   ├── internal/bpmn/types.go
 │   └── text/template
-├── internal/temporal/client.go (new)
+├── internal/temporal/client.go (implemented)
 │   ├── go.temporal.io/sdk/client
-│   └── internal/config
-└── internal/temporal/worker.go (new)
-    ├── go.temporal.io/sdk/worker
-    └── internal/temporal/workflows/*
+│   └── internal/temporal/config.go
+├── internal/temporal/worker.go (implemented)
+│   ├── go.temporal.io/sdk/worker
+│   └── internal/temporal/registry.go
+├── internal/temporal/registry.go (implemented)
+│   ├── go.temporal.io/sdk/workflow
+│   └── go.temporal.io/sdk/activity
+└── internal/temporal/config.go (implemented)
+    ├── go.temporal.io/sdk/client
+    └── os/env variables
 ```
 
 ### Semantic Patterns
@@ -231,3 +302,38 @@ cmd/workflows/commands/temporal.go
 2. **Escalation Testing**: Verify escalation paths work
 3. **Completion Testing**: Validate task completion flow
 4. **Queue Testing**: Test task queue operations
+
+## Temporal Client Implementation Details
+
+### Client Features (internal/temporal/client.go)
+- **Automatic Reconnection**: Exponential backoff retry mechanism for connection failures
+- **Health Monitoring**: Periodic health checks every 30 seconds with status tracking
+- **Connection States**: Tracks connected, disconnected, reconnecting states
+- **Metrics Collection**: Built-in hooks for workflow/activity metrics
+- **TLS Support**: Full TLS configuration for secure connections
+- **Service Wrappers**: High-level wrappers for workflow and activity services
+- **Graceful Shutdown**: Proper cleanup with context cancellation
+
+### Worker Management (internal/temporal/worker.go)
+- **Worker Pool**: Manages multiple workers across different task queues
+- **Auto-Restart**: Automatic restart of failed workers with error tracking
+- **Dynamic Scaling**: Add/remove workers at runtime based on load
+- **Health Monitoring**: Per-worker health status and error tracking
+- **Concurrent Management**: Safe concurrent operations with mutex protection
+- **Graceful Stop**: Controlled shutdown with configurable timeout
+
+### Registry System (internal/temporal/registry.go)
+- **Type-Safe Registration**: Automatic type extraction for workflows and activities
+- **Task Queue Organization**: Components organized by task queues
+- **Builder Pattern**: Fluent API for easy registration setup
+- **Metadata Support**: Additional metadata for each registered component
+- **Snapshot Support**: Export registry state for monitoring/debugging
+- **Dynamic Updates**: Runtime registration of new workflows/activities
+
+### Configuration Management (internal/temporal/config.go)
+- **Comprehensive Settings**: Client, worker, global, and development configurations
+- **Environment Variables**: Support for environment-based configuration
+- **Validation**: Built-in validation for all configuration values
+- **TLS Configuration**: Full TLS/mTLS support with certificate management
+- **Development Mode**: Special settings for local development
+- **Worker Tuning**: Configurable concurrency, rate limits, and polling
