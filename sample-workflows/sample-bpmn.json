@@ -1,0 +1,217 @@
+{
+  "$type": "bpmn:process",
+  "version": "2.0",
+  "process": {
+    "id": "order-processing",
+    "name": "Order Processing Workflow",
+    "description": "Process customer orders with approval and fulfillment",
+    "isExecutable": true,
+    "elements": {
+      "events": [
+        {
+          "id": "start",
+          "name": "Order Received",
+          "type": "startEvent",
+          "eventType": "message",
+          "outgoing": ["flow1"]
+        },
+        {
+          "id": "timer1",
+          "name": "Payment Timeout",
+          "type": "boundaryEvent",
+          "eventType": "timer",
+          "attachedToRef": "payment-task",
+          "isInterrupting": true,
+          "outgoing": ["timeout-flow"],
+          "properties": {
+            "duration": "30m"
+          }
+        },
+        {
+          "id": "end-success",
+          "name": "Order Completed",
+          "type": "endEvent",
+          "eventType": "none",
+          "incoming": ["flow6"]
+        },
+        {
+          "id": "end-cancel",
+          "name": "Order Cancelled",
+          "type": "endEvent",
+          "eventType": "error",
+          "incoming": ["cancel-flow"],
+          "properties": {
+            "errorCode": "ORDER_CANCELLED"
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "validate-order",
+          "name": "Validate Order",
+          "type": "serviceTask",
+          "description": "Validate order details and inventory",
+          "incoming": ["flow1"],
+          "outgoing": ["flow2"]
+        },
+        {
+          "id": "payment-task",
+          "name": "Process Payment",
+          "type": "serviceTask",
+          "description": "Process customer payment",
+          "incoming": ["flow2"],
+          "outgoing": ["flow3"],
+          "properties": {
+            "timeout": "5m"
+          }
+        },
+        {
+          "id": "approval-task",
+          "name": "Manager Approval",
+          "type": "userTask",
+          "description": "Manager approval required for high-value orders",
+          "incoming": ["high-value-flow"],
+          "outgoing": ["approval-flow"],
+          "agent": {
+            "role": "manager",
+            "assignmentType": "role"
+          }
+        },
+        {
+          "id": "fulfillment-task",
+          "name": "Fulfill Order",
+          "type": "serviceTask",
+          "description": "Ship order to customer",
+          "incoming": ["merge-flow"],
+          "outgoing": ["flow5"]
+        },
+        {
+          "id": "notification-task",
+          "name": "Send Confirmation",
+          "type": "sendTask",
+          "description": "Send order confirmation to customer",
+          "incoming": ["flow5"],
+          "outgoing": ["flow6"]
+        }
+      ],
+      "gateways": [
+        {
+          "id": "value-check",
+          "name": "Check Order Value",
+          "type": "exclusiveGateway",
+          "gatewayDirection": "diverging",
+          "incoming": ["flow3"],
+          "outgoing": ["normal-flow", "high-value-flow"],
+          "defaultFlow": "normal-flow"
+        },
+        {
+          "id": "approval-merge",
+          "name": "Merge Approval",
+          "type": "exclusiveGateway",
+          "gatewayDirection": "converging",
+          "incoming": ["normal-flow", "approval-flow"],
+          "outgoing": ["merge-flow"]
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "flow1",
+          "sourceRef": "start",
+          "targetRef": "validate-order"
+        },
+        {
+          "id": "flow2",
+          "sourceRef": "validate-order",
+          "targetRef": "payment-task"
+        },
+        {
+          "id": "flow3",
+          "sourceRef": "payment-task",
+          "targetRef": "value-check"
+        },
+        {
+          "id": "normal-flow",
+          "name": "Order < $1000",
+          "sourceRef": "value-check",
+          "targetRef": "approval-merge",
+          "conditionExpression": {
+            "type": "expression",
+            "expression": "orderValue < 1000"
+          }
+        },
+        {
+          "id": "high-value-flow",
+          "name": "Order >= $1000",
+          "sourceRef": "value-check",
+          "targetRef": "approval-task",
+          "conditionExpression": {
+            "type": "expression",
+            "expression": "orderValue >= 1000"
+          }
+        },
+        {
+          "id": "approval-flow",
+          "sourceRef": "approval-task",
+          "targetRef": "approval-merge"
+        },
+        {
+          "id": "merge-flow",
+          "sourceRef": "approval-merge",
+          "targetRef": "fulfillment-task"
+        },
+        {
+          "id": "flow5",
+          "sourceRef": "fulfillment-task",
+          "targetRef": "notification-task"
+        },
+        {
+          "id": "flow6",
+          "sourceRef": "notification-task",
+          "targetRef": "end-success"
+        },
+        {
+          "id": "timeout-flow",
+          "sourceRef": "timer1",
+          "targetRef": "end-cancel"
+        },
+        {
+          "id": "cancel-flow",
+          "name": "Cancel Order",
+          "sourceRef": "value-check",
+          "targetRef": "end-cancel",
+          "conditionExpression": {
+            "type": "expression",
+            "expression": "orderStatus == 'cancelled'"
+          }
+        }
+      ]
+    },
+    "dataObjects": [
+      {
+        "id": "order-data",
+        "name": "OrderData",
+        "properties": {
+          "orderId": "string",
+          "customerId": "string",
+          "orderValue": 0,
+          "items": [],
+          "status": "pending"
+        }
+      }
+    ],
+    "properties": [
+      {
+        "id": "timeout-duration",
+        "name": "Payment Timeout Duration",
+        "type": "duration",
+        "value": "30m"
+      },
+      {
+        "id": "approval-threshold",
+        "name": "Approval Threshold",
+        "type": "number",
+        "value": 1000
+      }
+    ]
+  }
+}

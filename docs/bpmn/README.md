@@ -11,6 +11,13 @@ This directory contains documentation for all BPMN 2.0 processes defined in the 
 - **Type**: Automated validation process
 - **Complexity**: Medium (Score: 21)
 
+### 2. Human Task Lifecycle Management System
+- **File**: [human-task-system.md](human-task-system.md)
+- **Definition**: `/definitions/bpmn/human-task-system.json`
+- **Purpose**: Human-in-the-loop task management for approvals, reviews, data entry, and decisions
+- **Type**: Human-System hybrid process
+- **Complexity**: High (Score: 46)
+
 ## Process Categories
 
 ### Validation & Testing
@@ -23,7 +30,7 @@ _(To be added)_
 _(To be added)_
 
 ### Operational Processes
-_(To be added)_
+- [Human Task Lifecycle Management System](human-task-system.md) - LIFO queue-based human task management
 
 ## Using BPMN Processes
 

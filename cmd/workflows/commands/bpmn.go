@@ -22,6 +22,7 @@ func NewBPMNCommand() *BPMNCommand {
 	cmd.Register(NewBPMNValidateCommand())
 	cmd.Register(NewBPMNAnalyzeCommand())
 	cmd.Register(NewBPMNRenderCommand())
+	cmd.Register(NewBPMNMigrateCommand())
 
 	return cmd
 }
@@ -37,4 +38,6 @@ func (c *BPMNCommand) Usage() {
 	println("  workflows bpmn validate process.json")
 	println("  workflows bpmn analyze workflow.json")
 	println("  workflows bpmn render -format dot process.json")
+	println("  workflows bpmn migrate process.bpmn")
+	println("  workflows bpmn migrate -o ./temporal -p myworkflows process.bpmn")
 }

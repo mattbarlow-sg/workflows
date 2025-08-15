@@ -566,17 +566,21 @@ func (c *MPCDiscoverCommand) checkNodeArtifacts(node *mpc.Node, needsBPMN, needs
 	}
 
 	// Check for BPMN first
-	if node.Artifacts.BPMN == nil || *node.Artifacts.BPMN == "" {
+	// If BPMN is nil, it means explicitly set to null (not required)
+	// If BPMN points to empty string, it means required but not created yet
+	if node.Artifacts.BPMN != nil && *node.Artifacts.BPMN == "" {
 		*needsBPMN = append(*needsBPMN, node)
 		return
 	}
 
 	// Check for formal spec and schemas
-	hasSpec := node.Artifacts.FormalSpec != nil && *node.Artifacts.FormalSpec != ""
-	hasSchemas := node.Artifacts.Schemas != nil && *node.Artifacts.Schemas != ""
-	hasTestGenerators := node.Artifacts.TestGenerators != nil && *node.Artifacts.TestGenerators != ""
+	// Only check if the field is not nil (meaning it's required)
+	// If nil, it means explicitly set to null (not required)
+	needsSpec := node.Artifacts.FormalSpec != nil && *node.Artifacts.FormalSpec == ""
+	needsSchemas := node.Artifacts.Schemas != nil && *node.Artifacts.Schemas == ""
+	needsTestGenerators := node.Artifacts.TestGenerators != nil && *node.Artifacts.TestGenerators == ""
 
-	if !hasSpec || !hasSchemas || !hasTestGenerators {
+	if needsSpec || needsSchemas || needsTestGenerators {
 		*needsSpecs = append(*needsSpecs, node)
 	}
 }

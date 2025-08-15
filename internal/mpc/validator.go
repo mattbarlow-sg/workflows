@@ -46,7 +46,12 @@ func (v *Validator) ValidateFile(filePath string) (*ValidationResult, error) {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	// Parse YAML
+	// First, validate artifacts structure using raw YAML parsing
+	if err := v.validateArtifactsStructure(data); err != nil {
+		return nil, fmt.Errorf("artifact structure validation failed: %w", err)
+	}
+
+	// Parse YAML normally
 	var mpc MPC
 	if err := yaml.Unmarshal(data, &mpc); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
@@ -112,6 +117,59 @@ func (v *Validator) validateSchemaWithPath(jsonData []byte, schemaPath string) (
 	documentLoader := gojsonschema.NewBytesLoader(jsonData)
 
 	return gojsonschema.Validate(schemaLoader, documentLoader)
+}
+
+// validateArtifactsStructure checks for unknown fields in artifacts sections
+func (v *Validator) validateArtifactsStructure(yamlData []byte) error {
+	// Parse the YAML into a generic structure to validate artifacts
+	var rawData map[string]interface{}
+	if err := yaml.Unmarshal(yamlData, &rawData); err != nil {
+		return fmt.Errorf("failed to parse YAML for structure validation: %w", err)
+	}
+
+	if v.verbose {
+		fmt.Println("DEBUG: Validating artifacts structure...")
+	}
+
+	// Check nodes for artifacts with unknown fields
+	if nodes, ok := rawData["nodes"].([]interface{}); ok {
+		if v.verbose {
+			fmt.Printf("DEBUG: Found %d nodes\n", len(nodes))
+		}
+		for i, node := range nodes {
+			if nodeMap, ok := node.(map[string]interface{}); ok {
+				if artifacts, hasArtifacts := nodeMap["artifacts"]; hasArtifacts && artifacts != nil {
+					// Get node ID for better error messages
+					nodeID := "unknown"
+					if id, hasID := nodeMap["id"].(string); hasID {
+						nodeID = id
+					}
+					
+					if artifactsMap, ok := artifacts.(map[string]interface{}); ok {
+						// Check each field in artifacts
+						validFields := map[string]bool{
+							"bpmn":            true,
+							"formal_spec":     true,
+							"schemas":         true,
+							"model_checking":  true,
+							"test_generators": true,
+						}
+						
+						for field := range artifactsMap {
+							if !validFields[field] {
+								if v.verbose {
+									fmt.Printf("DEBUG: Found invalid field '%s' in node '%s'\n", field, nodeID)
+								}
+								return fmt.Errorf("node '%s' (index %d) has invalid artifact field '%s'. Valid fields are: bpmn, formal_spec, schemas, model_checking, test_generators", nodeID, i, field)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	return nil
 }
 
 // isEnrichedFormat detects if the MPC uses the enriched artifact format
@@ -192,8 +250,9 @@ func (v *Validator) validateSemantics(mpc *MPC) ([]ValidationError, []Validation
 			})
 		}
 
-		// Validate artifacts if present
-		if node.Artifacts != nil {
+		// Validate artifacts if present and not empty
+		// Only validate if artifacts struct exists and has at least one non-nil field
+		if node.Artifacts != nil && v.hasAnyArtifact(node.Artifacts) {
 			if err := v.validateArtifacts(node.Artifacts, nodePath); err != nil {
 				warnings = append(warnings, ValidationWarning{
 					Path:    fmt.Sprintf("%s.artifacts", nodePath),
@@ -260,13 +319,23 @@ func (v *Validator) validateSemantics(mpc *MPC) ([]ValidationError, []Validation
 	return errors, warnings
 }
 
-func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) error {
-	// Check if at least one artifact is specified
-	hasArtifact := false
+// hasAnyArtifact checks if the artifacts struct has any non-nil field
+func (v *Validator) hasAnyArtifact(artifacts *Artifacts) bool {
+	if artifacts == nil {
+		return false
+	}
+	return artifacts.BPMN != nil ||
+		artifacts.FormalSpec != nil ||
+		artifacts.Schemas != nil ||
+		artifacts.ModelChecking != nil ||
+		artifacts.TestGenerators != nil
+}
 
+func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) error {
+	// Validate each artifact path if specified
+	
 	// BPMN
 	if artifacts.BPMN != nil && *artifacts.BPMN != "" {
-		hasArtifact = true
 		if !strings.HasSuffix(*artifacts.BPMN, ".json") && !strings.HasSuffix(*artifacts.BPMN, ".bpmn") {
 			return fmt.Errorf("BPMN file should have .json or .bpmn extension")
 		}
@@ -274,7 +343,6 @@ func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) err
 
 	// Formal Spec
 	if artifacts.FormalSpec != nil && *artifacts.FormalSpec != "" {
-		hasArtifact = true
 		if !strings.HasSuffix(*artifacts.FormalSpec, ".yaml") && !strings.HasSuffix(*artifacts.FormalSpec, ".yml") && !strings.HasSuffix(*artifacts.FormalSpec, ".json") {
 			return fmt.Errorf("formal spec file should have .yaml, .yml, or .json extension")
 		}
@@ -282,7 +350,6 @@ func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) err
 
 	// Schemas
 	if artifacts.Schemas != nil && *artifacts.Schemas != "" {
-		hasArtifact = true
 		if !strings.HasSuffix(*artifacts.Schemas, ".json") && !strings.HasSuffix(*artifacts.Schemas, ".go") {
 			return fmt.Errorf("schemas file should have .json or .go extension")
 		}
@@ -290,21 +357,13 @@ func (v *Validator) validateArtifacts(artifacts *Artifacts, nodePath string) err
 
 	// Model Checking
 	if artifacts.ModelChecking != nil && *artifacts.ModelChecking != "" {
-		hasArtifact = true
 		// TLA+ or Alloy files
 		if !strings.HasSuffix(*artifacts.ModelChecking, ".tla") && !strings.HasSuffix(*artifacts.ModelChecking, ".als") {
 			return fmt.Errorf("model checking file should have .tla or .als extension")
 		}
 	}
 
-	// Test Generators
-	if artifacts.TestGenerators != nil && *artifacts.TestGenerators != "" {
-		hasArtifact = true
-	}
-
-	if !hasArtifact {
-		return fmt.Errorf("artifacts defined but no artifact paths specified")
-	}
+	// Test Generators - no specific extension validation needed
 
 	return nil
 }

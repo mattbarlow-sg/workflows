@@ -18,11 +18,8 @@ model: opus
 
 # Instructions
 ## Phase 0: Generate Formal Property Artifacts
-   - Invariants Output `docs/properties/<node-id>-invariants.yaml`
-   - States Output: `docs/properties/<node-id>-states.yaml`
-   - Business Rules Output: `docs/properties/<node-id>-rules.yaml`
-   - Test Specification Output: `docs/properties/<node-id>-test-specs.yaml`
-   - Interface Specification Output: `docs/specs/<node-id>.yaml`
+   - Formal Specification Output: `docs/specs/<node-id>.yaml` (consolidates invariants, states, business rules, and interface specification)
+   - Test Specification Output: `docs/properties/<node-id>-test-specs.yaml` (test generators and test requirements)
 
 ## Phase 1: Generate Schemas
 ### Language-Specific Guidance
@@ -60,10 +57,7 @@ I'll adapt to your project's technology stack:
 - GraphQL endpoints →  Use `docs/examples/schema-graphql.md` (GraphQL SDL)
 
 ### Schema Outputs
-   - Core Schemas Output: `src/schemas/<node-id>.schema.[ts|rs|go|py]`
-   - Transformation Contracts Output: `src/schemas/<node-id>.transformations.[ts|rs|go|py]`
-   - Validation Contracts Output: `src/schemas/<node-id>.contracts.[ts|rs|go|py]`
-   - Interface Specification Output: `docs/specs/<node-id>.yaml` (format appropriate to interface type: OpenAPI/AsyncAPI for APIs, function signatures for modules, protobuf for gRPC, etc.)
+   - Schemas Output: `src/schemas/<node-id>.schema.[ts|rs|go|py]` (consolidates core schemas, transformations, and validation contracts)
 
 ## Phase 2: Final Validation and Documentation
 1. **Validation Checkpoint**
@@ -78,23 +72,39 @@ I'll adapt to your project's technology stack:
    - "✓ Test specifications comprehensive?"
 
 3. **MPC Plan Update**
-   - Update materialization to 1.0 (we're now fully confident we can execute this node)
+   - Review the MPC schema at `./schemas/mpc.json`.
+   - Add references to the new artifacts to `./ai/<CURRENT_IMPLEMENTATION_ID>/plan.yaml`:
+     * `bpmn`: Path to BPMN file if created (or null if not needed)
+     * `formal_spec`: Path to formal specification in `docs/specs/<node-id>.yaml`
+     * `schemas`: Path to schema file in `src/schemas/<node-id>.schema.*`
+     * `test_generators`: Path to test specs in `docs/properties/<node-id>-test-specs.yaml`
+     * `model_checking`: Path to TLA+/Alloy specs if created (or null if not needed)
+   - Update materialization to 1.0 (we're now fully confident we can execute this node).
+   - Run `./workflows mpc validate ai/<CURRENT_IMPLEMENTATION_ID>/plan.yaml` to validate your changes to the plan.
 
 ## Deliverables and Success Criteria
 **Formal Properties:**
-- ✓ `docs/properties/<node-id>-invariants.yaml` - Mathematical properties
-- ✓ `docs/properties/<node-id>-states.yaml` - State machine specification
-- ✓ `docs/properties/<node-id>-rules.yaml` - Business rules
-- ✓ `docs/properties/<node-id>-test-specs.yaml` - Test requirements
+- ✓ `docs/specs/<node-id>.yaml` - Formal specification including:
+  * Mathematical properties (invariants)
+  * State machine specification
+  * Business rules
+  * Interface/contract specification
+- ✓ `docs/properties/<node-id>-test-specs.yaml` - Test requirements and generators
 
 **Schema Specifications:**
-- ✓ `src/schemas/<node-id>.schema.[ts|rs|go|py]` - Core schemas
-- ✓ `src/schemas/<node-id>.transformations.*` - Data transformations
-- ✓ `src/schemas/<node-id>.contracts.*` - Validation contracts
-- ✓ `docs/specs/<node-id>.yaml` - Interface/contract specification
+- ✓ `src/schemas/<node-id>.schema.[ts|rs|go|py]` - Consolidated schema file including:
+  * Core data schemas
+  * Data transformations
+  * Validation contracts
 
 **MPC Plan Update:**
 - ✓ Node materialization: → 1.0 (full confidence in execution)
 - ✓ Status: "Specified" (ready for implementation)
-- ✓ All artifact paths documented
+- ✓ All artifact paths documented in correct fields:
+  * `formal_spec`: Points to consolidated spec file
+  * `schemas`: Points to single schema file
+  * `test_generators`: Points to test specifications
+  * `bpmn`: Set to null or path if created
+  * `model_checking`: Set to null or path if created
 - ✓ Dependencies identified
+- ✓ Validation passes: `./workflows mpc validate`

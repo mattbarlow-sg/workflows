@@ -16,7 +16,6 @@ allowed-tools: Bash(date:*),Bash(git:*),Bash(ls:*),Bash(head:*),Bash(echo:*),Bas
 - To view details about a particular node, run ` ./workflows mpc node ./ai/<CURRENT_IMPLEMENTATION_ID>/plan.yaml <NODE_ID>`.
 
 # Instructions
-- You will not create or edit files directly.
 - This work session is NOT about completing work in the plan. This is an interactive workshop.
 **IMPORTANT**: This is an interactive process. You MUST ask questions and get your input before generating any BPMN.
 
@@ -183,7 +182,8 @@ This interactive process will create a complete specification that's ready for i
    - "✓ Business rules documented?"
    - "✓ Test specifications comprehensive?"
 
-Invoke the @spec-generator subagent with the provided and generated context.
+## Invoke Subagent
+Invoke the spec-generator subagent with the provided and generated context.
 
 # Interactive Flow Example
 User: "I need to create specifications for the auth-endpoints node"
